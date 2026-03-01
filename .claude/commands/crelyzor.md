@@ -34,7 +34,7 @@ Current priority within Phase 1:
 
 ## Step 3 — Announce the Task
 
-Tell the user exactly what you're about to work on before starting:
+**HARD STOP. Output this announcement RIGHT NOW before any other tool calls or code reading.**
 
 ```
 CURRENT TASK
@@ -47,7 +47,9 @@ Why: [One sentence on why this is the priority right now]
 Starting now...
 ```
 
-Then immediately start working. Do not wait for confirmation unless the task is ambiguous.
+Do not open any implementation files before this text is output. The user must see the announcement first.
+
+After outputting the announcement, wait for the user to confirm ("ok", "go", "start", or any positive reply) before executing. If the task is unambiguous, say "Starting now — say stop to cancel." and proceed.
 
 ## Step 4 — Execute
 
@@ -96,7 +98,7 @@ Say "/crelyzor" to start.
 ## Rules
 
 - **One task at a time** — always
-- **Announce before starting** — never silently begin
+- **Announce FIRST, read code SECOND** — output the announcement block before opening any implementation files, no exceptions
 - **Read existing code first** — never write blind
 - **Ask to test** — never mark done without user verification
 - **Wait for test confirmation** before updating task list and moving on
