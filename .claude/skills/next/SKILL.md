@@ -1,5 +1,5 @@
 ---
-name: continue
+name: next
 description: Resume Crelyzor development. One task at a time. Read task lists, announce what we're working on, execute it, ask user to test, then announce the next task.
 ---
 
@@ -102,7 +102,7 @@ NEXT TASK
 Repo: [repo]
 What: [One sentence]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Say "continue" to start.
+Say "/next" to start.
 ```
 
 ---

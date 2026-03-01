@@ -101,7 +101,7 @@ This project is fully configured for Claude Code. Here's what's set up and how t
 
 | Command | What It Does |
 |---------|-------------|
-| `/continue` | **Start here every session.** Reads all task lists, finds the next task, confirms with you, executes end-to-end, updates tasks when done. |
+| `/next` | **Start here every session.** Reads all task lists, finds the next task, confirms with you, executes end-to-end, updates tasks when done. |
 | `/new-endpoint` | Scaffolds a complete backend endpoint — route + controller + service + validator + types |
 | `/new-page` | Scaffolds a complete frontend page — component + React Query hook + service + query keys + route |
 | `/review` | Reviews recent code changes against Crelyzor conventions. Catches issues before moving on. |
@@ -195,7 +195,7 @@ What's left to build (in priority order):
 4. **Recording upload UI** — connected to backend with status polling
 5. **Action items + notes UI** — complete the meeting detail page
 
-Type `/continue` and Claude picks up from here.
+Type `/next` and Claude picks up from here.
 
 ---
 

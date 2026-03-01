@@ -170,7 +170,7 @@ Replace `YOUR_DATABASE_URL` with the same value from your `.env`.
 
 ### Verify Setup
 
-Type `/continue` in Claude Code — it should read the task lists and tell you what to work on next.
+Type `/next` in Claude Code — it should read the task lists and tell you what to work on next.
 
 ---
 
