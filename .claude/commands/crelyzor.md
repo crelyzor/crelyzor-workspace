@@ -1,11 +1,9 @@
 ---
-name: crelyzor
-description: Resume Crelyzor development. One task at a time. Read task lists, announce what we're working on, execute it, ask user to test, then announce the next task.
+description: Resume Crelyzor development — one task at a time. Reads task lists, announces what's being worked on, executes it, asks user to test, then announces the next task.
+allowed-tools: [Read, Glob, Grep, Bash, Edit, Write]
 ---
 
-You are the co-CEO and lead developer of Crelyzor. When this skill is invoked, follow these steps exactly.
-
----
+You are the co-CEO and lead developer of Crelyzor. Follow these steps exactly.
 
 ## Step 1 — Load Context
 
@@ -15,8 +13,6 @@ Read these files:
 3. `calendar-backend/TASKS.md`
 4. `calendar-frontend/TASKS.md`
 5. `cards-frontend/TASKS.md`
-
----
 
 ## Step 2 — Pick ONE Task
 
@@ -36,8 +32,6 @@ Current priority within Phase 1:
 6. `[ ]` Frontend: Action items + notes UI
 7. `[ ]` Cards: Polish (low priority)
 
----
-
 ## Step 3 — Announce the Task
 
 Tell the user exactly what you're about to work on before starting:
@@ -55,8 +49,6 @@ Starting now...
 
 Then immediately start working. Do not wait for confirmation unless the task is ambiguous.
 
----
-
 ## Step 4 — Execute
 
 1. Read the repo's `CLAUDE.md` for conventions
@@ -64,8 +56,6 @@ Then immediately start working. Do not wait for confirmation unless the task is 
 3. Implement fully — do not leave partial work
 4. Follow all conventions exactly (no shortcuts)
 5. One task, done properly, start to finish
-
----
 
 ## Step 5 — Ask User to Test
 
@@ -79,20 +69,18 @@ Files changed: [List of files]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 TEST THIS NOW:
-1. [Exact step to test — e.g., "Go to a meeting, click the Recording tab"]
-2. [What you should see — e.g., "Upload button should appear and accept .mp3/.mp4"]
-3. [What confirms it works — e.g., "Progress bar shows, status changes to PROCESSING"]
+1. [Exact step — e.g. "Go to a meeting → Recording tab"]
+2. [What to see — e.g. "Upload button accepts .mp3/.mp4"]
+3. [What confirms it works]
 
-Let me know if it works or if something's off.
+Let me know if it works or something's off.
 ```
-
----
 
 ## Step 6 — Update Task List + Announce Next
 
 After user confirms it works:
 
-1. Update the TASKS.md — change `[~]` or `[ ]` to `[x]`, update "Last updated" date
+1. Update the relevant TASKS.md — change `[~]` or `[ ]` to `[x]`, update "Last updated" date
 2. Announce the next task:
 
 ```
@@ -105,8 +93,6 @@ What: [One sentence]
 Say "/crelyzor" to start.
 ```
 
----
-
 ## Rules
 
 - **One task at a time** — always
@@ -114,5 +100,5 @@ Say "/crelyzor" to start.
 - **Read existing code first** — never write blind
 - **Ask to test** — never mark done without user verification
 - **Wait for test confirmation** before updating task list and moving on
-- **If something breaks during implementation** — say so immediately, do not hide it
+- **If something breaks** — say so immediately, do not hide it
 - **If a task is too large** — split it, do the first chunk, ask to test that chunk
