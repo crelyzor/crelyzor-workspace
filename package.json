@@ -1,0 +1,22 @@
+{
+  "name": "crelyzor",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --names \"API,DASH,CARDS\" --prefix-colors \"cyan,green,yellow\" --kill-others-on-fail \"cd calendar-backend && pnpm dev\" \"cd calendar-frontend && pnpm dev\" \"cd cards-frontend && pnpm dev\"",
+    "dev:backend": "cd calendar-backend && pnpm dev",
+    "dev:frontend": "cd calendar-frontend && pnpm dev",
+    "dev:cards": "cd cards-frontend && pnpm dev",
+    "dev:worker": "cd calendar-backend && pnpm dev:worker",
+    "dev:full": "concurrently --names \"API,WORKER,DASH,CARDS\" --prefix-colors \"cyan,magenta,green,yellow\" --kill-others-on-fail \"cd calendar-backend && pnpm dev\" \"cd calendar-backend && pnpm dev:worker\" \"cd calendar-frontend && pnpm dev\" \"cd cards-frontend && pnpm dev\"",
+    "install:all": "cd calendar-backend && pnpm install && cd ../calendar-frontend && pnpm install && cd ../cards-frontend && pnpm install",
+    "build:all": "cd calendar-backend && pnpm build && cd ../calendar-frontend && pnpm build && cd ../cards-frontend && pnpm build",
+    "lint:all": "cd calendar-backend && pnpm lint && cd ../calendar-frontend && pnpm lint && cd ../cards-frontend && pnpm lint",
+    "db:studio": "cd calendar-backend && pnpm db:studio",
+    "db:migrate": "cd calendar-backend && pnpm db:migrate",
+    "db:push": "cd calendar-backend && pnpm db:push"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

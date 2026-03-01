@@ -1,0 +1,20 @@
+# Sub-repos — tracked independently on GitHub
+calendar-backend/
+calendar-frontend/
+cards-frontend/
+
+# Dependencies
+node_modules/
+
+# System
+.DS_Store
+*.log
+
+# Package manager
+.pnpm-store/
+
+# Editor
+.vscode/
+
+# Local Claude settings (keep skills/agents/settings.json but not local overrides)
+.claude/settings.local.json
