@@ -161,12 +161,25 @@ claude
 
 ### Add MCP Servers
 
+First, export the DB URL as a named env var (add this to your `~/.zshrc` or `~/.zprofile`):
+
 ```bash
-claude mcp add context7 -- npx -y @upstash/context7-mcp
-claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres "YOUR_DATABASE_URL"
+# Local Testing — Crelyzor DB URL (Neon PostgreSQL)
+export CRELYZOR_TEST_DB_URL="<your DATABASE_URL from calendar-backend/.env>"
 ```
 
-Replace `YOUR_DATABASE_URL` with the same value from your `.env`.
+Then reload your shell:
+
+```bash
+source ~/.zshrc
+```
+
+Now add the MCP servers:
+
+```bash
+claude mcp add context7 -- npx -y @upstash/context7-mcp
+claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres "$CRELYZOR_TEST_DB_URL"
+```
 
 ### Verify Setup
 

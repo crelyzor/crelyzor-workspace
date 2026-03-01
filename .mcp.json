@@ -8,7 +8,7 @@
     "postgres": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres", "${DATABASE_URL}"]
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${CRELYZOR_TEST_DB_URL}"]
     }
   }
 }
