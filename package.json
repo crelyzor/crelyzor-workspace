@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently --names \"API,DASH,CARDS\" --prefix-colors \"cyan,green,yellow\" --kill-others-on-fail \"cd calendar-backend && pnpm dev\" \"cd calendar-frontend && pnpm dev\" \"cd cards-frontend && pnpm dev\"",
+    "dev": "concurrently --names \"API,WORKER,DASH,CARDS\" --prefix-colors \"cyan,magenta,green,yellow\" --kill-others-on-fail \"cd calendar-backend && pnpm dev\" \"cd calendar-backend && pnpm dev:worker\" \"cd calendar-frontend && pnpm dev\" \"cd cards-frontend && pnpm dev\"",
     "dev:backend": "cd calendar-backend && pnpm dev",
     "dev:frontend": "cd calendar-frontend && pnpm dev",
     "dev:cards": "cd cards-frontend && pnpm dev",
