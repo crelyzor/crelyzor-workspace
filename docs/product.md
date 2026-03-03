@@ -71,7 +71,7 @@ A workspace shared between multiple users.
 
 **Status:**
 - Backend pipeline: Built (upload → GCS → Deepgram → OpenAI)
-- Frontend: Partially built (mock data, needs API integration)
+- Frontend: Built (transcript, summary, tasks, notes, edit, delete — all wired to real API)
 - Ask AI: Not built
 
 ---
@@ -117,7 +117,7 @@ A workspace shared between multiple users.
 - Full transcript used as context
 - Conversation history preserved per meeting
 
-**Status:** Pre-generated — backend built, frontend needs integration. Ask AI — not built.
+**Status:** Pre-generated — backend + frontend built. Ask AI — not built.
 
 ---
 
@@ -152,7 +152,7 @@ A workspace shared between multiple users.
 
 ---
 
-### 7. Tasks (Phase 3)
+### 7. Tasks
 
 **What it is:** Todoist-style task management, deeply integrated with meetings and AI.
 
@@ -163,7 +163,9 @@ A workspace shared between multiple users.
 - Due dates, priorities, status
 - AI can assign tasks from meeting summaries
 
-**Status:** Not built
+**Status:**
+- Meeting-linked tasks (CRUD, mark complete, inline create, delete): Built in Phase 1
+- Standalone tasks page (Todoist-style, decoupled from meetings): Phase 3 — not built
 
 ---
 
@@ -177,15 +179,17 @@ A workspace shared between multiple users.
 | Card Contacts | ✅ | ✅ |
 | Meetings CRUD | ✅ | ✅ |
 | Meeting List | ✅ | ✅ |
-| Offline Recording Upload | ✅ | Needs wiring |
-| Deepgram Transcription | ✅ | Needs wiring |
-| AI Summary + Key Points | ✅ | Needs wiring |
-| Action Items | ✅ | Needs wiring |
-| Meeting Notes | ✅ | Needs wiring |
-| Transcription Status Polling | ✅ | Missing |
+| Edit Meeting (SCHEDULED) | ✅ | ✅ |
+| Delete Meeting | ✅ | ✅ |
+| Offline Recording Upload | ✅ | ✅ |
+| Deepgram Transcription | ✅ | ✅ |
+| Transcription Status Polling | ✅ | ✅ |
+| AI Summary + Key Points | ✅ | ✅ |
+| Tasks (meeting-linked) | ✅ | ✅ |
+| Meeting Notes | ✅ | ✅ |
 | Ask AI (per meeting) | ❌ | ❌ |
 | Recall.ai Integration | ❌ | ❌ |
 | Cal.com Scheduling | Partial | Partial |
 | AI Big Brain | ❌ | ❌ |
-| Tasks | ❌ | ❌ |
+| Tasks (standalone) | ❌ | ❌ |
 | Teams | ❌ | ❌ |

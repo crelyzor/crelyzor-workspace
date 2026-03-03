@@ -31,17 +31,19 @@ Ship a solo product that feels like one unified system — not three features du
 - [x] Speaker diarization (who said what)
 - [x] Speaker rename
 - [x] OpenAI summary + key points
-- [x] Tasks extraction (was "action items")
+- [x] Task model — `Task` with `TaskSource` + `TaskPriority` enums, replaces `MeetingActionItem`
+- [x] Tasks CRUD API (`GET/POST /meetings/:id/tasks`, `PATCH/DELETE /tasks/:id`)
 - [x] Meeting notes CRUD (backend)
+- [x] Delete meeting endpoint (`DELETE /meetings/:id`, soft delete)
 - [x] 3 distinct MeetingDetail layouts by type
 - [x] Voice Notes as separate section
 
-**P0 — Core UX (in progress)**
-- [ ] Auth refresh token (no more forced re-login)
-- [ ] Meeting notes UI
-- [ ] Tasks UI — CRUD, mark complete, create inline (surfaced as "Tasks" not "Action Items")
-- [ ] Edit meeting modal (SCHEDULED)
-- [ ] Delete meeting (VOICE_NOTE + RECORDED)
+**P0 — Core UX (done ✅)**
+- [x] Auth refresh token (no more forced re-login)
+- [x] Meeting notes UI
+- [x] Tasks UI — CRUD, mark complete, create inline, delete (surfaced as "Tasks")
+- [x] Edit meeting modal (SCHEDULED only)
+- [x] Delete meeting (VOICE_NOTE + RECORDED, with confirm dialog)
 
 **P1 — AI & Sharing**
 - [ ] Ask AI — per meeting, streaming chat, pre-loaded suggestions
@@ -110,8 +112,10 @@ Ship a solo product that feels like one unified system — not three features du
 
 **Prerequisite:** Phase 2 (AI should drive task generation intelligently).
 
-- [ ] `Task` model — standalone with optional `meetingId`, `dueDate`, `priority`, `status`
-- [ ] Meeting-linked tasks (current `MeetingActionItem`) promoted / migrated to `Task`
+> Note: The `Task` model (with `TaskSource` + `TaskPriority` enums) was built early in Phase 1 to support meeting-linked tasks. Phase 3 evolves it into a standalone, first-class system.
+
+- [x] `Task` model — `meetingId`, `TaskSource`, `TaskPriority`, CRUD API (built in Phase 1)
+- [ ] Standalone tasks — decouple from meetings (optional `meetingId`, add `dueDate`, `status`)
 - [ ] Task list page — filter, sort, priority, due date
 - [ ] AI task suggestions from meetings (auto-create, not just display)
 - [ ] Tags across Tasks (extends the universal Tag system from Phase 1)
@@ -131,6 +135,6 @@ Will be designed after Solo Phases 1-3 are complete.
 
 | Old name | New name | Notes |
 |---|---|---|
-| Action Items | **Tasks** | UI only — backend model `MeetingActionItem` stays until Phase 3 |
+| Action Items | **Tasks** | Renamed in UI + backend — `Task` model replaced `MeetingActionItem` in Phase 1 |
 | Ask AI (per meeting) | **Ask AI** | Phase 1. Global AI = Phase 2 Big Brain. |
 | Action Items tab | **Tasks tab** | Rename in all 3 MeetingDetail layouts |
