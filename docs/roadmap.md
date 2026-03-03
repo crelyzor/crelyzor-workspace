@@ -10,46 +10,61 @@ Ship a solo product that feels like one unified system — not three features du
 
 **Goal:** A solo user can manage their identity, run meetings offline, and get full AI intelligence from those meetings.
 
-### Deliverables
+**We are here.**
 
-**Digital Cards**
+### Digital Cards
 - [x] Card creation and editor
 - [x] Public shareable card page
 - [x] QR code generation
 - [x] vCard download
 - [x] Contact exchange (lead capture)
 - [x] Card analytics
-- [ ] Email signature generator (polish)
-- [ ] Card templates polish
+- [ ] Email signature generator (polish — low priority)
+- [ ] Card templates polish (low priority)
 
-**Offline Smart Meetings**
-- [x] Meeting creation (CRUD)
-- [x] Meetings list with filters
+### Smart Meeting Recordings
+
+**Infrastructure (done)**
+- [x] Meeting creation (CRUD) — SCHEDULED | RECORDED | VOICE_NOTE
 - [x] Recording upload to GCS
 - [x] Deepgram transcription pipeline
 - [x] Speaker diarization (who said what)
+- [x] Speaker rename
 - [x] OpenAI summary + key points
-- [x] Action items extraction
-- [x] Meeting notes
-- [ ] Wire MeetingDetail frontend to real API (transcript, summary, action items)
-- [ ] Recording upload UI connected to backend
-- [ ] Real-time transcription status polling
-- [ ] Action items UI (mark complete, edit, create manually)
-- [ ] Notes UI (create, delete)
-- [ ] Edit meeting functionality
+- [x] Tasks extraction (was "action items")
+- [x] Meeting notes CRUD (backend)
+- [x] 3 distinct MeetingDetail layouts by type
+- [x] Voice Notes as separate section
 
-**Ask AI (Per Meeting)**
-- [ ] Backend: POST /sma/meetings/:meetingId/ask
-- [ ] Context: Full transcript injected into OpenAI prompt
-- [ ] Frontend: Chat interface in meeting detail
-- [ ] Pre-generated: Auto-surface decisions, key moments, follow-ups
+**P0 — Core UX (in progress)**
+- [ ] Auth refresh token (no more forced re-login)
+- [ ] Meeting notes UI
+- [ ] Tasks UI — CRUD, mark complete, create inline (surfaced as "Tasks" not "Action Items")
+- [ ] Edit meeting modal (SCHEDULED)
+- [ ] Delete meeting (VOICE_NOTE + RECORDED)
 
-**Home Dashboard**
-- [ ] Command center feel
-- [ ] Today's meetings widget
-- [ ] Recent action items widget
-- [ ] Quick record a meeting CTA
-- [ ] Cards widget
+**P1 — AI & Sharing**
+- [ ] Ask AI — per meeting, streaming chat, pre-loaded suggestions
+- [ ] Share sheet — copy transcript, copy summary, download audio, share via email
+- [ ] AI content generation — Meeting report, Main points, Tweet, Blog post, Email
+- [ ] Regenerate title, Regenerate summary
+
+**P2 — Power Features**
+- [ ] Public meeting links (short URL, enable/disable)
+- [ ] Export — Transcript/Summary as PDF or TXT
+- [ ] Tags — universal system (meetings + cards, extendable to Tasks)
+- [ ] Attachments — file, photo, link on meetings
+- [ ] Edit transcript segments + summary inline
+- [ ] Regenerate transcript, Change language
+- [ ] UI revamp — rethink MeetingDetail layout to fit all new features
+
+### Home Dashboard
+- [x] Recent meetings widget
+- [x] Recent voice notes widget
+- [x] Quick record CTA (FAB)
+- [x] Cards widget
+- [ ] Today's meetings widget (filtered to today, not just recent)
+- [ ] Pending tasks widget across all meetings
 
 ---
 
@@ -57,18 +72,16 @@ Ship a solo product that feels like one unified system — not three features du
 
 **Goal:** Same AI intelligence but for online meetings via Recall.ai bot.
 
-**Prerequisite:** Phase 1 complete.
+**Prerequisite:** Phase 1 P0 + P1 complete.
 
-### Deliverables
-
-**Recall.ai Integration**
+### Recall.ai Integration
 - [ ] Recall.ai API integration (backend)
 - [ ] Bot deployment — joins Google Meet / Zoom
-- [ ] Stream audio to Deepgram using existing credentials
+- [ ] Stream audio to Deepgram using existing pipeline
 - [ ] Same transcription + AI pipeline triggers automatically
 
-**Cal.com Style Scheduling**
-- [ ] Availability settings UI (recurring + custom)
+### Cal.com Style Scheduling
+- [ ] Availability settings (recurring + custom windows)
 - [ ] Public booking page
 - [ ] Google Calendar sync (read + write)
 - [ ] Time zone handling
@@ -76,62 +89,48 @@ Ship a solo product that feels like one unified system — not three features du
 
 ---
 
-## Phase 2 — Big Brain
+## Phase 2 — Big Brain (Global AI)
 
 **Goal:** One AI that knows everything about the user across all of Crelyzor.
 
 **Prerequisite:** Phase 1.2 complete. Enough meeting data to make it useful.
 
-### Deliverables
-
-- [ ] Vector embeddings for all transcripts, notes, action items
+- [ ] Vector embeddings for all transcripts, notes, tasks
 - [ ] RAG pipeline over user's full data
-- [ ] "Ask anything" interface at the app level (not per meeting)
-- [ ] Proactive nudges: missed follow-ups, upcoming meeting context
+- [ ] Global "Ask anything" interface (not per-meeting — this is the Phase 3 evolution of Ask AI)
+- [ ] Proactive nudges — missed follow-ups, upcoming meeting prep
 - [ ] "Prepare me for my 3pm call" feature
 - [ ] Cross-meeting insights: "What do I know about Acme Corp?"
 
 ---
 
-## Phase 3 — Tasks
+## Phase 3 — Standalone Tasks
 
-**Goal:** Todoist-style task management, deeply connected to meetings and AI.
+**Goal:** Todoist-style task management, deeply connected to meetings and AI. Tasks grow up from meeting-linked items to first-class standalone objects.
 
-**Prerequisite:** Phase 2 complete (AI generates and manages tasks intelligently).
+**Prerequisite:** Phase 2 (AI should drive task generation intelligently).
 
-### Deliverables
-
-- [ ] Task creation (manual)
-- [ ] Task list with filters, priorities, due dates
-- [ ] Auto-generate tasks from meeting action items
-- [ ] Link tasks to meetings and contacts
-- [ ] AI task suggestions based on meeting content
-- [ ] Task completion tracking
+- [ ] `Task` model — standalone with optional `meetingId`, `dueDate`, `priority`, `status`
+- [ ] Meeting-linked tasks (current `MeetingActionItem`) promoted / migrated to `Task`
+- [ ] Task list page — filter, sort, priority, due date
+- [ ] AI task suggestions from meetings (auto-create, not just display)
+- [ ] Tags across Tasks (extends the universal Tag system from Phase 1)
+- [ ] Link tasks to contacts (cards)
 
 ---
 
 ## Future — Teams
 
-**Goal:** Everything in Phase 1-3 but shared across a team workspace.
+**Not scoped. Do not build.**
 
-**Not scoped yet. Will be designed after Solo is complete.**
-
-Topics to design:
-- Workspace and roles (Owner, Admin, Member)
-- Shared meeting rooms
-- Collaborative AI summaries
-- Assigned action items across team members
-- Team digital cards
-- Billing and seat management
+Will be designed after Solo Phases 1-3 are complete.
 
 ---
 
-## Current Focus
+## Naming Decisions (locked)
 
-**We are here:** Phase 1 — wiring the frontend to real data + building Ask AI.
-
-Next immediate tasks (in order):
-1. Wire MeetingDetail to real API
-2. Build Ask AI backend endpoint
-3. Build Ask AI frontend chat interface
-4. Home Dashboard polish
+| Old name | New name | Notes |
+|---|---|---|
+| Action Items | **Tasks** | UI only — backend model `MeetingActionItem` stays until Phase 3 |
+| Ask AI (per meeting) | **Ask AI** | Phase 1. Global AI = Phase 2 Big Brain. |
+| Action Items tab | **Tasks tab** | Rename in all 3 MeetingDetail layouts |
