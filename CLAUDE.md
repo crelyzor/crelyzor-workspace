@@ -98,13 +98,13 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 1 — Offline First** (P1 AI & Sharing done ✅ — now on P2)
+**Phase 1 — Offline First** (P1 AI & Sharing done ✅, `cards-frontend` Next.js migration done ✅ — now on P2)
 
 Priority order:
-1. **Migrate `cards-frontend` to Next.js** — prerequisite for all public page work
-2. **Public meeting links** — backend publish model + dashboard toggle + public page at `/m/:id`
-3. Export — Transcript/Summary as PDF or TXT
-4. Tags, Attachments, Edit transcript inline
+1. **Public meeting links** — backend publish model + dashboard toggle + public page at `/m/:id` in cards-frontend
+2. Export — Transcript/Summary as PDF or TXT
+3. Tags, Attachments, Edit transcript inline
+4. Mobile responsiveness + UI revamp (`calendar-frontend`)
 
 **Do not start Phase 1.2 (Recall.ai, scheduling) until Phase 1 P2 is complete.**
 

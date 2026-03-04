@@ -52,7 +52,7 @@ Ship a solo product that feels like one unified system — not three features du
 - [x] Regenerate title, Regenerate summary
 
 **P2 — Public Links & Power Features** ← current focus
-- [ ] **Migrate `cards-frontend` to Next.js** — mobile-first, PWA (dynamic manifest per username), SSR + SEO + OG previews
+- [x] **Migrate `cards-frontend` to Next.js** — mobile-first, PWA (dynamic manifest per username), SSR + SEO + OG previews
 - [ ] **Public meeting links** — shortId, publish/unpublish toggle in dashboard, selective publish (transcript/summary/tasks), public page at `/m/:id` in cards-frontend
 - [ ] Export — Transcript/Summary as PDF or TXT
 - [ ] Tags — universal system (meetings + cards, extendable to Tasks)

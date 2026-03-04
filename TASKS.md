@@ -85,7 +85,7 @@ Task {
 
 ### P2 — Public Links & Power Features ← current focus
 
-1. **`cards-frontend`:** Migrate to Next.js App Router — mobile-first, PWA setup, SSR + SEO + OG previews
+1. ~~**`cards-frontend`:** Migrate to Next.js App Router — mobile-first, PWA setup, SSR + SEO + OG previews~~ ✅
 2. **Backend + Frontend + Public:** Public meeting links
    - Backend: `shortId` on Meeting, `publishedFields` (transcript/summary/tasks flags), `POST /sma/meetings/:id/publish`, `GET /public/meetings/:shortId`
    - Dashboard (`calendar-frontend`): Publish toggle + field checkboxes + "Copy link" button on MeetingDetail
@@ -100,7 +100,6 @@ Task {
 ---
 
 ### Not Built Yet ❌
-- `cards-frontend` Next.js migration
 - Public meeting links (backend publish model + dashboard toggle + `/m/:id` public page)
 - Export (PDF/TXT)
 - Tags
