@@ -85,7 +85,7 @@ Task {
 
 ### P2 — Public Links & Power Features ← current focus
 
-1. **`cards-frontend`:** Migrate to Next.js App Router — prerequisite for all public page work (SSR + SEO + OG previews)
+1. **`cards-frontend`:** Migrate to Next.js App Router — mobile-first, PWA setup, SSR + SEO + OG previews
 2. **Backend + Frontend + Public:** Public meeting links
    - Backend: `shortId` on Meeting, `publishedFields` (transcript/summary/tasks flags), `POST /sma/meetings/:id/publish`, `GET /public/meetings/:shortId`
    - Dashboard (`calendar-frontend`): Publish toggle + field checkboxes + "Copy link" button on MeetingDetail
@@ -95,7 +95,7 @@ Task {
 5. **Backend + Frontend:** Attachments — file/photo/link on meetings
 6. **Backend + Frontend:** Edit transcript segments + summary content inline
 7. **Backend:** Regenerate transcript, Change language (re-run Deepgram)
-8. **Frontend:** UI revamp — new layout to accommodate all the new feature surface area
+8. **Frontend (`calendar-frontend`):** Mobile responsiveness + UI revamp — sidebar → bottom tab bar on mobile, meeting detail stacked layout on mobile, full responsive pass across all pages
 
 ---
 

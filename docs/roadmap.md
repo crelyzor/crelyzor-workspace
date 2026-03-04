@@ -52,14 +52,14 @@ Ship a solo product that feels like one unified system — not three features du
 - [x] Regenerate title, Regenerate summary
 
 **P2 — Public Links & Power Features** ← current focus
-- [ ] **Migrate `cards-frontend` to Next.js** — prerequisite for all public page work (SSR + SEO)
+- [ ] **Migrate `cards-frontend` to Next.js** — mobile-first, PWA (dynamic manifest per username), SSR + SEO + OG previews
 - [ ] **Public meeting links** — shortId, publish/unpublish toggle in dashboard, selective publish (transcript/summary/tasks), public page at `/m/:id` in cards-frontend
 - [ ] Export — Transcript/Summary as PDF or TXT
 - [ ] Tags — universal system (meetings + cards, extendable to Tasks)
 - [ ] Attachments — file, photo, link on meetings
 - [ ] Edit transcript segments + summary inline
 - [ ] Regenerate transcript, Change language
-- [ ] UI revamp — rethink MeetingDetail layout to fit all new feature surface area
+- [ ] Mobile responsiveness + UI revamp — sidebar → bottom tab bar on mobile, meeting detail stacked on mobile, full responsive pass (`calendar-frontend`)
 
 ### Home Dashboard
 - [x] Recent meetings widget
