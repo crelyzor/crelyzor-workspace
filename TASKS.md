@@ -71,24 +71,11 @@ Task {
 
 ---
 
-### P0 — Build Next
+### P1 — Build Next
 
-1. **Backend:** `Task` model — schema + migration + update AI extraction to write `Task` instead of `MeetingActionItem`
-2. **Backend:** Tasks CRUD API (`GET/POST /meetings/:id/tasks`, `PATCH/DELETE /tasks/:id`)
-3. **Auth:** Refresh token (backend endpoint + frontend interceptor)
-4. **Frontend:** Meeting notes UI (backend already done — create, delete, show with author + timestamp)
-5. **Frontend:** Tasks UI — CRUD (mark complete, create inline, delete)
-6. **Frontend:** Edit meeting modal (SCHEDULED only — title, description, time, location)
-7. **Frontend:** Delete meeting (VoiceNote + Recorded — confirm dialog, nav back)
-
----
-
-### P1 — High Value Next Sprint
-
-6. **Backend + Frontend:** Ask AI — `POST /sma/meetings/:id/ask`, streaming, chat panel in MeetingDetail
-7. **Frontend:** Share sheet — Copy transcript, Copy summary, Download Audio (all types)
-8. **Backend + Frontend:** AI content generation — Meeting report, Main points, Tweet, Blog post, Email
-9. **Backend + Frontend:** Regenerate — title, summary (quick-action buttons, simple re-trigger endpoints)
+1. **Frontend:** Share sheet — Copy transcript, Copy summary, Download Audio (all types)
+2. **Backend + Frontend:** Regenerate — title, summary (quick-action buttons, simple re-trigger endpoints)
+3. **Backend + Frontend:** AI content generation — Meeting report, Main points, Tweet, Blog post, Email
 
 ---
 
@@ -106,17 +93,9 @@ Task {
 ---
 
 ### Not Built Yet ❌
-- `Task` model (replacing MeetingActionItem)
-- Tasks CRUD API
-- Auth refresh token
-- Meeting notes UI
-- Tasks UI (CRUD)
-- Edit meeting modal
-- Delete meeting
-- Ask AI (backend + frontend)
 - Share sheet
+- Regenerate actions (title, summary)
 - AI content generation (report, tweet, blog, etc.)
-- Regenerate actions
 - Public meeting links
 - Export (PDF/TXT)
 - Tags
