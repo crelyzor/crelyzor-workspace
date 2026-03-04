@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-03-04
+Last updated: 2026-03-05
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -63,11 +63,14 @@ Task {
 - Theme flash eliminated, light mode softened
 - Auth refresh token (backend + frontend interceptor)
 - Meeting notes UI — create, delete, timestamp, all 3 layouts
-- Tasks UI — CRUD, optimistic toggle, inline create, all 3 layouts
+- Tasks UI — CRUD, optimistic toggle, inline create, ⋯ copy menu, all 3 layouts
 - Edit meeting modal (SCHEDULED — title, description, time, location, conflict detection)
 - Delete meeting (VoiceNote + Recorded — confirm dialog, nav back)
 - Ask AI — streaming SSE endpoint + chat panel in all 3 layouts (suggestion chips, session history)
 - Button/modal theming fixed — Tailwind v4 CSS variable utilities now resolve correctly
+- Share sheet — Copy transcript/summary, Download audio, Share via email (all 3 layouts)
+- Regenerate title + summary (quick-action buttons, all 3 layouts)
+- AI content generation — Meeting Report, Tweet, Blog Post, Follow-up Email (cached in DB, all 3 layouts)
 
 ---
 
@@ -75,7 +78,7 @@ Task {
 
 1. ~~**Frontend:** Share sheet — Copy transcript, Copy summary, Download Audio (all types)~~ ✅
 2. ~~**Backend + Frontend:** Regenerate — title, summary (quick-action buttons, simple re-trigger endpoints)~~ ✅
-3. **Backend + Frontend:** AI content generation — Meeting report, Main points, Tweet, Blog post, Email
+3. ~~**Backend + Frontend:** AI content generation — Meeting Report, Tweet, Blog Post, Follow-up Email~~ ✅
 
 ---
 
@@ -93,9 +96,6 @@ Task {
 ---
 
 ### Not Built Yet ❌
-- Share sheet
-- Regenerate actions (title, summary)
-- AI content generation (report, tweet, blog, etc.)
 - Public meeting links
 - Export (PDF/TXT)
 - Tags
