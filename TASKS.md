@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-03-05
+Last updated: 2026-03-04
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -74,29 +74,34 @@ Task {
 
 ---
 
-### P1 — Build Next
+### P1 — AI & Sharing ✅ Done
 
 1. ~~**Frontend:** Share sheet — Copy transcript, Copy summary, Download Audio (all types)~~ ✅
 2. ~~**Backend + Frontend:** Regenerate — title, summary (quick-action buttons, simple re-trigger endpoints)~~ ✅
 3. ~~**Backend + Frontend:** AI content generation — Meeting Report, Tweet, Blog Post, Follow-up Email~~ ✅
+4. ~~**Backend + Frontend:** Ask AI — streaming SSE + chat panel (suggestion chips, session history)~~ ✅
 
 ---
 
-### P2 — Deeper Features
+### P2 — Public Links & Power Features ← current focus
 
-10. **Backend + Frontend:** Public meeting links — shortId share URL, disable/enable toggle
-11. **Backend + Frontend:** Export — Transcript as PDF/TXT, Summary as PDF/TXT
-12. **Frontend:** Share via email
-13. **Backend + Frontend:** Tags — universal system (meetings first, then cards)
-14. **Backend + Frontend:** Attachments — file/photo/link on meetings
-15. **Backend + Frontend:** Edit transcript segments + summary content inline
-16. **Backend:** Regenerate transcript, Change language (re-run Deepgram)
-17. **Frontend:** UI revamp — new layout to accommodate all the new feature surface area
+1. **`cards-frontend`:** Migrate to Next.js App Router — prerequisite for all public page work (SSR + SEO + OG previews)
+2. **Backend + Frontend + Public:** Public meeting links
+   - Backend: `shortId` on Meeting, `publishedFields` (transcript/summary/tasks flags), `POST /sma/meetings/:id/publish`, `GET /public/meetings/:shortId`
+   - Dashboard (`calendar-frontend`): Publish toggle + field checkboxes + "Copy link" button on MeetingDetail
+   - Public page (`cards-frontend`): `/m/:id` — SSR page showing selected content
+3. **Backend + Frontend:** Export — Transcript as PDF/TXT, Summary as PDF/TXT
+4. **Backend + Frontend:** Tags — universal system (meetings first, then cards)
+5. **Backend + Frontend:** Attachments — file/photo/link on meetings
+6. **Backend + Frontend:** Edit transcript segments + summary content inline
+7. **Backend:** Regenerate transcript, Change language (re-run Deepgram)
+8. **Frontend:** UI revamp — new layout to accommodate all the new feature surface area
 
 ---
 
 ### Not Built Yet ❌
-- Public meeting links
+- `cards-frontend` Next.js migration
+- Public meeting links (backend publish model + dashboard toggle + `/m/:id` public page)
 - Export (PDF/TXT)
 - Tags
 - Attachments

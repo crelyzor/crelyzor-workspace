@@ -39,7 +39,7 @@ A workspace shared between multiple users.
 - Multiple cards per user (personal, professional, event-specific)
 - QR code generation for in-person sharing
 - vCard download (saves to phone contacts)
-- Public card page at `/:username` or `/:username/:slug`
+- Public card page at `/:username` or `/:username/:slug` — served by `cards-frontend` (Next.js, SSR)
 - Contact exchange — scanner submits their info, user captures a lead
 - Card analytics — views, link clicks, geo data, referrers
 - Email signature generator
@@ -71,8 +71,9 @@ A workspace shared between multiple users.
 
 **Status:**
 - Backend pipeline: Built (upload → GCS → Deepgram → OpenAI)
-- Frontend: Built (transcript, summary, tasks, notes, edit, delete — all wired to real API)
-- Ask AI: Not built
+- Frontend: Built (transcript, summary, tasks, notes, edit, delete, Ask AI — all wired to real API)
+- Share sheet, AI content generation, Regenerate: Built
+- Public meeting links: Not built (Phase 1 P2)
 
 ---
 
@@ -142,8 +143,8 @@ A workspace shared between multiple users.
 **What it is:** Cal.com-style availability and booking for solo users.
 
 **Key capabilities:**
-- Set your availability (recurring + custom overrides)
-- Share a booking link — others book slots directly
+- Set your availability (recurring + custom overrides) — managed in `calendar-frontend` dashboard
+- Share a booking link — public page at `/schedule/:username` in `cards-frontend` (Next.js, SSR)
 - Google Calendar sync (reads existing events, writes new bookings)
 - Meeting confirmation and reminders
 - Time zone handling
@@ -187,7 +188,9 @@ A workspace shared between multiple users.
 | AI Summary + Key Points | ✅ | ✅ |
 | Tasks (meeting-linked) | ✅ | ✅ |
 | Meeting Notes | ✅ | ✅ |
-| Ask AI (per meeting) | ❌ | ❌ |
+| Ask AI (per meeting) | ✅ | ✅ |
+| Share sheet + AI content gen | ✅ | ✅ |
+| Public meeting links | ❌ | ❌ |
 | Recall.ai Integration | ❌ | ❌ |
 | Cal.com Scheduling | Partial | Partial |
 | AI Big Brain | ❌ | ❌ |

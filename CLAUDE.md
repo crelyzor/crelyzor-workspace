@@ -23,8 +23,16 @@ An all-in-one productivity OS for professionals.
 | Repo | Role | Port |
 |------|------|------|
 | `calendar-backend` | Node.js + Express API — all business logic | 3000 |
-| `calendar-frontend` | React dashboard — meetings, cards, settings | 5173 |
-| `cards-frontend` | React — public card pages only (`/:username`) | 5174 |
+| `calendar-frontend` | React + Vite dashboard — meetings, cards, settings (auth required) | 5173 |
+| `cards-frontend` | Next.js — all public-facing pages (no auth, SEO-critical) | 5174 |
+
+**`cards-frontend` is the public frontend** — all public, shareable, SEO-indexed URLs live here:
+- `/:username` — public card / profile page
+- `/schedule/:username` — availability + booking (Phase 1.2)
+- `/m/:id` — published meeting (transcript, summary, tasks — Phase 1 P2)
+
+`calendar-frontend` is the authenticated dashboard. No public routes live there.
+Both repos are **fully independent** — no shared packages, no monorepo. Same design language (Tailwind + shadcn/ui) maintained by convention.
 
 ---
 
@@ -45,10 +53,10 @@ cd calendar-frontend
 pnpm install
 pnpm dev              # Vite on :5173
 
-# Cards (public pages)
+# Public frontend (Next.js)
 cd cards-frontend
 pnpm install
-pnpm dev              # Vite on :5174
+pnpm dev              # Next.js on :5174
 ```
 
 ---
@@ -90,15 +98,15 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 1 — Offline First** (we are here)
+**Phase 1 — Offline First** (P1 AI & Sharing done ✅ — now on P2)
 
 Priority order:
-1. Wire `MeetingDetail` frontend to real API (transcript, summary, action items)
-2. Build Ask AI — `POST /sma/meetings/:id/ask` backend + chat UI
-3. Home dashboard as command center
-4. Cards polish
+1. **Migrate `cards-frontend` to Next.js** — prerequisite for all public page work
+2. **Public meeting links** — backend publish model + dashboard toggle + public page at `/m/:id`
+3. Export — Transcript/Summary as PDF or TXT
+4. Tags, Attachments, Edit transcript inline
 
-**Do not start Phase 1.2 (Recall.ai, scheduling) until Phase 1 is complete.**
+**Do not start Phase 1.2 (Recall.ai, scheduling) until Phase 1 P2 is complete.**
 
 Full roadmap: `docs/roadmap.md`
 
@@ -123,6 +131,7 @@ Key route groups:
 - `/meetings/*` — Meeting CRUD
 - `/cards/*` — Card management (auth required)
 - `/public/cards/*` — Public card pages (no auth)
+- `/public/meetings/:shortId` — Published meeting pages (no auth — Phase 1 P2)
 - `/sma/*` — Smart Meeting Assistant (transcription, AI, Ask AI)
 - `/users/*` — Profile management
 
@@ -132,7 +141,9 @@ Key route groups:
 
 **Backend:** Express 5, TypeScript 5, Prisma 6, PostgreSQL, Bull + Redis, OpenAI, Deepgram, GCS, Zod, Pino
 
-**Frontend:** React 19, TypeScript 5, Vite, React Router 7, TanStack Query v5, Zustand, TailwindCSS 4, shadcn/ui, Motion, Sonner, Lucide
+**Dashboard (`calendar-frontend`):** React 19, TypeScript 5, Vite, React Router 7, TanStack Query v5, Zustand, TailwindCSS 4, shadcn/ui, Motion, Sonner, Lucide
+
+**Public (`cards-frontend`):** Next.js (App Router), TypeScript 5, TailwindCSS 4, shadcn/ui — SSR for SEO
 
 **Package manager:** pnpm (always — never npm or yarn)
 
@@ -236,7 +247,7 @@ All soft deletes — never hard delete unless `HARD_DELETE_ENABLED=true`.
 
 - Do NOT use MongoDB — the database is PostgreSQL
 - Do NOT use npm or yarn — use pnpm
-- Do NOT add features to `cards-frontend` beyond public card display
+- Do NOT add public-facing routes to `calendar-frontend` — all public URLs live in `cards-frontend`
 - Do NOT build Teams features — future scope
 - Do NOT skip `verifyJWT` on protected routes
 - Do NOT use `console.log` — use `logger`

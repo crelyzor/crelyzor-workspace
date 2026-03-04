@@ -10,13 +10,15 @@ Three applications, one backend, one database.
 │                                                         │
 │  ┌──────────────────┐    ┌───────────────────────────┐  │
 │  │ calendar-frontend│    │     cards-frontend         │  │
-│  │  (Main Dashboard)│    │   (Public Card Pages)      │  │
+│  │  (Auth Dashboard)│    │   (Public Frontend)        │  │
+│  │  React + Vite    │    │   Next.js — SSR/SEO        │  │
 │  │                  │    │                            │  │
-│  │ - Meetings       │    │ - /:username               │  │
+│  │ - Meetings       │    │ - /:username (card page)   │  │
 │  │ - Cards mgmt     │    │ - /:username/:slug         │  │
-│  │ - SMA interface  │    │ - Contact form             │  │
-│  │ - Home dashboard │    └──────────────┬─────────────┘  │
-│  └────────┬─────────┘                   │               │
+│  │ - SMA interface  │    │ - /m/:id (published mtg)  │  │
+│  │ - Home dashboard │    │ - /schedule/:username      │  │
+│  │ - Publish toggle │    │ - Contact form             │  │
+│  └────────┬─────────┘    └──────────────┬─────────────┘  │
 │           │                             │               │
 │           └──────────────┬──────────────┘               │
 │                          │                              │
@@ -28,6 +30,7 @@ Three applications, one backend, one database.
 │              │ - Meetings API         │                 │
 │              │ - Cards API            │                 │
 │              │ - SMA API              │                 │
+│              │ - Public endpoints     │                 │
 │              │ - AI processing        │                 │
 │              └─────────┬─────────────┘                  │
 │                        │                               │
@@ -40,6 +43,11 @@ Three applications, one backend, one database.
 │  └─────────────┘ └────────────┘  └───────────────┘   │
 └─────────────────────────────────────────────────────────┘
 ```
+
+**Two frontend paradigms, one backend:**
+- `calendar-frontend` — authenticated dashboard, Vite + React (CSR is fine, no SEO needed)
+- `cards-frontend` — public frontend, Next.js App Router (SSR required for SEO + OG previews)
+- Both repos are fully independent — no shared packages, same design language by convention
 
 ---
 
@@ -102,15 +110,20 @@ Three applications, one backend, one database.
 | Icons | Lucide React |
 | Notifications | Sonner |
 
-### Frontend — Public Cards (`cards-frontend`)
+### Frontend — Public (`cards-frontend`)
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | React 19 |
+| Framework | Next.js (App Router) |
 | Language | TypeScript 5 |
-| Build | Vite 7 |
-| Routing | React Router 7 |
-| Styling | TailwindCSS 4 |
+| Rendering | SSR — required for SEO + OG previews |
+| Styling | TailwindCSS 4 + shadcn/ui |
+
+**Public routes served:**
+- `/:username` — card page
+- `/:username/:slug` — specific card
+- `/m/:id` — published meeting (Phase 1 P2)
+- `/schedule/:username` — availability + booking (Phase 1.2)
 
 ---
 
@@ -122,15 +135,17 @@ All routes under `/api/v1/`
 /auth/*                    Auth (Google OAuth, JWT refresh)
 /users/*                   User profile management
 /meetings/*                Meeting CRUD, participants, availability
-/cards/*                   Digital card management
+/cards/*                   Digital card management (auth required)
 /public/cards/*            Public card endpoints (no auth)
+/public/meetings/:shortId  Published meeting page data (no auth — Phase 1 P2)
 /sma/*                     Smart Meeting Assistant
   /sma/meetings/:id/recordings        Upload, list, delete
   /sma/meetings/:id/transcript        Get transcript + status
   /sma/meetings/:id/summary           Get + regenerate AI summary
-  /sma/meetings/:id/action-items      CRUD action items
+  /sma/meetings/:id/tasks             CRUD tasks
   /sma/meetings/:id/notes             CRUD meeting notes
-  /sma/meetings/:id/ask               Ask AI (coming soon)
+  /sma/meetings/:id/ask               Ask AI (streaming SSE)
+  /sma/meetings/:id/publish           Publish/unpublish meeting (Phase 1 P2)
 /storage/*                 File upload signed URLs
 /integrations/*            Google Calendar, Recall.ai (Phase 1.2)
 ```

@@ -45,20 +45,21 @@ Ship a solo product that feels like one unified system — not three features du
 - [x] Edit meeting modal (SCHEDULED only)
 - [x] Delete meeting (VOICE_NOTE + RECORDED, with confirm dialog)
 
-**P1 — AI & Sharing**
-- [ ] Ask AI — per meeting, streaming chat, pre-loaded suggestions
-- [ ] Share sheet — copy transcript, copy summary, download audio, share via email
-- [ ] AI content generation — Meeting report, Main points, Tweet, Blog post, Email
-- [ ] Regenerate title, Regenerate summary
+**P1 — AI & Sharing ✅ Done**
+- [x] Ask AI — per meeting, streaming chat, pre-loaded suggestions
+- [x] Share sheet — copy transcript, copy summary, download audio, share via email
+- [x] AI content generation — Meeting report, Main points, Tweet, Blog post, Email
+- [x] Regenerate title, Regenerate summary
 
-**P2 — Power Features**
-- [ ] Public meeting links (short URL, enable/disable)
+**P2 — Public Links & Power Features** ← current focus
+- [ ] **Migrate `cards-frontend` to Next.js** — prerequisite for all public page work (SSR + SEO)
+- [ ] **Public meeting links** — shortId, publish/unpublish toggle in dashboard, selective publish (transcript/summary/tasks), public page at `/m/:id` in cards-frontend
 - [ ] Export — Transcript/Summary as PDF or TXT
 - [ ] Tags — universal system (meetings + cards, extendable to Tasks)
 - [ ] Attachments — file, photo, link on meetings
 - [ ] Edit transcript segments + summary inline
 - [ ] Regenerate transcript, Change language
-- [ ] UI revamp — rethink MeetingDetail layout to fit all new features
+- [ ] UI revamp — rethink MeetingDetail layout to fit all new feature surface area
 
 ### Home Dashboard
 - [x] Recent meetings widget
@@ -83,8 +84,8 @@ Ship a solo product that feels like one unified system — not three features du
 - [ ] Same transcription + AI pipeline triggers automatically
 
 ### Cal.com Style Scheduling
-- [ ] Availability settings (recurring + custom windows)
-- [ ] Public booking page
+- [ ] Availability settings (recurring + custom windows) — dashboard in `calendar-frontend`
+- [ ] Public booking page — `/schedule/:username` in `cards-frontend` (Next.js, SSR)
 - [ ] Google Calendar sync (read + write)
 - [ ] Time zone handling
 - [ ] Booking confirmation flow
