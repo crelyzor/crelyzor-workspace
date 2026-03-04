@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-03-03
+Last updated: 2026-03-04
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -61,6 +61,13 @@ Task {
 - Cmd+K command palette
 - Skeleton loading on all pages
 - Theme flash eliminated, light mode softened
+- Auth refresh token (backend + frontend interceptor)
+- Meeting notes UI — create, delete, timestamp, all 3 layouts
+- Tasks UI — CRUD, optimistic toggle, inline create, all 3 layouts
+- Edit meeting modal (SCHEDULED — title, description, time, location, conflict detection)
+- Delete meeting (VoiceNote + Recorded — confirm dialog, nav back)
+- Ask AI — streaming SSE endpoint + chat panel in all 3 layouts (suggestion chips, session history)
+- Button/modal theming fixed — Tailwind v4 CSS variable utilities now resolve correctly
 
 ---
 
