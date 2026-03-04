@@ -74,7 +74,7 @@ Task {
 ### P1 — Build Next
 
 1. ~~**Frontend:** Share sheet — Copy transcript, Copy summary, Download Audio (all types)~~ ✅
-2. **Backend + Frontend:** Regenerate — title, summary (quick-action buttons, simple re-trigger endpoints)
+2. ~~**Backend + Frontend:** Regenerate — title, summary (quick-action buttons, simple re-trigger endpoints)~~ ✅
 3. **Backend + Frontend:** AI content generation — Meeting report, Main points, Tweet, Blog post, Email
 
 ---
