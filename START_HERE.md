@@ -97,20 +97,40 @@ pnpm db:migrate   # Run new migrations
 
 This project is fully configured for Claude Code. Here's what's set up and how to use it.
 
-### Skills (type these as commands)
+### Session Commands
+
+| Command | When to use |
+|---------|-------------|
+| `/crelyzor-start` | **Start of every session.** Shows git status across all repos, what's in progress, picks next task, plans, reviews, executes. |
+| `/crelyzor` | **Each subsequent task.** Same as above but skips the session briefing. |
+
+### Utility Commands (run when needed)
 
 | Command | What It Does |
 |---------|-------------|
-| `/crelyzor` | **Start here every session.** Reads all task lists, finds the next task, confirms with you, executes end-to-end, updates tasks when done. |
-| `/new-endpoint` | Scaffolds a complete backend endpoint — route + controller + service + validator + types |
-| `/new-page` | Scaffolds a complete frontend page — component + React Query hook + service + query keys + route |
-| `/review` | Reviews recent code changes against Crelyzor conventions. Catches issues before moving on. |
+| `/techdebt` | Scan all 3 repos for `any` types, `console.log`, convention violations |
+| `/db-check` | Scan backend for queries missing `isDeleted: false` filter |
+| `/debug` | Paste an error — traces route → controller → service → DB and fixes it |
+| `/migrate` | Guided Prisma migration with schema review before running |
+| `/commit` | Create a git commit |
+| `/commit-push-pr` | Commit + push + open PR |
 
-### Agents (Claude uses these automatically)
+### Skills (auto-invoked by `/crelyzor` and `/crelyzor-start`)
 
-| Agent | What It Does |
+| Skill | Invoked when |
 |-------|-------------|
-| `crelyzor-reviewer` | Architecture guardian — checks all code follows Crelyzor patterns |
+| `new-endpoint` | Building a backend endpoint |
+| `new-page` | Building a frontend page |
+| `frontend-design` | Building any UI / visual work |
+| `review` | After writing code |
+
+### Agents (auto-invoked during plan review)
+
+| Agent | Invoked when |
+|-------|-------------|
+| `crelyzor-reviewer` | Every task — reviews plan + code |
+| `schema-reviewer` | Task has DB/schema changes |
+| `security-reviewer` | Task has backend changes |
 
 ### MCP Servers (active in every session)
 
@@ -134,15 +154,21 @@ This project is fully configured for Claude Code. Here's what's set up and how t
 Open Claude Code in this folder and type:
 
 ```
-/continue
+/crelyzor-start
 ```
 
 Claude will:
-1. Read all task lists
-2. Tell you what's in progress and what's next
-3. Ask you to confirm
-4. Execute the task end-to-end
-5. Update the task list when done
+1. Show git status across all 3 repos
+2. Show what's in progress and what's next
+3. Pick the highest priority task and announce it
+4. Write a detailed plan — reviewed by 2-3 agents
+5. Wait for your "go"
+6. Execute using the right skills
+7. Ask you to test
+8. Write dev notes + update CLAUDE.md if needed
+9. Mark task done and announce the next one
+
+For each subsequent task in the same session, type `/crelyzor`.
 
 ---
 
