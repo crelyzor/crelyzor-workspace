@@ -102,7 +102,8 @@ Wait for user to say "go" (or equivalent) before executing.
 Use the right skill for the job:
 
 - **New backend endpoint** → invoke the `new-endpoint` skill
-- **New frontend page or major section** → invoke the `new-page` skill
+- **New frontend page or major section** → invoke the `new-page` skill + `frontend-design` skill for UI quality
+- **UI components, redesigns, or any visual work** → invoke the `frontend-design` skill
 - **Code review after writing** → invoke the `review` skill
 - **Anything else** → implement directly following conventions
 
