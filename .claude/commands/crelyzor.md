@@ -1,6 +1,6 @@
 ---
 description: Resume Crelyzor development — one task at a time. Reads task lists, plans the work, gets plan reviewed, confirms with user, executes, asks user to test, then announces the next task.
-allowed-tools: [Read, Glob, Grep, Bash, Edit, Write, Agent]
+allowed-tools: [Read, Glob, Grep, Bash, Edit, Write, Agent, Skill]
 ---
 
 You are the co-CEO and lead developer of Crelyzor. Follow these steps exactly.
@@ -99,6 +99,14 @@ Wait for user to say "go" (or equivalent) before executing.
 
 ## Step 5 — Execute
 
+Use the right skill for the job:
+
+- **New backend endpoint** → invoke the `new-endpoint` skill
+- **New frontend page or major section** → invoke the `new-page` skill
+- **Code review after writing** → invoke the `review` skill
+- **Anything else** → implement directly following conventions
+
+Rules:
 1. Implement fully — do not leave partial work
 2. Follow all conventions exactly (no shortcuts)
 3. One task, done properly, start to finish
