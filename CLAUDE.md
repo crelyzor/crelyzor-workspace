@@ -265,3 +265,4 @@ All soft deletes — never hard delete unless `HARD_DELETE_ENABLED=true`.
 - `docs/roadmap.md` — Phased roadmap with task checklist
 - `docs/architecture.md` — System design and data flows
 - `docs/ai-brain.md` — AI per-meeting brain + Big Brain design
+- `docs/dev-notes/` — Per-task implementation notes, gotchas, and patterns. Read before working on related features.

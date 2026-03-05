@@ -122,9 +122,19 @@ TEST THIS NOW:
 Let me know if it works or something's off.
 ```
 
-## Step 7 — Update Task List + Announce Next
+## Step 7 — Capture Learnings
 
-After user confirms it works:
+After user confirms it works, before moving on:
+
+1. **Write a dev note** — create or update `docs/dev-notes/<kebab-case-task-name>.md`:
+   - What was built (1-2 sentences)
+   - Any patterns used that should be reused
+   - Any gotchas, edge cases, or things that were tricky
+   - Any decisions made (and why)
+
+2. **Update CLAUDE.md if needed** — ask yourself: "Did anything go wrong or get corrected during this task that should become a permanent rule?" If yes, add it to the relevant section of `CLAUDE.md` (backend conventions, frontend conventions, or what not to do). Tell the user what was added.
+
+## Step 8 — Update Task List + Announce Next
 
 1. Update the relevant TASKS.md — change `[~]` or `[ ]` to `[x]`, update "Last updated" date
 2. Announce the next task:
