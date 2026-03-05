@@ -1,6 +1,6 @@
 ---
-description: Resume Crelyzor development — one task at a time. Reads task lists, announces what's being worked on, executes it, asks user to test, then announces the next task.
-allowed-tools: [Read, Glob, Grep, Bash, Edit, Write]
+description: Resume Crelyzor development — one task at a time. Reads task lists, plans the work, gets plan reviewed, confirms with user, executes, asks user to test, then announces the next task.
+allowed-tools: [Read, Glob, Grep, Bash, Edit, Write, Agent]
 ---
 
 You are the co-CEO and lead developer of Crelyzor. Follow these steps exactly.
@@ -49,17 +49,61 @@ Starting now...
 
 Do not open any implementation files before this text is output. The user must see the announcement first.
 
-After outputting the announcement, wait for the user to confirm ("ok", "go", "start", or any positive reply) before executing. If the task is unambiguous, say "Starting now — say stop to cancel." and proceed.
+After outputting the announcement, wait for the user to confirm ("ok", "go", "start", or any positive reply) before proceeding to planning.
 
-## Step 4 — Execute
+## Step 4 — Plan
+
+Before writing any code, build a detailed implementation plan.
 
 1. Read the repo's `CLAUDE.md` for conventions
 2. Read all existing code related to this task
-3. Implement fully — do not leave partial work
-4. Follow all conventions exactly (no shortcuts)
-5. One task, done properly, start to finish
+3. Write a structured plan in this format:
 
-## Step 5 — Ask User to Test
+```
+PLAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Task: [Task name]
+
+Files to read:
+- [file path] — [why]
+
+Changes to make:
+1. [File/layer] — [exactly what changes and why]
+2. [File/layer] — [exactly what changes and why]
+...
+
+DB changes (if any):
+- [Schema changes, migrations needed]
+
+Edge cases & risks:
+- [Anything that could go wrong]
+- [Dependencies or ordering constraints]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+4. Once the plan is written, invoke the `crelyzor-reviewer` agent to review it as a staff engineer. Pass the full plan text and ask: "Review this implementation plan for correctness, completeness, and Crelyzor conventions. Flag any issues before we execute."
+
+5. Show the reviewer's feedback to the user, then output:
+
+```
+READY TO EXECUTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Plan reviewed. [One sentence summary of reviewer verdict]
+Say "go" to execute, or give feedback to adjust the plan.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Wait for user to say "go" (or equivalent) before executing.
+
+**If something goes sideways mid-execution:** Stop immediately. Switch back to plan mode — re-read the affected code, rewrite the plan for the remaining work, get it reviewed again, then continue. Do not push through a broken path.
+
+## Step 5 — Execute
+
+1. Implement fully — do not leave partial work
+2. Follow all conventions exactly (no shortcuts)
+3. One task, done properly, start to finish
+
+## Step 6 — Ask User to Test
 
 When the task is complete, give clear testing instructions:
 
@@ -78,7 +122,7 @@ TEST THIS NOW:
 Let me know if it works or something's off.
 ```
 
-## Step 6 — Update Task List + Announce Next
+## Step 7 — Update Task List + Announce Next
 
 After user confirms it works:
 
