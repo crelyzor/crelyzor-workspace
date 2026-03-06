@@ -75,7 +75,7 @@ Why: [One sentence on why this is the priority right now]
 
 Do not open any implementation files before this text is output.
 
-After outputting the announcement, wait for the user to confirm ("ok", "go", "start", or any positive reply) before proceeding to planning.
+After outputting the announcement, proceed directly to planning — no confirmation needed.
 
 ## Step 5 — Plan
 
@@ -118,11 +118,11 @@ Edge cases & risks:
 READY TO EXECUTE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Plan reviewed. [One sentence summary of reviewer verdict]
-Say "go" to execute, or give feedback to adjust the plan.
+Executing now...
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Wait for user to say "go" before executing.
+Then proceed directly to execution — no confirmation needed.
 
 **If something goes sideways mid-execution:** Stop immediately. Re-read affected code, rewrite the plan, get it reviewed again, then continue. Do not push through a broken path.
 
