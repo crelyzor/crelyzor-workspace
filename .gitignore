@@ -2,6 +2,7 @@
 calendar-backend/
 calendar-frontend/
 cards-frontend/
+website/
 
 # Dependencies
 node_modules/
