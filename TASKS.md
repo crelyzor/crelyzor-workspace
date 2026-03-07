@@ -92,7 +92,7 @@ Task {
    - Public page (`cards-frontend`): `/m/:id` — SSR page showing selected content
 3. **Backend + Frontend:** Export — Transcript as PDF/TXT, Summary as PDF/TXT
 4. **Backend + Frontend:** Tags — universal system (meetings first, then cards)
-5. **Backend + Frontend:** Attachments — file/photo/link on meetings
+5. ~~**Backend + Frontend:** Attachments — file/photo/link on meetings~~ ✅
 6. **Backend + Frontend:** Edit transcript segments + summary content inline
 7. **Backend:** Regenerate transcript, Change language (re-run Deepgram)
 8. **Frontend (`calendar-frontend`):** Mobile responsiveness + UI revamp — sidebar → bottom tab bar on mobile, meeting detail stacked layout on mobile, full responsive pass across all pages
@@ -100,11 +100,11 @@ Task {
 ---
 
 ### Not Built Yet ❌
-- Public meeting links (backend publish model + dashboard toggle + `/m/:id` public page)
-- Export (PDF/TXT)
-- Tags
-- Attachments
-- Inline editing (transcript, summary)
+- Attachments — file/photo/link on meetings
+- Edit transcript segments + summary content inline
+- Tag management page (rename/delete standalone) + tag filter on meetings list
+- Regenerate transcript, Change language (re-run Deepgram)
+- Mobile responsiveness + UI revamp
 
 ---
 
