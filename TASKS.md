@@ -91,7 +91,7 @@ Task {
 4. ~~**Backend + Frontend:** Tags — universal system (meetings + cards backend + meetings UI)~~ ✅ (tags on voice notes + cards UI still needed — see below)
 5. ~~**Backend + Frontend:** Attachments — file/photo/link on meetings~~ ✅
 6. ~~**Backend + Frontend:** Edit transcript segments + summary content inline~~ ✅
-7. **Backend + Frontend:** Regenerate transcript, Change language (re-run Deepgram)
+7. ~~**Backend + Frontend:** Regenerate transcript, Change language (re-run Deepgram)~~ ✅
 8. **Frontend (`calendar-frontend`):** Mobile responsiveness + UI revamp
 
 ---
@@ -110,7 +110,6 @@ Task {
 ---
 
 ### Not Built Yet ❌
-- Regenerate transcript, Change language (re-run Deepgram)
 - Mobile responsiveness + UI revamp
 
 ---
