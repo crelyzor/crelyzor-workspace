@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-03-04
+Last updated: 2026-03-08
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -86,25 +86,37 @@ Task {
 ### P2 — Public Links & Power Features ← current focus
 
 1. ~~**`cards-frontend`:** Migrate to Next.js App Router — mobile-first, PWA setup, SSR + SEO + OG previews~~ ✅
-2. **Backend + Frontend + Public:** Public meeting links
-   - Backend: `shortId` on Meeting, `publishedFields` (transcript/summary/tasks flags), `POST /sma/meetings/:id/publish`, `GET /public/meetings/:shortId`
-   - Dashboard (`calendar-frontend`): Publish toggle + field checkboxes + "Copy link" button on MeetingDetail
-   - Public page (`cards-frontend`): `/m/:id` — SSR page showing selected content
-3. **Backend + Frontend:** Export — Transcript as PDF/TXT, Summary as PDF/TXT
-4. **Backend + Frontend:** Tags — universal system (meetings first, then cards)
+2. ~~**Backend + Frontend + Public:** Public meeting links~~ ✅
+3. ~~**Backend + Frontend:** Export — Transcript as PDF/TXT, Summary as PDF/TXT~~ ✅
+4. ~~**Backend + Frontend:** Tags — universal system (meetings + cards backend + meetings UI)~~ ✅ (tags on voice notes + cards UI still needed — see below)
 5. ~~**Backend + Frontend:** Attachments — file/photo/link on meetings~~ ✅
-6. **Backend + Frontend:** Edit transcript segments + summary content inline
-7. **Backend:** Regenerate transcript, Change language (re-run Deepgram)
-8. **Frontend (`calendar-frontend`):** Mobile responsiveness + UI revamp — sidebar → bottom tab bar on mobile, meeting detail stacked layout on mobile, full responsive pass across all pages
+6. ~~**Backend + Frontend:** Edit transcript segments + summary content inline~~ ✅
+7. **Backend + Frontend:** Regenerate transcript, Change language (re-run Deepgram)
+8. **Frontend (`calendar-frontend`):** Mobile responsiveness + UI revamp
+
+---
+
+### UX & Polish (discovered during P2) ← now tracking
+
+1. **Tags truly universal** — tags show up and are filterable everywhere:
+   - Tags + tag filter on Voice Notes listing page (same pattern as Meetings)
+   - Tags + tag filter on Cards listing page (calendar-frontend)
+   - Tag add/remove on Cards from the dashboard
+2. **Meeting list click UX** — single click should navigate directly to meeting detail. Context menu (⋯) handles actions (accept/decline/complete/cancel). Remove the expand → "Open" extra click.
+3. **RECORDED meeting status badge** — shows "Created" which is meaningless for recordings. Fix: hide status badge for RECORDED meetings (transcription status already shown via icons). Show badge only for SCHEDULED meetings where status is meaningful.
+4. **Hover jitter on meeting list** — `transition-all` on meeting cards causes paint jitter. Fix: scope transition to specific properties (`border-color`, `box-shadow`).
+5. **Ask AI persistence** — chat history should persist across sessions (local storage or DB). Deferring until Ask AI goes universal (Phase 2 Big Brain).
 
 ---
 
 ### Not Built Yet ❌
-- Attachments — file/photo/link on meetings
-- Edit transcript segments + summary content inline
-- Tag management page (rename/delete standalone) + tag filter on meetings list
+- Tags on Voice Notes listing (chips + filter)
+- Tags on Cards listing (chips + filter + add/remove from dashboard)
 - Regenerate transcript, Change language (re-run Deepgram)
 - Mobile responsiveness + UI revamp
+- Meeting list UX fix (single click → navigate)
+- Recording status badge fix ("Created" → hide or transcription-based)
+- Hover jitter fix
 
 ---
 
