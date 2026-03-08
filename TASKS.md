@@ -114,9 +114,8 @@ Task {
 - Tags on Cards listing (chips + filter + add/remove from dashboard)
 - Regenerate transcript, Change language (re-run Deepgram)
 - Mobile responsiveness + UI revamp
-- Meeting list UX fix (single click → navigate)
-- Recording status badge fix ("Created" → hide or transcription-based)
-- Hover jitter fix
+- Regenerate transcript, Change language (re-run Deepgram)
+- Mobile responsiveness + UI revamp
 
 ---
 
