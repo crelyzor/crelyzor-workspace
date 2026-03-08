@@ -28,7 +28,7 @@ An all-in-one productivity OS for professionals.
 
 **`cards-frontend` is the public frontend** — all public, shareable, SEO-indexed URLs live here:
 - `/:username` — public card / profile page
-- `/schedule/:username` — availability + booking (Phase 1.2)
+- `/schedule/:username` — availability + booking (Phase 2)
 - `/m/:id` — published meeting (transcript, summary, tasks — Phase 1 P2)
 
 `calendar-frontend` is the authenticated dashboard. No public routes live there.
@@ -106,7 +106,7 @@ Priority order:
 3. Tags, Attachments, Edit transcript inline
 4. Mobile responsiveness + UI revamp (`calendar-frontend`)
 
-**Do not start Phase 1.2 (Recall.ai, scheduling) until Phase 1 P2 is complete.**
+**Phase 1 is complete. Phase 2 (Online Meetings — scheduling, Recall.ai) is next.**
 
 Full roadmap: `docs/roadmap.md`
 
@@ -254,7 +254,7 @@ All soft deletes — never hard delete unless `HARD_DELETE_ENABLED=true`.
 - Do NOT use `any` in TypeScript — use proper types
 - Do NOT hardcode mock data in components — connect to real API
 - Do NOT edit `.env` files directly
-- Do NOT start Phase 1.2 until Phase 1 is complete
+- Do NOT start Phase 3 (Big Brain) until Phase 2 is complete
 
 ---
 

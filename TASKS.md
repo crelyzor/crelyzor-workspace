@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-03-08
+Last updated: 2026-03-08 (Phase 1 complete ✅)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -92,29 +92,26 @@ Task {
 5. ~~**Backend + Frontend:** Attachments — file/photo/link on meetings~~ ✅
 6. ~~**Backend + Frontend:** Edit transcript segments + summary content inline~~ ✅
 7. ~~**Backend + Frontend:** Regenerate transcript, Change language (re-run Deepgram)~~ ✅
-8. **Frontend (`calendar-frontend`):** Mobile responsiveness + UI revamp
+8. ~~**Frontend (`calendar-frontend`):** Mobile responsiveness + UI revamp~~ ✅
 
 ---
 
-### UX & Polish (discovered during P2) ← now tracking
+### UX & Polish (discovered during P2) ✅ Done
 
-1. **Tags truly universal** — tags show up and are filterable everywhere:
-   - Tags + tag filter on Voice Notes listing page (same pattern as Meetings)
-   - Tags + tag filter on Cards listing page (calendar-frontend)
-   - Tag add/remove on Cards from the dashboard
-2. **Meeting list click UX** — single click should navigate directly to meeting detail. Context menu (⋯) handles actions (accept/decline/complete/cancel). Remove the expand → "Open" extra click.
-3. **RECORDED meeting status badge** — shows "Created" which is meaningless for recordings. Fix: hide status badge for RECORDED meetings (transcription status already shown via icons). Show badge only for SCHEDULED meetings where status is meaningful.
-4. **Hover jitter on meeting list** — `transition-all` on meeting cards causes paint jitter. Fix: scope transition to specific properties (`border-color`, `box-shadow`).
-5. **Ask AI persistence** — chat history should persist across sessions (local storage or DB). Deferring until Ask AI goes universal (Phase 2 Big Brain).
+1. ~~**Tags truly universal** — tags on Voice Notes listing + Cards listing + tag editor on Cards dashboard~~ ✅
+2. ~~**Meeting list click UX** — single click navigates to detail, context menu handles actions~~ ✅
+3. ~~**RECORDED meeting status badge** — hidden for RECORDED, shown only for SCHEDULED~~ ✅
+4. ~~**Hover jitter on meeting list** — scoped to `border-color` + `box-shadow` only~~ ✅
+5. **Ask AI persistence** — deferred to Phase 2 Big Brain.
 
 ---
 
 ### Not Built Yet ❌
-- Mobile responsiveness + UI revamp
+- Nothing. Phase 1 P2 is complete. ✅
 
 ---
 
-## Phase 1.2 — Online Meetings (Do not start until Phase 1 done)
+## Phase 2 — Online Meetings ← next
 
 - [ ] Cal.com style scheduling + availability settings
 - [ ] Public booking page
@@ -123,7 +120,7 @@ Task {
 
 ---
 
-## Phase 2 — Big Brain
+## Phase 3 — Big Brain
 
 - [ ] Global Ask AI (RAG over all user data — transcripts, notes, tasks)
 - [ ] Cross-meeting insights ("What do I know about Acme Corp?")
@@ -132,7 +129,7 @@ Task {
 
 ---
 
-## Phase 3 — Standalone Tasks + Tags Everywhere
+## Phase 4 — Standalone Tasks + Tags Everywhere
 
 - [ ] Task model — standalone with optional `meetingId` (meeting-linked tasks become proper tasks)
 - [ ] Task list (Todoist-style — filter, priority, due date)
