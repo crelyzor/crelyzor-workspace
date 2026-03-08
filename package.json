@@ -16,7 +16,8 @@
     "lint:all": "cd calendar-backend && pnpm lint && cd ../calendar-frontend && pnpm lint && cd ../cards-frontend && pnpm lint",
     "db:studio": "cd calendar-backend && pnpm db:studio",
     "db:migrate": "cd calendar-backend && pnpm db:migrate",
-    "db:push": "cd calendar-backend && pnpm db:push"
+    "db:push": "cd calendar-backend && pnpm db:push",
+    "db:generate": "cd calendar-backend && pnpm db:generate"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
