@@ -1,8 +1,9 @@
 # Sub-repos — tracked independently on GitHub
-calendar-backend/
-calendar-frontend/
-cards-frontend/
 website/
+crelyzor-public/
+crelyzor-frontend/
+crelyzor-backend/
+
 
 # Dependencies
 node_modules/
