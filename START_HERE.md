@@ -211,15 +211,17 @@ For each subsequent task in the same session, type `/crelyzor`.
 
 ## Current Phase
 
-**Phase 1 — Offline First**
+**Phase 1.2 — Scheduling & Online Meetings**
 
-What's left to build (in priority order):
+Phase 1 is complete ✅. Now building Cal.com-style scheduling.
 
-1. **Ask AI endpoint** — `POST /sma/meetings/:id/ask` (backend)
-2. **Wire MeetingDetail** — replace mock data with real API (frontend)
-3. **Ask AI chat UI** — chat interface in meeting detail (frontend)
-4. **Recording upload UI** — connected to backend with status polling
-5. **Action items + notes UI** — complete the meeting detail page
+Next tasks in order:
+1. **Schema + migration** — 5 new models in `crelyzor-backend` (backend)
+2. **UserSettings API** — `GET/PATCH /settings/user` + auto-create on sign-up (backend)
+3. **Settings page restructure** — all tabs skeleton in `crelyzor-frontend` (frontend)
+
+Full task table: `TASKS.md`
+Design doc: `docs/dev-notes/phase-1.2-scheduling.md`
 
 Type `/crelyzor` and Claude picks up from here.
 

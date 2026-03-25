@@ -69,24 +69,79 @@ Ship a solo product that feels like one unified system — not three features du
 
 ---
 
-## Phase 1.2 — Online Meetings
+## Phase 1.2 — Scheduling & Online Meetings
 
-**Goal:** Same AI intelligence but for online meetings via Recall.ai bot.
+**Goal:** Solo professionals can share a booking link, let guests book time, and have meetings auto-transcribed whether online or in-person.
 
-**Prerequisite:** Phase 1 P0 + P1 complete.
+**Prerequisite:** Phase 1 complete ✅
 
-### Recall.ai Integration
-- [ ] Recall.ai API integration (backend)
-- [ ] Bot deployment — joins Google Meet / Zoom
-- [ ] Stream audio to Deepgram using existing pipeline
-- [ ] Same transcription + AI pipeline triggers automatically
+**We are here.**
 
-### Cal.com Style Scheduling
-- [ ] Availability settings (recurring + custom windows) — dashboard in `calendar-frontend`
-- [ ] Public booking page — `/schedule/:username` in `cards-frontend` (Next.js, SSR)
-- [ ] Google Calendar sync (read + write)
-- [ ] Time zone handling
-- [ ] Booking confirmation flow
+Full design doc: `docs/dev-notes/phase-1.2-scheduling.md`
+
+---
+
+### P0 — Data Model & Settings Foundation
+
+> Must be done first. Everything else depends on it.
+
+- [ ] `UserSettings` model — one-to-one with User, stores all feature flags + scheduling config
+- [ ] `EventType` model — title, slug, duration, locationType (IN_PERSON | ONLINE), bufferBefore, bufferAfter, meetingLink, isActive
+- [ ] `Availability` model — userId, dayOfWeek (0-6), startTime, endTime
+- [ ] `AvailabilityOverride` model — userId, date, isBlocked (specific day off)
+- [ ] `Booking` model — eventTypeId, guestName, guestEmail, guestNote, startTime, endTime, timezone, status (PENDING | CONFIRMED | CANCELLED | NO_SHOW), meetingId FK, googleEventId
+- [ ] DB migration for all new models
+- [ ] Settings page UI — skeleton with all sections (Scheduling, Integrations, AI, Privacy)
+- [ ] Settings: scheduling on/off, min notice, max window, default buffer
+- [ ] Settings: auto-transcribe on/off, auto-AI on/off, default transcription language
+
+---
+
+### P1 — Event Types + Availability (the scheduling engine)
+
+- [ ] Event types CRUD API (`GET/POST /scheduling/event-types`, `PATCH/DELETE /scheduling/event-types/:id`)
+- [ ] Event types UI — create, edit, delete, activate/deactivate
+- [ ] Availability settings API (`GET/PATCH /scheduling/availability`)
+- [ ] Availability settings UI — weekly schedule grid (per-day on/off + time range)
+- [ ] Availability overrides API — mark specific dates as blocked
+- [ ] Slot calculation engine (backend service) — availability windows MINUS existing meetings MINUS existing bookings MINUS buffers
+- [ ] `GET /scheduling/slots?eventTypeId=&date=` — returns available slots for a given date
+
+---
+
+### P2 — Public Booking Pages (`cards-frontend`)
+
+- [ ] `/schedule/:username` — lists all active event types (SSR, SEO, OG)
+- [ ] `/schedule/:username/:slug` — calendar picker, slot grid, timezone-aware
+- [ ] Booking form — guest name, email, optional note, timezone picker
+- [ ] Booking confirmation page — summary + add-to-calendar button
+- [ ] `POST /public/bookings` — creates Booking + Meeting atomically (no auth)
+- [ ] `GET /public/bookings/:id` — confirmation page data
+- [ ] Booking cancellation — guest can cancel via link in email (future: email; now: confirmation page)
+
+---
+
+### P3 — Google Calendar Integration
+
+- [ ] Settings: connect Google Calendar (OAuth re-auth with calendar scope)
+- [ ] Settings: disconnect Google Calendar
+- [ ] Read sync — fetch Google Calendar events for busy-time calculation (injected into slot engine)
+- [ ] Write sync — create Google Calendar event when booking is confirmed (with guest as attendee)
+- [ ] Write sync — cancel/update Google Calendar event when booking is cancelled/rescheduled
+- [ ] Store `googleEventId` on `Booking`
+- [ ] Settings: show sync status (last synced, connected account)
+
+---
+
+### P4 — Recall.ai Integration
+
+- [ ] Settings: Recall.ai on/off toggle + API key input (stored encrypted)
+- [ ] Recall.ai service — deploy bot to a meeting URL
+- [ ] On booking confirmed (ONLINE event type + recallEnabled) → queue Recall bot deployment
+- [ ] Recall webhook — bot joined, audio stream starts
+- [ ] Audio stream → existing Deepgram pipeline (reuse `transcribeRecording`)
+- [ ] Same AI pipeline fires after transcription (reuse `processTranscriptWithAI`)
+- [ ] Recall bot for manually-triggered online meetings (future: user pastes Meet/Zoom link in dashboard)
 
 ---
 

@@ -111,12 +111,37 @@ Task {
 
 ---
 
-## Phase 2 — Online Meetings ← next
+## Phase 1.2 — Scheduling & Online Meetings ← current
 
-- [ ] Cal.com style scheduling + availability settings
-- [ ] Public booking page
-- [ ] Google Calendar sync (read + write)
-- [ ] Recall.ai bot — joins Google Meet / Zoom, same pipeline triggers automatically
+Full design doc: `docs/dev-notes/phase-1.2-scheduling.md`
+Per-repo task breakdowns: each repo's `TASKS.md`
+
+**Build order (each is independently shippable):**
+
+| # | What | Repo |
+|---|------|------|
+| 1 | Schema: UserSettings, EventType, Availability, AvailabilityOverride, Booking | backend |
+| 2 | DB migration | backend |
+| 3 | UserSettings auto-create on sign-up + `GET/PATCH /settings/user` API | backend |
+| 4 | Settings page skeleton (all tabs) | frontend |
+| 5 | Scheduling settings UI section | frontend |
+| 6 | AI & Transcription settings UI section | frontend |
+| 7 | Event types CRUD API | backend |
+| 8 | Event types UI (list + form) | frontend |
+| 9 | Availability API (weekly + overrides) | backend |
+| 10 | Availability UI (weekly grid + overrides) | frontend |
+| 11 | Slot calculation engine | backend |
+| 12 | Slots API + public profile API | backend |
+| 13 | Public booking pages (`/schedule/:username`, `/:slug`, `/confirmed`) | public |
+| 14 | Booking creation API (`POST /public/bookings`) | backend |
+| 15 | Booking management API (host cancel, guest cancel) | backend |
+| 16 | Google Calendar re-auth + read sync (busy times in slot engine) | backend |
+| 17 | Google Calendar write sync (create/cancel events) | backend |
+| 18 | Google Calendar settings UI | frontend |
+| 19 | Recall.ai service + bot job + webhook | backend |
+| 20 | Recall.ai settings UI | frontend |
+
+Stop at #15 for a complete, working booking system without integrations.
 
 ---
 
