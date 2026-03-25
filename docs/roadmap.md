@@ -6,11 +6,9 @@ Ship a solo product that feels like one unified system — not three features du
 
 ---
 
-## Phase 1 — Offline First (Core Product)
+## Phase 1 — Offline First (Core Product) ✅ COMPLETE
 
 **Goal:** A solo user can manage their identity, run meetings offline, and get full AI intelligence from those meetings.
-
-**We are here.**
 
 ### Digital Cards
 - [x] Card creation and editor
@@ -51,23 +49,23 @@ Ship a solo product that feels like one unified system — not three features du
 - [x] AI content generation — Meeting report, Main points, Tweet, Blog post, Email
 - [x] Regenerate title, Regenerate summary
 
-**P2 — Public Links & Power Features** ← current focus
+**P2 — Public Links & Power Features** ✅ Done
 - [x] **Migrate `cards-frontend` to Next.js** — mobile-first, PWA (dynamic manifest per username), SSR + SEO + OG previews
-- [ ] **Public meeting links** — shortId, publish/unpublish toggle in dashboard, selective publish (transcript/summary/tasks), public page at `/m/:id` in cards-frontend
-- [ ] Export — Transcript/Summary as PDF or TXT
-- [ ] Tags — universal system (meetings + cards, extendable to Tasks)
-- [ ] Attachments — file, photo, link on meetings
-- [ ] Edit transcript segments + summary inline
-- [ ] Regenerate transcript, Change language
-- [ ] Mobile responsiveness + UI revamp — sidebar → bottom tab bar on mobile, meeting detail stacked on mobile, full responsive pass (`calendar-frontend`)
+- [x] **Public meeting links** — shortId, publish/unpublish toggle in dashboard, selective publish (transcript/summary/tasks), public page at `/m/:id` in cards-frontend
+- [x] Export — Transcript/Summary as PDF or TXT
+- [x] Tags — universal system (meetings + cards, extendable to Tasks)
+- [x] Attachments — file, photo, link on meetings
+- [x] Edit transcript segments + summary inline
+- [x] Regenerate transcript, Change language
+- [x] Mobile responsiveness + UI revamp — bottom tab bar on mobile (`calendar-frontend`)
 
 ### Home Dashboard
 - [x] Recent meetings widget
 - [x] Recent voice notes widget
 - [x] Quick record CTA (FAB)
 - [x] Cards widget
-- [ ] Today's meetings widget (filtered to today, not just recent)
-- [ ] Pending tasks widget across all meetings
+- [x] Today's meetings widget (filtered to today, not just recent)
+- [x] Pending tasks widget across all meetings
 
 ---
 
