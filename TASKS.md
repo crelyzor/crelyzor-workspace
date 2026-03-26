@@ -145,21 +145,21 @@ Stop at #15 for a complete, working booking system without integrations.
 
 ---
 
+## Phase 2 — Standalone Tasks
+
+- [ ] Task list (Todoist-style — filter by status, priority, due date, meeting source)
+- [ ] Standalone tasks API — `GET /tasks` (all tasks, not scoped to a meeting)
+- [ ] Tags on Tasks (`TaskTag` junction — extends universal Tag system)
+- [ ] Due date + priority support (model already has the fields, just needs API + UI)
+
+---
+
 ## Phase 3 — Big Brain
 
 - [ ] Global Ask AI (RAG over all user data — transcripts, notes, tasks)
 - [ ] Cross-meeting insights ("What do I know about Acme Corp?")
 - [ ] Proactive nudges (missed follow-ups, upcoming meeting prep)
 - [ ] Vector embeddings pipeline
-
----
-
-## Phase 4 — Standalone Tasks + Tags Everywhere
-
-- [ ] Task model — standalone with optional `meetingId` (meeting-linked tasks become proper tasks)
-- [ ] Task list (Todoist-style — filter, priority, due date)
-- [ ] AI task suggestions from meetings
-- [ ] Tags — extend to Tasks, Cards, everything
 
 ---
 
