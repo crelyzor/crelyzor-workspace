@@ -121,27 +121,82 @@ Full design doc: `docs/dev-notes/phase-1.2-scheduling.md`
 
 ---
 
-### P3 — Google Calendar Integration
+### P3 — Google Calendar Integration ✅ Done (booking sync only)
 
-- [ ] Settings: connect Google Calendar (OAuth re-auth with calendar scope)
-- [ ] Settings: disconnect Google Calendar
-- [ ] Read sync — fetch Google Calendar events for busy-time calculation (injected into slot engine)
-- [ ] Write sync — create Google Calendar event when booking is confirmed (with guest as attendee)
-- [ ] Write sync — cancel/update Google Calendar event when booking is cancelled/rescheduled
-- [ ] Store `googleEventId` on `Booking`
-- [ ] Settings: show sync status (last synced, connected account)
+- [x] Settings: connect Google Calendar (OAuth re-auth with calendar scope)
+- [x] Settings: disconnect Google Calendar
+- [x] Read sync — fetch Google Calendar events for busy-time calculation (injected into slot engine)
+- [x] Write sync — create Google Calendar event when booking is confirmed (with guest as attendee)
+- [x] Write sync — cancel Google Calendar event when booking is cancelled
+- [x] Store `googleEventId` on `Booking`
 
 ---
 
-### P4 — Recall.ai Integration
+### P4 — Recall.ai Integration ✅ Done
 
-- [ ] Settings: Recall.ai on/off toggle + API key input (stored encrypted)
-- [ ] Recall.ai service — deploy bot to a meeting URL
-- [ ] On booking confirmed (ONLINE event type + recallEnabled) → queue Recall bot deployment
-- [ ] Recall webhook — bot joined, audio stream starts
-- [ ] Audio stream → existing Deepgram pipeline (reuse `transcribeRecording`)
-- [ ] Same AI pipeline fires after transcription (reuse `processTranscriptWithAI`)
-- [ ] Recall bot for manually-triggered online meetings (future: user pastes Meet/Zoom link in dashboard)
+- [x] Settings: Recall.ai on/off toggle + API key input (stored encrypted)
+- [x] Recall.ai service — deploy bot to a meeting URL
+- [x] On booking confirmed (ONLINE event type + recallEnabled) → queue Recall bot deployment
+- [x] Recall webhook — bot joined, audio stream starts
+- [x] Audio stream → existing Deepgram pipeline (reuse `transcribeRecording`)
+- [x] Same AI pipeline fires after transcription (reuse `processTranscriptWithAI`)
+
+---
+
+## Phase 1.3 — Google Calendar Deep Integration + Unified Timeline
+
+**Goal:** Google Calendar is woven into every corner of Crelyzor. Meet links are auto-generated. Your full day (GCal events + Crelyzor meetings) lives in one timeline. Every meeting you create in Crelyzor lands in your Google Calendar automatically.
+
+**Prerequisite:** Phase 1.2 complete ✅
+
+Full design doc: `docs/dev-notes/phase-1.3-gcal.md`
+
+---
+
+### P0 — Schema + Meet Link Foundation
+
+> Must be done first. Auto Meet link generation and write sync both depend on it.
+
+- [ ] Schema: Add `meetLink String?` to `Meeting` model — stores auto-generated Google Meet URL
+- [ ] Schema: Add `googleEventId String?` to `Meeting` model — stores GCal event ID for write sync
+- [ ] DB migration for both new fields
+- [ ] `generateMeetLink(userId)` in `googleCalendarService.ts` — calls GCal API `conferenceData.createRequest`, returns a `meet.google.com/xxx` URL. Fail-open (returns null if GCal not connected).
+- [ ] Auto-generate Meet link in `meetingService.createMeeting()` when `locationType === ONLINE` and GCal is connected — store on `Meeting.meetLink`
+- [ ] Include `meetLink` in all meeting API responses (`GET /meetings`, `GET /meetings/:id`)
+
+---
+
+### P1 — GCal Write Sync for Meetings (not just bookings)
+
+> Currently write sync only fires for bookings. Phase 1.3 extends it to all Crelyzor meetings.
+
+- [ ] On `createMeeting` → if GCal connected and `syncEnabled` → create GCal event → store `googleEventId` on Meeting
+- [ ] On `updateMeeting` → if `googleEventId` set → update the GCal event (title, time, location)
+- [ ] On `cancelMeeting` / `deleteMeeting` → if `googleEventId` set → delete the GCal event
+- [ ] Opt-out flag: `addToCalendar: boolean` in create/update meeting Zod schema (defaults to `true` when GCal connected)
+- [ ] All GCal ops fail-open — meeting write to DB always succeeds; GCal failure is logged and swallowed
+
+---
+
+### P2 — GCal Read Sync for Dashboard Timeline
+
+> Show Google Calendar events (not just freebusy) in the Crelyzor home dashboard.
+
+- [ ] `GET /integrations/google/events?start=&end=` — fetches GCal events in window, normalizes to `{ id, title, startTime, endTime, location, meetLink }`. Cached 5 min in Redis. No auth skip.
+- [ ] `GET /integrations/google/status` — returns `{ connected: bool, email: string | null }` for settings UI
+- [ ] Home dashboard: unified **Today's Timeline** component — Crelyzor meetings + GCal events on the same chronological list, visually distinguished (GCal events get a subtle Google Calendar icon + different border style)
+- [ ] React Query hook: `useGoogleCalendarEvents(start, end)` in `calendar-frontend`
+- [ ] GCal events shown in home "Today" section alongside Crelyzor meetings — zero context-switch needed
+
+---
+
+### P3 — Meet Link UX in Dashboard
+
+> Surface Meet links where they matter — meeting creation and meeting detail.
+
+- [ ] Meeting creation form: when `locationType === ONLINE` and GCal is connected → show "Auto-generate Google Meet link" checkbox (checked by default). When unchecked → show manual URL input.
+- [ ] Meeting detail (all 3 layouts): when `meetLink` is set → show **"Join Meeting"** button (prominent, near top) + copy link icon
+- [ ] Settings > Integrations > Google Calendar: show connected email, `googleCalendarSyncEnabled` toggle, connect/disconnect button — wire `GET /integrations/google/status` to show live connection state
 
 ---
 
@@ -149,7 +204,7 @@ Full design doc: `docs/dev-notes/phase-1.2-scheduling.md`
 
 **Goal:** One AI that knows everything about the user across all of Crelyzor.
 
-**Prerequisite:** Phase 1.2 complete. Enough meeting data to make it useful.
+**Prerequisite:** Phase 1.3 complete.
 
 - [ ] Vector embeddings for all transcripts, notes, tasks
 - [ ] RAG pipeline over user's full data
@@ -157,23 +212,25 @@ Full design doc: `docs/dev-notes/phase-1.2-scheduling.md`
 - [ ] Proactive nudges — missed follow-ups, upcoming meeting prep
 - [ ] "Prepare me for my 3pm call" feature
 - [ ] Cross-meeting insights: "What do I know about Acme Corp?"
+- [ ] **Full two-way GCal sync** — GCal edits/cancels reflect back in Crelyzor (requires Google Calendar push webhook subscription + conflict resolution strategy). Deferred from 1.3 because it needs webhook infra and conflict handling.
 
 ---
 
-## Phase 3 — Standalone Tasks
+## Phase 3 — Standalone Tasks + Calendar View
 
-**Goal:** Todoist-style task management, deeply connected to meetings and AI. Tasks grow up from meeting-linked items to first-class standalone objects.
+**Goal:** Todoist-style task management, deeply connected to meetings and AI. Tasks grow up from meeting-linked items to first-class standalone objects. The unified calendar timeline (built in Phase 1.3) evolves into a full day-planning tool with tasks on calendar.
 
 **Prerequisite:** Phase 2 (AI should drive task generation intelligently).
 
 > Note: The `Task` model (with `TaskSource` + `TaskPriority` enums) was built early in Phase 1 to support meeting-linked tasks. Phase 3 evolves it into a standalone, first-class system.
 
 - [x] `Task` model — `meetingId`, `TaskSource`, `TaskPriority`, CRUD API (built in Phase 1)
-- [ ] Standalone tasks — decouple from meetings (optional `meetingId`, add `dueDate`, `status`)
+- [ ] Standalone tasks — decouple from meetings (optional `meetingId`, add `dueDate`, `scheduledTime`, `status`)
 - [ ] Task list page — filter, sort, priority, due date
 - [ ] AI task suggestions from meetings (auto-create, not just display)
 - [ ] Tags across Tasks (extends the universal Tag system from Phase 1)
 - [ ] Link tasks to contacts (cards)
+- [ ] **Tasks on Calendar** — tasks with `scheduledTime` appear as time blocks on the unified timeline (built in Phase 1.3). Tasks with only `dueDate` appear as all-day markers. Drag a task to a time slot → sets `scheduledTime`. The timeline becomes the daily planning command center: GCal events + Crelyzor meetings + tasks — one view, one place.
 
 ---
 

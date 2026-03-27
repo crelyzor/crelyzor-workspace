@@ -111,55 +111,62 @@ Task {
 
 ---
 
-## Phase 1.2 — Scheduling & Online Meetings ← current
+## Phase 1.2 — Scheduling & Online Meetings ✅ Complete
 
 Full design doc: `docs/dev-notes/phase-1.2-scheduling.md`
+
+All 20 tasks complete — scheduling engine, booking pages, GCal integration (booking-scoped), Recall.ai.
+
+---
+
+## Phase 1.3 — Google Calendar Deep Integration ← current
+
+Full design doc: `docs/dev-notes/phase-1.3-gcal.md`
 Per-repo task breakdowns: each repo's `TASKS.md`
 
-**Build order (each is independently shippable):**
+**Build order:**
 
 | # | What | Repo |
 |---|------|------|
-| 1 | Schema: UserSettings, EventType, Availability, AvailabilityOverride, Booking | backend |
+| 1 | Schema: `meetLink` + `googleEventId` on `Meeting` | backend |
 | 2 | DB migration | backend |
-| 3 | UserSettings auto-create on sign-up + `GET/PATCH /settings/user` API | backend |
-| 4 | Settings page skeleton (all tabs) | frontend |
-| 5 | Scheduling settings UI section | frontend |
-| 6 | AI & Transcription settings UI section | frontend |
-| 7 | Event types CRUD API | backend |
-| 8 | Event types UI (list + form) | frontend |
-| 9 | Availability API (weekly + overrides) | backend |
-| 10 | Availability UI (weekly grid + overrides) | frontend |
-| 11 | Slot calculation engine | backend |
-| 12 | Slots API + public profile API | backend |
-| 13 | Public booking pages (`/schedule/:username`, `/:slug`, `/confirmed`) | public |
-| 14 | Booking creation API (`POST /public/bookings`) | backend |
-| 15 | Booking management API (host cancel, guest cancel) | backend |
-| 16 | Google Calendar re-auth + read sync (busy times in slot engine) | backend |
-| 17 | Google Calendar write sync (create/cancel events) | backend |
-| 18 | Google Calendar settings UI | frontend |
-| 19 | Recall.ai service + bot job + webhook | backend |
-| 20 | Recall.ai settings UI | frontend |
+| 3 | `generateMeetLink(userId)` service + auto-generate on ONLINE meeting create | backend |
+| 4 | Include `meetLink` in all meeting API responses | backend |
+| 5 | Add `meetLink` + `googleEventId` to frontend `Meeting` types | frontend |
+| 6 | `TodayTimeline` component — unified GCal events + Crelyzor meetings | frontend |
+| 7 | `useGoogleCalendarEvents` hook + `integrationsService` | frontend |
+| 8 | Wire `TodayTimeline` into home dashboard | frontend |
+| 9 | GCal write sync for meetings (create/update/delete → GCal event) | backend |
+| 10 | `GET /integrations/google/events` + `GET /integrations/google/status` endpoints | backend |
+| 11 | "Join Meeting" button in all 3 meeting detail layouts | frontend |
+| 12 | Meeting creation form: auto-generate Meet link checkbox (ONLINE only) | frontend |
+| 13 | Settings > Integrations: wire GCal status, connect, disconnect | frontend |
 
-Stop at #15 for a complete, working booking system without integrations.
+Stop at #8 for a working unified timeline without write sync.
 
 ---
 
-## Phase 2 — Standalone Tasks
+## Phase 2 — Standalone Tasks + Big Brain
 
-- [ ] Task list (Todoist-style — filter by status, priority, due date, meeting source)
+- [ ] Task list page (Todoist-style — filter by status, priority, due date, meeting source)
 - [ ] Standalone tasks API — `GET /tasks` (all tasks, not scoped to a meeting)
 - [ ] Tags on Tasks (`TaskTag` junction — extends universal Tag system)
-- [ ] Due date + priority support (model already has the fields, just needs API + UI)
-
----
-
-## Phase 3 — Big Brain
-
+- [ ] `scheduledTime` field on Task (for calendar placement in Phase 3)
 - [ ] Global Ask AI (RAG over all user data — transcripts, notes, tasks)
 - [ ] Cross-meeting insights ("What do I know about Acme Corp?")
 - [ ] Proactive nudges (missed follow-ups, upcoming meeting prep)
 - [ ] Vector embeddings pipeline
+- [ ] **Full two-way GCal sync** — GCal push webhooks → GCal edits/cancels reflect in Crelyzor (deferred from 1.3 — requires webhook infra + conflict resolution)
+
+---
+
+## Phase 3 — Calendar View + Tasks on Calendar
+
+- [ ] Full `/calendar` page — week/day view (GCal events + Crelyzor meetings + Tasks)
+- [ ] Tasks with `scheduledTime` appear as time blocks on calendar
+- [ ] Tasks with `dueDate` appear as all-day markers
+- [ ] Drag task to time slot → sets `scheduledTime`
+- [ ] Click empty slot → quick-create (Meeting | Task)
 
 ---
 
