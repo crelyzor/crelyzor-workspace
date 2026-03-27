@@ -1,6 +1,6 @@
 # Phase 1.3 — Google Calendar Deep Integration
 
-Last updated: 2026-03-27
+Last updated: 2026-03-27 (complete)
 
 ---
 
@@ -260,22 +260,50 @@ Show in all 3 MeetingDetail layouts when `meeting.meetLink` is set:
 
 ---
 
-## Build Order
+## Build Order (all complete ✅)
 
 ```
-1. Schema: meetLink + googleEventId on Meeting  [backend]
-2. DB migration                                  [backend]
-3. generateMeetLink() service                    [backend]
-4. Auto Meet link on createMeeting (ONLINE)      [backend]
-5. meetLink in all meeting responses             [backend]
-6. Frontend: Meeting types + query keys          [frontend]
-7. TodayTimeline component                       [frontend]
-8. useGoogleCalendarEvents hook + service        [frontend]
-9. Wire TodayTimeline into home dashboard        [frontend]
-   ↑ Ship here — unified timeline is live ↑
-10. GCal write sync (create/update/delete)       [backend]
-11. GET /integrations/google/events + status     [backend]
-12. "Join Meeting" button — all 3 layouts        [frontend]
-13. Meeting create form: Meet link checkbox       [frontend]
-14. Settings > Integrations: live GCal status   [frontend]
+1.  Schema: meetLink + googleEventId on Meeting  [backend] ✅
+2.  DB migration (pnpm db:push)                  [backend] ✅
+3.  createGCalEventForMeeting() — one API call   [backend] ✅
+    gets both GCal event + Meet URL (no separate
+    generateMeetLink step needed)
+4.  Hook createMeeting → addToCalendar flag      [backend] ✅
+5.  meetLink in all meeting responses (scalar)   [backend] ✅
+6.  Frontend: Meeting types + query keys         [frontend] ✅
+7.  TodayTimeline component                      [frontend] ✅
+8.  useGoogleCalendarEvents hook + service       [frontend] ✅
+9.  Wire TodayTimeline into home dashboard       [frontend] ✅
+10. GCal write sync (create/update/delete)       [backend] ✅
+11. GET /integrations/google/events + status     [backend] ✅
+12. "Join Meeting" in all 3 layouts              [frontend] ✅
+13. Meeting create form: addToCalendar switch    [frontend] ✅
+14. Settings > Integrations: live GCal status   [frontend] ✅
+15. DELETE /integrations/google/disconnect       [backend] ✅
 ```
+
+## Implementation Notes
+
+### Key decisions
+
+**`createGCalEventForMeeting` instead of `generateMeetLink`:**
+The spec called for a separate `generateMeetLink` function that creates a throwaway event. The actual implementation combines both steps — `createGCalEventForMeeting` with `requestMeetLink: true` creates the real calendar event AND gets the Meet URL in one API call. Cleaner.
+
+**`addToCalendar` is the opt-out flag:**
+Frontend sends `addToCalendar: true` on ONLINE meeting creation. Backend Zod schema accepts it as `boolean?`. GCal sync only fires when `addToCalendar === true` AND GCal is connected. Fail-open: if GCal is not connected, meeting is created without a Meet link (no error).
+
+**VoiceNoteDetail + RecordedDetail meet link:**
+These show a simple text link "Join meeting →" in the metadata row (date/duration area), not a button CTA. This is intentional — for past meetings, the Join link is reference info, not a primary action. ScheduledDetail gets the full Button treatment since the user might actually click to join.
+
+**TodayTimeline GCal event interactivity:**
+GCal events with `meetLink` render as `motion.a` (clickable, hover, cursor-pointer). GCal events without `meetLink` render as `motion.div` (display-only, no hover, no cursor). This prevents confusing click areas that do nothing.
+
+**Disconnect scope stripping:**
+`disconnectGCalendar` strips only `CALENDAR_SCOPE` and `CALENDAR_READONLY_SCOPE` from `OAuthAccount.scopes`. The base Google identity scope is preserved — user stays logged in to Crelyzor. Existing meetings that have `googleEventId` retain the field; GCal sync stops silently (fail-open).
+
+### Gotchas
+
+- GCal event `meetLink` comes from `conferenceData.entryPoints[0].uri` (type = `"video"`), not from `hangoutLink` (deprecated).
+- Redis caches GCal events as JSON with `Date` serialized to ISO strings. On cache hit, dates must be re-hydrated (`new Date(cached.startTime)`).
+- `motion.a` vs `motion.div` distinction for GCal rows in TodayTimeline is important — mixing them caused event handler issues on rows that should be non-clickable.
+- `queryKeys.settings.all` is a plain array (not a function) — spread it correctly: `{ queryKey: queryKeys.settings.all }`, not `{ queryKey: queryKeys.settings.all() }`.

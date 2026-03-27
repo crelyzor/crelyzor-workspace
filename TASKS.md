@@ -119,30 +119,12 @@ All 20 tasks complete — scheduling engine, booking pages, GCal integration (bo
 
 ---
 
-## Phase 1.3 — Google Calendar Deep Integration ← current
+## Phase 1.3 — Google Calendar Deep Integration ✅ Complete
 
 Full design doc: `docs/dev-notes/phase-1.3-gcal.md`
 Per-repo task breakdowns: each repo's `TASKS.md`
 
-**Build order:**
-
-| # | What | Repo |
-|---|------|------|
-| 1 | Schema: `meetLink` + `googleEventId` on `Meeting` | backend |
-| 2 | DB migration | backend |
-| 3 | `generateMeetLink(userId)` service + auto-generate on ONLINE meeting create | backend |
-| 4 | Include `meetLink` in all meeting API responses | backend |
-| 5 | Add `meetLink` + `googleEventId` to frontend `Meeting` types | frontend |
-| 6 | `TodayTimeline` component — unified GCal events + Crelyzor meetings | frontend |
-| 7 | `useGoogleCalendarEvents` hook + `integrationsService` | frontend |
-| 8 | Wire `TodayTimeline` into home dashboard | frontend |
-| 9 | GCal write sync for meetings (create/update/delete → GCal event) | backend |
-| 10 | `GET /integrations/google/events` + `GET /integrations/google/status` endpoints | backend |
-| 11 | "Join Meeting" button in all 3 meeting detail layouts | frontend |
-| 12 | Meeting creation form: auto-generate Meet link checkbox (ONLINE only) | frontend |
-| 13 | Settings > Integrations: wire GCal status, connect, disconnect | frontend |
-
-Stop at #8 for a working unified timeline without write sync.
+All 13 tasks complete — schema migration, GCal write sync (create/update/cancel/delete), events endpoint, unified TodayTimeline, meet link UX in all layouts, Settings > Integrations fully wired.
 
 ---
 

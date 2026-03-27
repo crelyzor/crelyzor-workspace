@@ -143,7 +143,7 @@ Full design doc: `docs/dev-notes/phase-1.2-scheduling.md`
 
 ---
 
-## Phase 1.3 — Google Calendar Deep Integration + Unified Timeline
+## Phase 1.3 — Google Calendar Deep Integration + Unified Timeline ✅ COMPLETE
 
 **Goal:** Google Calendar is woven into every corner of Crelyzor. Meet links are auto-generated. Your full day (GCal events + Crelyzor meetings) lives in one timeline. Every meeting you create in Crelyzor lands in your Google Calendar automatically.
 
@@ -153,50 +153,34 @@ Full design doc: `docs/dev-notes/phase-1.3-gcal.md`
 
 ---
 
-### P0 — Schema + Meet Link Foundation
+### P0 — Schema + Meet Link Foundation ✅
 
-> Must be done first. Auto Meet link generation and write sync both depend on it.
+- [x] Schema: `meetLink String?` + `googleEventId String?` on `Meeting` model
+- [x] DB migration (`pnpm db:push`)
+- [x] `createGCalEventForMeeting()` — creates GCal event with conferenceData in one API call, returns `{ googleEventId, meetLink }`
+- [x] Auto-generate Meet link in `meetingService.createMeeting()` when `addToCalendar === true` (SCHEDULED only)
+- [x] `meetLink` + `googleEventId` included in all meeting API responses (scalar fields, no `include` change needed)
 
-- [ ] Schema: Add `meetLink String?` to `Meeting` model — stores auto-generated Google Meet URL
-- [ ] Schema: Add `googleEventId String?` to `Meeting` model — stores GCal event ID for write sync
-- [ ] DB migration for both new fields
-- [ ] `generateMeetLink(userId)` in `googleCalendarService.ts` — calls GCal API `conferenceData.createRequest`, returns a `meet.google.com/xxx` URL. Fail-open (returns null if GCal not connected).
-- [ ] Auto-generate Meet link in `meetingService.createMeeting()` when `locationType === ONLINE` and GCal is connected — store on `Meeting.meetLink`
-- [ ] Include `meetLink` in all meeting API responses (`GET /meetings`, `GET /meetings/:id`)
+### P1 — GCal Write Sync for Meetings ✅
 
----
+- [x] On `createMeeting` → `createGCalEventForMeeting` → stores `googleEventId` + `meetLink`. Fail-open.
+- [x] On `updateMeeting` → `updateGCalEventForMeeting` if `googleEventId` set. Fail-open.
+- [x] On `cancelMeeting` / `deleteMeeting` → `deleteCalendarEvent`. Fail-open.
+- [x] `addToCalendar?: boolean` in both `createMeetingSchema` and `updateMeetingSchema`
 
-### P1 — GCal Write Sync for Meetings (not just bookings)
+### P2 — GCal Read Sync for Dashboard Timeline ✅
 
-> Currently write sync only fires for bookings. Phase 1.3 extends it to all Crelyzor meetings.
+- [x] `GET /integrations/google/events?start=&end=` — normalized events, 5-min Redis cache, rate-limited
+- [x] `GET /integrations/google/status` — `{ connected, email, syncEnabled }` from `getGCalConnectionStatus`
+- [x] `TodayTimeline` component — unified Crelyzor meetings + GCal events, chronologically sorted
+- [x] `useGoogleCalendarEvents(start, end)` + `useGoogleCalendarStatus()` hooks
 
-- [ ] On `createMeeting` → if GCal connected and `syncEnabled` → create GCal event → store `googleEventId` on Meeting
-- [ ] On `updateMeeting` → if `googleEventId` set → update the GCal event (title, time, location)
-- [ ] On `cancelMeeting` / `deleteMeeting` → if `googleEventId` set → delete the GCal event
-- [ ] Opt-out flag: `addToCalendar: boolean` in create/update meeting Zod schema (defaults to `true` when GCal connected)
-- [ ] All GCal ops fail-open — meeting write to DB always succeeds; GCal failure is logged and swallowed
+### P3 — Meet Link UX + Settings Integrations ✅
 
----
-
-### P2 — GCal Read Sync for Dashboard Timeline
-
-> Show Google Calendar events (not just freebusy) in the Crelyzor home dashboard.
-
-- [ ] `GET /integrations/google/events?start=&end=` — fetches GCal events in window, normalizes to `{ id, title, startTime, endTime, location, meetLink }`. Cached 5 min in Redis. No auth skip.
-- [ ] `GET /integrations/google/status` — returns `{ connected: bool, email: string | null }` for settings UI
-- [ ] Home dashboard: unified **Today's Timeline** component — Crelyzor meetings + GCal events on the same chronological list, visually distinguished (GCal events get a subtle Google Calendar icon + different border style)
-- [ ] React Query hook: `useGoogleCalendarEvents(start, end)` in `calendar-frontend`
-- [ ] GCal events shown in home "Today" section alongside Crelyzor meetings — zero context-switch needed
-
----
-
-### P3 — Meet Link UX in Dashboard
-
-> Surface Meet links where they matter — meeting creation and meeting detail.
-
-- [ ] Meeting creation form: when `locationType === ONLINE` and GCal is connected → show "Auto-generate Google Meet link" checkbox (checked by default). When unchecked → show manual URL input.
-- [ ] Meeting detail (all 3 layouts): when `meetLink` is set → show **"Join Meeting"** button (prominent, near top) + copy link icon
-- [ ] Settings > Integrations > Google Calendar: show connected email, `googleCalendarSyncEnabled` toggle, connect/disconnect button — wire `GET /integrations/google/status` to show live connection state
+- [x] Meeting creation form: "Add to Google Calendar" switch (ONLINE + GCal connected → shown, on by default)
+- [x] ScheduledDetail: "Join Meeting" button (primary) + copy icon. VoiceNoteDetail + RecordedDetail: inline text link.
+- [x] Settings > Integrations: live connection status, email badge, Disconnect button, sync toggle with toast
+- [x] `DELETE /integrations/google/disconnect` endpoint + `disconnectGCalendar` service
 
 ---
 
