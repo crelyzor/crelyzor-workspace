@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-03-28 (Phase 1.4 complete — moving to Phase 2)
+Last updated: 2026-03-28 (Phase 2 standalone tasks complete — moving to Phase 3)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -159,10 +159,10 @@ Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_
 
 ## Phase 2 — Standalone Tasks + Big Brain
 
-- [ ] Task list page (Todoist-style — filter by status, priority, due date, meeting source)
-- [ ] Standalone tasks API — `GET /tasks` (all tasks, not scoped to a meeting)
-- [ ] Tags on Tasks (`TaskTag` junction — extends universal Tag system)
-- [ ] `scheduledTime` field on Task (for calendar placement in Phase 3)
+- [x] Task list page (Todoist-style — filter by status, priority, due date, meeting source)
+- [x] Standalone tasks API — `GET /tasks` (all tasks, not scoped to a meeting) + `POST /tasks` (standalone create)
+- [x] Tags on Tasks (`TaskTag` junction — extends universal Tag system)
+- [x] `scheduledTime` field on Task (for calendar placement in Phase 3)
 - [ ] Global Ask AI (RAG over all user data — transcripts, notes, tasks)
 - [ ] Cross-meeting insights ("What do I know about Acme Corp?")
 - [ ] Proactive nudges (missed follow-ups, upcoming meeting prep)
