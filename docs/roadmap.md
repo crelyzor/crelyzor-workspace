@@ -184,11 +184,55 @@ Full design doc: `docs/dev-notes/phase-1.3-gcal.md`
 
 ---
 
+## Phase 1.4 — Recall.ai Platform Integration
+
+**Goal:** Recall.ai becomes a platform-level service (like Deepgram and OpenAI). One API key in `.env`, managed by us. Users get a simple toggle — no BYO-key friction.
+
+**Prerequisite:** Phase 1.3 complete ✅
+
+Full design doc: `docs/dev-notes/phase-1.4-recall-platform.md`
+
+---
+
+### P0 — Backend Refactor (schema + service + worker)
+
+- [ ] Schema: drop `recallApiKey` from `UserSettings` (keep `recallEnabled`)
+- [ ] Environment: add `RECALL_API_KEY` to `.env.example`, remove `RECALL_ENCRYPTION_KEY`
+- [ ] Remove `PUT /settings/recall-api-key` endpoint + `upsertRecallApiKey` service + validator
+- [ ] Remove encryption utilities if only Recall used them
+- [ ] Refactor `recallService.ts` — read key from `process.env.RECALL_API_KEY`, remove `recallApiKey` parameter from `deployBot()` + `getRecordingUrl()`
+- [ ] Bot config: add `join_at`, `automatic_leave` (waiting_room_timeout: 600, noone_joined_timeout: 180)
+- [ ] Refactor worker `jobProcessor.ts` — remove per-user key fetch + `decrypt()` calls
+- [ ] Refactor `bookingManagementService.ts` — check `recallEnabled` + `RECALL_API_KEY` env exists (no more per-user key dependency)
+- [ ] Update `GET /settings/user` response — remove `hasRecallApiKey`, add `recallAvailable: boolean` (derived from `!!process.env.RECALL_API_KEY`)
+- [ ] Update `PATCH /settings/user` — remove "must have recallApiKey before enabling" guard
+
+### P1 — Expand bot deployment scope
+
+- [ ] Deploy bot on manual meeting creation (SCHEDULED + has meetingLink/meetLink + recallEnabled) — not just bookings
+- [ ] Deploy bot on GCal-synced meetings with Meet links
+
+### P2 — Frontend simplification
+
+- [ ] Remove API key input, save button, "API key saved" badge from Settings > Integrations
+- [ ] Toggle shown only when `recallAvailable === true` from backend
+- [ ] Disabled state: "Recording bot not available on this instance" when `!recallAvailable`
+- [ ] Copy: "Enable Recall.ai bot" → "Auto-record online meetings"
+- [ ] Remove `hasRecallApiKey` from types, `saveRecallApiKey` from service + hooks
+
+### P3 — Cleanup + docs
+
+- [ ] Remove dead code (encryption.ts if unused, recallApiKeySchema, useSaveRecallApiKey hook)
+- [ ] Update `.env.example` with new vars
+- [ ] Dev notes written (`docs/dev-notes/phase-1.4-recall-platform.md`)
+
+---
+
 ## Phase 2 — Big Brain (Global AI)
 
 **Goal:** One AI that knows everything about the user across all of Crelyzor.
 
-**Prerequisite:** Phase 1.3 complete.
+**Prerequisite:** Phase 1.4 complete.
 
 - [ ] Vector embeddings for all transcripts, notes, tasks
 - [ ] RAG pipeline over user's full data

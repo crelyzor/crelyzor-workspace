@@ -89,6 +89,10 @@ GOOGLE_APPLICATION_CREDENTIALS=""
 UPSTASH_REDIS_REST_URL=""
 UPSTASH_REDIS_REST_TOKEN=""
 
+# Recall.ai (optional — enables auto-record for online meetings)
+RECALL_API_KEY=""                     # Platform-level Recall.ai key
+RECALL_WEBHOOK_SECRET=""              # HMAC signing key for webhook verification
+
 # Optional
 HARD_DELETE_ENABLED=false
 AUTO_START_CRON=false
@@ -98,17 +102,20 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 1 — Offline First** (P1 AI & Sharing done ✅, `cards-frontend` Next.js migration done ✅ — now on P2)
+**Phase 1.4 — Recall.ai Platform Integration** ← current
+
+Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_KEY` in `.env`, users get a simple toggle.
 
 Priority order:
-1. **Public meeting links** — backend publish model + dashboard toggle + public page at `/m/:id` in cards-frontend
-2. Export — Transcript/Summary as PDF or TXT
-3. Tags, Attachments, Edit transcript inline
-4. Mobile responsiveness + UI revamp (`calendar-frontend`)
+1. Backend: drop `recallApiKey` from schema, refactor service + worker to use env key
+2. Backend: expand bot deploy to manual meetings (not just bookings)
+3. Frontend: simplify Settings — remove API key input, keep toggle
+4. Cleanup: remove encryption utils, dead code
 
-**Phase 1 is complete. Phase 2 (Online Meetings — scheduling, Recall.ai) is next.**
+**Phase 1 through 1.3 complete ✅. Phase 1.4 in progress.**
 
 Full roadmap: `docs/roadmap.md`
+Design doc: `docs/dev-notes/phase-1.4-recall-platform.md`
 
 ---
 

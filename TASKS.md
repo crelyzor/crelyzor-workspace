@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-03-08 (Phase 1 complete ✅)
+Last updated: 2026-03-28 (Phase 1.4 — Recall.ai platform integration)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -125,6 +125,34 @@ Full design doc: `docs/dev-notes/phase-1.3-gcal.md`
 Per-repo task breakdowns: each repo's `TASKS.md`
 
 All 13 tasks complete — schema migration, GCal write sync (create/update/cancel/delete), events endpoint, unified TodayTimeline, meet link UX in all layouts, Settings > Integrations fully wired.
+
+---
+
+## Phase 1.4 — Recall.ai Platform Integration ← current
+
+Full design doc: `docs/dev-notes/phase-1.4-recall-platform.md`
+
+Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_KEY` in `.env`, users get a simple toggle.
+
+### Backend
+- [ ] Schema: drop `recallApiKey` from UserSettings, keep `recallEnabled`
+- [ ] Env: add `RECALL_API_KEY`, remove `RECALL_ENCRYPTION_KEY`
+- [ ] Remove `PUT /settings/recall-api-key` endpoint + encryption utilities
+- [ ] Refactor `recallService.ts` — read key from env, add `join_at` + `automatic_leave` config
+- [ ] Refactor worker — remove per-user key fetch + decrypt
+- [ ] Refactor booking confirm — simplified recallEnabled check
+- [ ] Update `GET /settings/user` — `recallAvailable` flag replaces `hasRecallApiKey`
+- [ ] Expand bot deploy: manual SCHEDULED meetings with video links (not just bookings)
+
+### Frontend
+- [ ] Remove API key input + save from Settings > Integrations
+- [ ] Toggle shown only when `recallAvailable === true`
+- [ ] Copy: "Auto-record online meetings" (don't expose vendor name)
+- [ ] Remove dead types, services, hooks
+
+### Cleanup
+- [ ] Remove dead code (encryption.ts, recallApiKeySchema, useSaveRecallApiKey)
+- [ ] Update `.env.example`
 
 ---
 
