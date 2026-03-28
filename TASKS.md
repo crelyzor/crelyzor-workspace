@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-03-28 (Phase 1.4 — Recall.ai platform integration)
+Last updated: 2026-03-28 (Phase 1.4 complete — moving to Phase 2)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -128,31 +128,32 @@ All 13 tasks complete — schema migration, GCal write sync (create/update/cance
 
 ---
 
-## Phase 1.4 — Recall.ai Platform Integration ← current
+## Phase 1.4 — Recall.ai Platform Integration ✅ Complete
 
 Full design doc: `docs/dev-notes/phase-1.4-recall-platform.md`
 
 Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_KEY` in `.env`, users get a simple toggle.
 
 ### Backend
-- [ ] Schema: drop `recallApiKey` from UserSettings, keep `recallEnabled`
-- [ ] Env: add `RECALL_API_KEY`, remove `RECALL_ENCRYPTION_KEY`
-- [ ] Remove `PUT /settings/recall-api-key` endpoint + encryption utilities
-- [ ] Refactor `recallService.ts` — read key from env, add `join_at` + `automatic_leave` config
-- [ ] Refactor worker — remove per-user key fetch + decrypt
-- [ ] Refactor booking confirm — simplified recallEnabled check
-- [ ] Update `GET /settings/user` — `recallAvailable` flag replaces `hasRecallApiKey`
-- [ ] Expand bot deploy: manual SCHEDULED meetings with video links (not just bookings)
+- [x] Schema: drop `recallApiKey` from UserSettings, keep `recallEnabled`
+- [x] Env: add `RECALL_API_KEY`, remove `RECALL_ENCRYPTION_KEY`
+- [x] Remove `PUT /settings/recall-api-key` endpoint + encryption utilities
+- [x] Refactor `recallService.ts` — read key from env, add `join_at` + `automatic_leave` config
+- [x] Refactor worker — remove per-user key fetch + decrypt
+- [x] Refactor booking confirm — simplified recallEnabled check (was already clean)
+- [x] Update `GET /settings/user` — `recallAvailable` flag replaces `hasRecallApiKey`
+- [x] Expand bot deploy: manual SCHEDULED meetings with video links (not just bookings)
+- [x] URL allowlist validation (`isVideoMeetingUrl`) — only known video platforms passed to Recall
 
 ### Frontend
-- [ ] Remove API key input + save from Settings > Integrations
-- [ ] Toggle shown only when `recallAvailable === true`
-- [ ] Copy: "Auto-record online meetings" (don't expose vendor name)
-- [ ] Remove dead types, services, hooks
+- [x] Remove API key input + save from Settings > Integrations
+- [x] Toggle shown only when `recallAvailable === true`
+- [x] Copy: "Auto-record online meetings" (don't expose vendor name)
+- [x] Remove dead types, services, hooks
 
 ### Cleanup
-- [ ] Remove dead code (encryption.ts, recallApiKeySchema, useSaveRecallApiKey)
-- [ ] Update `.env.example`
+- [x] Remove dead code (encryption.ts, recallApiKeySchema, useSaveRecallApiKey)
+- [x] Update `.env.example`
 
 ---
 
