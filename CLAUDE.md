@@ -22,9 +22,11 @@ An all-in-one productivity OS for professionals.
 
 | Repo | Role | Port |
 |------|------|------|
-| `calendar-backend` | Node.js + Express API — all business logic | 3000 |
-| `calendar-frontend` | React + Vite dashboard — meetings, cards, settings (auth required) | 5173 |
-| `cards-frontend` | Next.js — all public-facing pages (no auth, SEO-critical) | 5174 |
+| `crelyzor-backend` | Node.js + Express API — all business logic | 3000 |
+| `crelyzor-frontend` | React + Vite dashboard — meetings, cards, settings (auth required) | 5173 |
+| `crelyzor-public` | Next.js — all public-facing pages (no auth, SEO-critical) | 5174 |
+
+> **Note:** CLAUDE.md uses old names `calendar-backend` / `calendar-frontend` / `cards-frontend` in some places — actual directory names are `crelyzor-backend` / `crelyzor-frontend` / `crelyzor-public`.
 
 **`cards-frontend` is the public frontend** — all public, shareable, SEO-indexed URLs live here:
 - `/:username` — public card / profile page
@@ -40,7 +42,7 @@ Both repos are **fully independent** — no shared packages, no monorepo. Same d
 
 ```bash
 # Backend
-cd calendar-backend
+cd crelyzor-backend
 pnpm install
 pnpm dev              # API server on :3000
 pnpm dev:worker       # Bull job processor (separate terminal)
@@ -49,12 +51,12 @@ pnpm db:migrate       # Run migrations
 pnpm db:push          # Push schema without migration
 
 # Frontend (dashboard)
-cd calendar-frontend
+cd crelyzor-frontend
 pnpm install
 pnpm dev              # Vite on :5173
 
 # Public frontend (Next.js)
-cd cards-frontend
+cd crelyzor-public
 pnpm install
 pnpm dev              # Next.js on :5174
 ```
@@ -63,7 +65,7 @@ pnpm dev              # Next.js on :5174
 
 ## Required Environment Variables
 
-Create `calendar-backend/.env` from `.env.example`:
+Create `crelyzor-backend/.env` from `.env.example`:
 
 ```bash
 PORT=3000
@@ -102,11 +104,11 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 1.4 — Recall.ai Platform Integration** ✅ Complete
+**Phase 3 — Calendar View** ← current
 
-Recall.ai is now a platform-level service. One `RECALL_API_KEY` in `.env`, users get a simple toggle.
+Phase 1 (all features), Phase 2 (standalone tasks) complete ✅.
 
-**Phase 1 through 1.4 complete ✅. Moving to Phase 2.**
+Now building: full `/calendar` page — week/day view with GCal events + Crelyzor meetings + Tasks on calendar.
 
 Full roadmap: `docs/roadmap.md`
 
@@ -115,25 +117,32 @@ Full roadmap: `docs/roadmap.md`
 ## Architecture
 
 ```
-calendar-frontend  ──┐
-                     ├──► calendar-backend ──► PostgreSQL (Prisma)
-cards-frontend     ──┘         │
+crelyzor-frontend  ──┐
+                     ├──► crelyzor-backend ──► PostgreSQL (Prisma)
+crelyzor-public    ──┘         │
                                ├──► Google Cloud Storage (recordings)
                                ├──► Deepgram (transcription)
                                ├──► OpenAI (AI summaries, Ask AI)
-                               └──► Redis/Bull (job queues)
+                               ├──► Redis/Bull (job queues)
+                               └──► Recall.ai (auto-record bots — platform key)
 ```
 
 API base: `/api/v1/`
 
 Key route groups:
 - `/auth/*` — Google OAuth, JWT
-- `/meetings/*` — Meeting CRUD
+- `/meetings/*` — Meeting CRUD + GCal write sync
 - `/cards/*` — Card management (auth required)
 - `/public/cards/*` — Public card pages (no auth)
-- `/public/meetings/:shortId` — Published meeting pages (no auth — Phase 1 P2)
-- `/sma/*` — Smart Meeting Assistant (transcription, AI, Ask AI)
+- `/public/meetings/:shortId` — Published meeting pages (no auth)
+- `/public/scheduling/*` — Booking slots + profile (no auth)
+- `/scheduling/*` — Event types, availability, bookings (auth required)
+- `/sma/*` — Smart Meeting Assistant (transcription, AI, tasks, notes, Ask AI)
+- `/tags/*` — Universal tag system (meetings + cards + tasks)
+- `/integrations/*` — Google Calendar status + events + disconnect
 - `/users/*` — Profile management
+- `/settings/*` — User settings
+- `/webhooks/*` — Recall.ai webhooks
 
 ---
 
@@ -213,21 +222,18 @@ toast.error("Something went wrong");
 Upload recording → GCS → Deepgram (Nova-2, diarize) → TranscriptSegment[]
                                                               ↓
                                                     OpenAI processing (parallel)
-                                                    ├── Summary
-                                                    ├── Key points
-                                                    └── Action items
+                                                    ├── Summary + key points
+                                                    ├── AI title generation
+                                                    └── Task extraction (source: AI_EXTRACTED)
 ```
 
 Transcription status: `NONE → UPLOADED → PROCESSING → COMPLETED`
 
 Frontend polls `/sma/meetings/:id/transcript/status` until `COMPLETED`.
 
-**Ask AI (to build):**
-```
-POST /sma/meetings/:id/ask
-{ question: string }
-→ Fetch transcript → Build OpenAI prompt → Stream response
-```
+**Ask AI** — `POST /sma/meetings/:id/ask` — SSE streaming, session history in-memory. Built ✅
+
+**AI Content Generation** — `POST /sma/meetings/:id/generate` — Meeting Report, Tweet, Blog Post, Email. Cached in `MeetingAIContent`. Built ✅
 
 Full AI design: `docs/ai-brain.md`
 
@@ -237,7 +243,9 @@ Full AI design: `docs/ai-brain.md`
 
 **PostgreSQL only.** Prisma ORM. Schema: `calendar-backend/prisma/schema.prisma`
 
-Key models: `User`, `Meeting`, `MeetingRecording`, `MeetingTranscript`, `TranscriptSegment`, `MeetingAISummary`, `MeetingActionItem`, `MeetingNote`, `Card`, `CardContact`, `CardView`
+Key models: `User`, `Meeting`, `MeetingRecording`, `MeetingTranscript`, `TranscriptSegment`, `MeetingAISummary`, `MeetingNote`, `Task`, `Tag`, `MeetingTag`, `CardTag`, `TaskTag`, `Card`, `CardContact`, `CardView`, `EventType`, `Availability`, `Booking`, `UserSettings`, `MeetingShare`, `MeetingAttachment`, `MeetingAIContent`
+
+> `MeetingActionItem` is dropped — replaced by `Task` model.
 
 All soft deletes — never hard delete unless `HARD_DELETE_ENABLED=true`.
 
@@ -254,7 +262,8 @@ All soft deletes — never hard delete unless `HARD_DELETE_ENABLED=true`.
 - Do NOT use `any` in TypeScript — use proper types
 - Do NOT hardcode mock data in components — connect to real API
 - Do NOT edit `.env` files directly
-- Do NOT start Phase 3 (Big Brain) until Phase 2 is complete
+- Do NOT start Phase 4 (Big Brain) until Phase 3 is complete
+- Do NOT reference `calendar-backend` / `calendar-frontend` / `cards-frontend` — actual dirs are `crelyzor-backend` / `crelyzor-frontend` / `crelyzor-public`
 
 ---
 
