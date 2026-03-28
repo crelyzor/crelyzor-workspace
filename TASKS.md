@@ -157,27 +157,36 @@ Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_
 
 ---
 
-## Phase 2 — Standalone Tasks + Big Brain
+## Phase 2 — Standalone Tasks ✅ Complete
 
 - [x] Task list page (Todoist-style — filter by status, priority, due date, meeting source)
 - [x] Standalone tasks API — `GET /tasks` (all tasks, not scoped to a meeting) + `POST /tasks` (standalone create)
 - [x] Tags on Tasks (`TaskTag` junction — extends universal Tag system)
 - [x] `scheduledTime` field on Task (for calendar placement in Phase 3)
-- [ ] Global Ask AI (RAG over all user data — transcripts, notes, tasks)
-- [ ] Cross-meeting insights ("What do I know about Acme Corp?")
-- [ ] Proactive nudges (missed follow-ups, upcoming meeting prep)
-- [ ] Vector embeddings pipeline
-- [ ] **Full two-way GCal sync** — GCal push webhooks → GCal edits/cancels reflect in Crelyzor (deferred from 1.3 — requires webhook infra + conflict resolution)
 
 ---
 
-## Phase 3 — Calendar View + Tasks on Calendar
+## Phase 3 — Calendar View + Tasks on Calendar ← current focus
 
+- [x] Tasks with `scheduledTime` appear on `TodayTimeline` as timed items
+- [x] Tasks with only `dueDate` appear as "Due today" section on `TodayTimeline`
 - [ ] Full `/calendar` page — week/day view (GCal events + Crelyzor meetings + Tasks)
 - [ ] Tasks with `scheduledTime` appear as time blocks on calendar
 - [ ] Tasks with `dueDate` appear as all-day markers
 - [ ] Drag task to time slot → sets `scheduledTime`
 - [ ] Click empty slot → quick-create (Meeting | Task)
+
+---
+
+## Phase 4 — Big Brain
+
+Requires separate infrastructure (vector DB, embeddings pipeline). Completely different track from Phase 3.
+
+- [ ] Vector embeddings pipeline — embed transcripts, notes, tasks on creation/update
+- [ ] Global Ask AI — RAG query over all user data ("What do I know about Acme Corp?")
+- [ ] Cross-meeting insights — surface patterns across meetings
+- [ ] Proactive nudges — missed follow-ups, upcoming meeting prep
+- [ ] **Full two-way GCal sync** — GCal push webhooks → GCal edits/cancels reflect in Crelyzor (deferred from 1.3 — requires webhook infra + conflict resolution)
 
 ---
 
