@@ -102,20 +102,13 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 1.4 — Recall.ai Platform Integration** ← current
+**Phase 1.4 — Recall.ai Platform Integration** ✅ Complete
 
-Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_KEY` in `.env`, users get a simple toggle.
+Recall.ai is now a platform-level service. One `RECALL_API_KEY` in `.env`, users get a simple toggle.
 
-Priority order:
-1. Backend: drop `recallApiKey` from schema, refactor service + worker to use env key
-2. Backend: expand bot deploy to manual meetings (not just bookings)
-3. Frontend: simplify Settings — remove API key input, keep toggle
-4. Cleanup: remove encryption utils, dead code
-
-**Phase 1 through 1.3 complete ✅. Phase 1.4 in progress.**
+**Phase 1 through 1.4 complete ✅. Moving to Phase 2.**
 
 Full roadmap: `docs/roadmap.md`
-Design doc: `docs/dev-notes/phase-1.4-recall-platform.md`
 
 ---
 
