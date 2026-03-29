@@ -26,14 +26,12 @@ An all-in-one productivity OS for professionals.
 | `crelyzor-frontend` | React + Vite dashboard — meetings, cards, settings (auth required) | 5173 |
 | `crelyzor-public` | Next.js — all public-facing pages (no auth, SEO-critical) | 5174 |
 
-> **Note:** CLAUDE.md uses old names `calendar-backend` / `calendar-frontend` / `cards-frontend` in some places — actual directory names are `crelyzor-backend` / `crelyzor-frontend` / `crelyzor-public`.
-
-**`cards-frontend` is the public frontend** — all public, shareable, SEO-indexed URLs live here:
+**`crelyzor-public` is the public frontend** — all public, shareable, SEO-indexed URLs live here:
 - `/:username` — public card / profile page
 - `/schedule/:username` — availability + booking (Phase 1.2)
 - `/m/:id` — published meeting (transcript, summary, tasks — Phase 1 P2)
 
-`calendar-frontend` is the authenticated dashboard. No public routes live there.
+`crelyzor-frontend` is the authenticated dashboard. No public routes live there.
 Both repos are **fully independent** — no shared packages, no monorepo. Same design language (Tailwind + shadcn/ui) maintained by convention.
 
 ---
@@ -112,15 +110,12 @@ Phases 1, 1.2, 1.3, 1.4, and 2 complete ✅.
 Goal: make tasks Todoist-quality with views, drag-and-drop, detail panel, board view, and Crelyzor-exclusive integrations (meeting context, AI extraction, contact linking, calendar blocking).
 
 **Build order:**
-1. Schema migration — `status`, `sortOrder`, `parentTaskId`, `cardId`, `transcriptContext` on `Task`
-2. Task detail slide panel (biggest UX gap)
-3. Task row redesign (priority border, overdue, contact chip)
-4. Sidebar nav + Today / Upcoming / Inbox / From Meetings views
-5. Board view (Kanban by `status`)
-6. From Meetings view (AI-extracted tasks grouped by meeting, transcript tooltip)
-7. Drag and drop (list reorder + board column move)
-8. Global quick-add (Cmd+K, natural language parsing)
-9. `/calendar` page (week/day view — GCal events + meetings + tasks unified)
+1. ✅ Schema migration — `status`, `sortOrder`, `parentTaskId`, `cardId`, `transcriptContext` on `Task`
+2. ✅ Task detail slide panel + Task row redesign
+3. ✅ Sidebar nav + Inbox / Today / Upcoming / All / From Meetings views
+4. Board view (Kanban by `status`) + drag-and-drop (dnd-kit)
+5. Global quick-add (Cmd+K, natural language parsing)
+6. `/calendar` page (week/day view — GCal events + meetings + tasks unified)
 
 Full design doc: `docs/dev-notes/phase-3-tasks-calendar.md`
 Full roadmap: `docs/roadmap.md`
@@ -277,6 +272,8 @@ All soft deletes — never hard delete unless `HARD_DELETE_ENABLED=true`.
 - Do NOT edit `.env` files directly
 - Do NOT start Phase 4 (Big Brain) until Phase 3 is complete
 - Do NOT reference `calendar-backend` / `calendar-frontend` / `cards-frontend` — actual dirs are `crelyzor-backend` / `crelyzor-frontend` / `crelyzor-public`
+- Do NOT define feature-specific union types (e.g. `TaskView`) as local types inside child components — export them from the service file (`smaService.ts`) so both parent and child import from the same source
+- Do NOT use `new Date()` for "start of today" comparisons — always set hours to `0,0,0,0` to avoid time-of-day drift within a render session
 
 ---
 

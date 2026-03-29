@@ -199,56 +199,49 @@ Full design doc: `docs/dev-notes/phase-3-tasks-calendar.md`
 
 ---
 
-### P0 — Schema + API Upgrades (`crelyzor-backend`)
+### P0 — Schema + API Upgrades (`crelyzor-backend`) ✅ Complete
 
-- [ ] `sortOrder Int @default(0)` on `Task` — manual drag-to-reorder position
-- [ ] `status TaskStatus` enum — `TODO | IN_PROGRESS | DONE` (replaces `isCompleted` boolean, enables Board view)
-- [ ] `parentTaskId UUID?` on `Task` — subtasks (self-referential FK)
-- [ ] `cardId UUID?` on `Task` — link task to a Card contact
-- [ ] DB migration for all schema changes
-- [ ] `PATCH /tasks/reorder` — bulk update `sortOrder` for drag-and-drop
-- [ ] `GET /tasks` — add `view` param: `inbox | today | upcoming | all | from_meetings`
-  - `inbox` = no dueDate + no scheduledTime
-  - `today` = dueDate today + all overdue
-  - `upcoming` = next 7 days, returned pre-grouped by date
-  - `from_meetings` = meetingId is set (meeting-linked or AI-extracted)
-- [ ] `cardId` support on `POST /tasks` + `PATCH /tasks/:id`
-- [ ] Subtask endpoints: `GET /tasks/:id/subtasks`, `POST /tasks/:id/subtasks`
-- [ ] `status` replaces `isCompleted` in all task endpoints (backwards-compatible: DONE = isCompleted true)
+- [x] `sortOrder Int @default(0)` on `Task`
+- [x] `status TaskStatus` enum — `TODO | IN_PROGRESS | DONE`, synced with `isCompleted`
+- [x] `parentTaskId UUID?` on `Task` — subtasks (self-referential FK)
+- [x] `cardId UUID?` on `Task` — link task to a Card contact
+- [x] `transcriptContext String?` — transcript sentence for AI-extracted tasks
+- [x] DB push + Prisma client regenerated
+- [x] `PATCH /sma/tasks/reorder` — userId-scoped transaction
+- [x] `GET /sma/tasks?view=` — inbox / today / upcoming / all / from_meetings. Upcoming returns pre-grouped `{ date, tasks[] }[]`
+- [x] `cardId`, `status`, `transcriptContext` on create + update endpoints
+- [x] Subtask endpoints: `GET /sma/tasks/:id/subtasks`, `POST /sma/tasks/:id/subtasks`
+- [x] `updateTask`: bidirectional status↔isCompleted sync
+- [x] `deleteTask`: cascades soft-delete to subtasks in transaction
 
 ---
 
-### P1 — Task Detail Panel + Row Redesign (`crelyzor-frontend`)
+### P1 — Task Detail Panel + Row Redesign (`crelyzor-frontend`) ✅ Complete
 
-- [ ] **Task detail slide panel** — right-side slide-over, stays open alongside the list
-  - Inline-editable title
-  - Description (plain text, multiline)
+- [x] **Task detail slide panel** — right-side slide-over, auto-save on blur
+  - Inline-editable title + description
   - Due date picker
-  - Scheduled time picker (start + end — blocks time on calendar)
-  - Priority selector (P1–P4)
-  - Status selector (TODO / IN PROGRESS / DONE)
-  - Tags multi-select
-  - Linked meeting chip (click → open meeting detail)
-  - Linked contact (card) picker
+  - Priority selector (HIGH / MEDIUM / LOW)
+  - Status pill (TODO / IN PROGRESS / DONE)
+  - Tags multi-select (attach/detach)
+  - Linked meeting chip (click → navigate)
   - Subtasks list with inline add
-- [ ] **Task row redesign**
-  - Left priority border (red P1, orange P2, blue P3, no color P4)
-  - Due date turns red + "Overdue" label when past due
-  - Meeting chip (truncated title, click to navigate)
-  - Contact avatar if linked to a card
-  - Tags inline as small pills
-  - Click anywhere on row → opens detail panel (not navigate away)
+- [x] **Task row redesign**
+  - Left priority border (red HIGH, amber MEDIUM)
+  - "Overdue" indicator (midnight boundary, not current time)
+  - Meeting chip
+  - Click row → opens detail panel
 
 ---
 
-### P2 — Sidebar Navigation + Views (`crelyzor-frontend`)
+### P2 — Sidebar Navigation + Views (`crelyzor-frontend`) ✅ Complete
 
-- [ ] **Sidebar nav within `/tasks`**: Inbox · Today (with overdue count badge) · Upcoming · All Tasks · From Meetings
-- [ ] **Inbox view** — tasks with no due date + no scheduled time, grouped as "unsorted"
-- [ ] **Today view** — overdue section at top (red) + due today section below
-- [ ] **Upcoming view** — 7 days forward, tasks grouped under date headers (Today / Tomorrow / Mon Dec 16 / etc.)
-- [ ] **All Tasks view** — current flat list, improved with new row design
-- [ ] **From Meetings view** — AI-extracted + meeting-linked tasks, grouped by meeting. Hover → transcript snippet tooltip showing the line that generated the task. Click meeting chip → jump to meeting detail.
+- [x] **Sidebar nav within `/tasks`**: Inbox · Today · Upcoming · All Tasks · From Meetings (URL: `?view=`)
+- [x] **Inbox view** — tasks with no due date + no scheduled time
+- [x] **Today view** — "Overdue" section + "Due today" section, split at midnight
+- [x] **Upcoming view** — 7 days, grouped by date with human-friendly headers (Tomorrow, Wed Apr 2, etc.)
+- [x] **All Tasks view** — full filter bar (status/priority/source/sort)
+- [x] **From Meetings view** — tasks grouped by meeting name (client-side grouping)
 
 ---
 

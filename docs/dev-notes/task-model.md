@@ -21,19 +21,19 @@ Task {
 - `MeetingActionItem` was dropped entirely — no migration needed (no production data worth keeping at time of drop).
 - Always scope task queries to `userId` — never fetch tasks by `meetingId` alone without verifying ownership.
 
-## Phase 3 additions (planned)
+## Phase 3 additions ✅ Done
 
-New fields being added in Phase 3:
-- `status TaskStatus (TODO | IN_PROGRESS | DONE)` — replaces `isCompleted` boolean. DONE = isCompleted for backwards compatibility.
-- `sortOrder Int` — drag-to-reorder position, scoped per user.
-- `parentTaskId UUID?` — self-referential FK for subtasks.
-- `cardId UUID?` — links task to a Card contact.
-- `transcriptContext String?` — the transcript sentence that generated an AI-extracted task. Only set when `source = AI_EXTRACTED`. Used in the "From Meetings" view tooltip.
+Fields added in Phase 3:
+- `status TaskStatus (TODO | IN_PROGRESS | DONE)` — bidirectionally synced with `isCompleted`. When `status=DONE` → `isCompleted=true`, `completedAt=now`. When `isCompleted=true` → `status=DONE`.
+- `sortOrder Int @default(0)` — drag-to-reorder position. `PATCH /sma/tasks/reorder` takes ordered `taskIds[]`, writes sortOrder=index in userId-scoped transaction.
+- `parentTaskId UUID?` — self-referential FK. `GET /sma/tasks/:taskId/subtasks` + `POST /sma/tasks/:taskId/subtasks`. Parent ownership verified before creating children.
+- `cardId UUID?` — links task to a Card. Card ownership verified on create/update.
+- `transcriptContext String?` — transcript sentence for AI_EXTRACTED tasks. Displayed in From Meetings view.
 
 See `docs/dev-notes/phase-3-tasks-calendar.md` for the full design.
 
 ## Decisions
 - Built `Task` model early (before frontend) to avoid painful data migration later when real user data exists.
 - `meetingId` is nullable by design — standalone tasks use the same model.
-- Endpoints live under `/sma/meetings/:meetingId/tasks` (meeting-scoped) and `/sma/tasks/:taskId` (individual operations).
-- In Phase 3, standalone task endpoints move to `/tasks` (not under `/sma`).
+- Standalone task endpoints live under `/sma/tasks` (same router as meeting-scoped tasks, prefixed by `/sma`). Did not move to `/tasks` — kept everything under `/sma` for consistency.
+- `isCompleted` retained on the model alongside `status` for backwards compatibility. Both stay in sync via controller logic. Can be dropped in a future cleanup migration once all consumers use `status`.

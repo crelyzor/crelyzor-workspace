@@ -240,15 +240,14 @@ Keywords: `today`, `tomorrow`, `next week`, `monday`–`sunday` → resolve to a
 
 ## Build Order (sequential)
 
-1. **Schema migration + API** — P0 backend work. Unblocks everything else.
-2. **Task detail panel** — biggest UX gap. Do this before any view work.
-3. **Task row redesign** — update existing list with new design system.
-4. **Sidebar nav + Today/Upcoming/Inbox views** — makes it feel like Todoist.
-5. **Board view** — needs `status` field from step 1.
-6. **From Meetings view** — most Crelyzor-specific, highest value.
-7. **Drag and drop** — polish layer on top of working list/board.
-8. **Global quick-add** — final polish.
-9. **Calendar page** — `/calendar` route with unified view.
+1. ✅ **Schema migration + API** — P0 backend. `TaskStatus`, `sortOrder`, `parentTaskId`, `cardId`, `transcriptContext`, reorder endpoint, subtask endpoints, view query param.
+2. ✅ **Task detail panel** — Right-side slide-over. Auto-save title/description on blur, status pill, priority picker, due date, tags, subtasks, meeting chip, delete.
+3. ✅ **Task row redesign** — Priority left border, overdue indicator, meeting chip, click-to-select row.
+4. ✅ **Sidebar nav + views** — Inbox / Today / Upcoming / All / From Meetings via `?view=` URL param. Today splits overdue/due-today. Upcoming uses backend-grouped response. From Meetings groups by meeting on frontend.
+5. **Board view** — Kanban: Todo / In Progress / Done columns. Drag between columns.
+6. **List drag-to-reorder** — dnd-kit, persists via `PATCH /sma/tasks/reorder`.
+7. **Global quick-add** — Cmd+K entry point with natural language parsing.
+8. **Calendar page** — `/calendar` route with unified week/day view.
 
 ---
 
