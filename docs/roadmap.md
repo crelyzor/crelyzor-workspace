@@ -189,18 +189,95 @@ Full design doc: `docs/dev-notes/phase-1.4-recall-platform.md`
 
 ---
 
-## Phase 3 — Calendar View ← current
+## Phase 3 — Todoist-Level Tasks + Calendar View ← current
 
-**Goal:** A full `/calendar` page — week/day view with GCal events + Crelyzor meetings + Tasks unified in one place. The daily planning command center.
+**Goal:** Tasks become a first-class Todoist-quality system — with views, drag-and-drop, a detail panel, board view, and Crelyzor-exclusive integrations (meeting context, contact linking, AI extraction, calendar blocking). The `/calendar` page ties it all together.
 
 **Prerequisite:** Phase 2 complete ✅
 
-- [ ] `/calendar` page — week/day view (dedicated route, not just the home timeline)
-- [ ] GCal events + Crelyzor meetings + Tasks — unified in one calendar view
-- [ ] Tasks with `scheduledTime` appear as time blocks on calendar
-- [ ] Tasks with only `dueDate` appear as all-day markers
-- [ ] Drag a task to a time slot → sets `scheduledTime`
-- [ ] Link tasks to contacts (cards) — `cardId` on Task model
+Full design doc: `docs/dev-notes/phase-3-tasks-calendar.md`
+
+---
+
+### P0 — Schema + API Upgrades (`crelyzor-backend`)
+
+- [ ] `sortOrder Int @default(0)` on `Task` — manual drag-to-reorder position
+- [ ] `status TaskStatus` enum — `TODO | IN_PROGRESS | DONE` (replaces `isCompleted` boolean, enables Board view)
+- [ ] `parentTaskId UUID?` on `Task` — subtasks (self-referential FK)
+- [ ] `cardId UUID?` on `Task` — link task to a Card contact
+- [ ] DB migration for all schema changes
+- [ ] `PATCH /tasks/reorder` — bulk update `sortOrder` for drag-and-drop
+- [ ] `GET /tasks` — add `view` param: `inbox | today | upcoming | all | from_meetings`
+  - `inbox` = no dueDate + no scheduledTime
+  - `today` = dueDate today + all overdue
+  - `upcoming` = next 7 days, returned pre-grouped by date
+  - `from_meetings` = meetingId is set (meeting-linked or AI-extracted)
+- [ ] `cardId` support on `POST /tasks` + `PATCH /tasks/:id`
+- [ ] Subtask endpoints: `GET /tasks/:id/subtasks`, `POST /tasks/:id/subtasks`
+- [ ] `status` replaces `isCompleted` in all task endpoints (backwards-compatible: DONE = isCompleted true)
+
+---
+
+### P1 — Task Detail Panel + Row Redesign (`crelyzor-frontend`)
+
+- [ ] **Task detail slide panel** — right-side slide-over, stays open alongside the list
+  - Inline-editable title
+  - Description (plain text, multiline)
+  - Due date picker
+  - Scheduled time picker (start + end — blocks time on calendar)
+  - Priority selector (P1–P4)
+  - Status selector (TODO / IN PROGRESS / DONE)
+  - Tags multi-select
+  - Linked meeting chip (click → open meeting detail)
+  - Linked contact (card) picker
+  - Subtasks list with inline add
+- [ ] **Task row redesign**
+  - Left priority border (red P1, orange P2, blue P3, no color P4)
+  - Due date turns red + "Overdue" label when past due
+  - Meeting chip (truncated title, click to navigate)
+  - Contact avatar if linked to a card
+  - Tags inline as small pills
+  - Click anywhere on row → opens detail panel (not navigate away)
+
+---
+
+### P2 — Sidebar Navigation + Views (`crelyzor-frontend`)
+
+- [ ] **Sidebar nav within `/tasks`**: Inbox · Today (with overdue count badge) · Upcoming · All Tasks · From Meetings
+- [ ] **Inbox view** — tasks with no due date + no scheduled time, grouped as "unsorted"
+- [ ] **Today view** — overdue section at top (red) + due today section below
+- [ ] **Upcoming view** — 7 days forward, tasks grouped under date headers (Today / Tomorrow / Mon Dec 16 / etc.)
+- [ ] **All Tasks view** — current flat list, improved with new row design
+- [ ] **From Meetings view** — AI-extracted + meeting-linked tasks, grouped by meeting. Hover → transcript snippet tooltip showing the line that generated the task. Click meeting chip → jump to meeting detail.
+
+---
+
+### P3 — Board View + Drag and Drop (`crelyzor-frontend`)
+
+- [ ] **View toggle** — List / Board / Grouped (by date) switcher in header
+- [ ] **Board view** — 3 Kanban columns: Todo · In Progress · Done. Drag task between columns → updates `status`
+- [ ] **List drag-to-reorder** — drag handle on task rows, persists `sortOrder` via `PATCH /tasks/reorder`
+- [ ] **Grouped view** — tasks grouped under: Overdue / Today / Tomorrow / This Week / Later
+
+---
+
+### P4 — Global Quick-Add + Integrations (`crelyzor-frontend` + `crelyzor-backend`)
+
+- [ ] **Global quick-add** — `Cmd+K` from anywhere in app → input with natural language parsing
+  - "Follow up with John tomorrow P1 #Launch" → sets dueDate, priority, tag automatically
+  - Powered by simple regex parser (no LLM needed for this)
+- [ ] **Auto-create "Prepare" task on booking confirmed** — when booking is confirmed, auto-create task: "Prepare for [event type title] with [guest name]", dueDate = 1hr before startTime, linked to the created meeting (`crelyzor-backend`: `bookingManagementService.ts`)
+- [ ] **Contact-linked tasks on Card detail** — Card detail page shows open tasks linked to that contact via `cardId`
+
+---
+
+### P5 — Calendar View (`crelyzor-frontend`)
+
+- [ ] `/calendar` page — dedicated week/day view (separate route, not just home TodayTimeline)
+- [ ] GCal events + Crelyzor meetings + Tasks with `scheduledTime` — unified in one calendar grid
+- [ ] Tasks with only `dueDate` appear as all-day markers at top of day column
+- [ ] Drag a task from the task sidebar onto a time slot → sets `scheduledTime` + triggers `PATCH /tasks/:id`
+- [ ] Click a time slot with no task → quick-create task with that `scheduledTime` pre-filled
 
 ---
 

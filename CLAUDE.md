@@ -105,18 +105,24 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 3 — Calendar View** ← current
+**Phase 3 — Todoist-Level Tasks + Calendar View** ← current
 
-Phases 1, 1.2, 1.3, 1.4, and 2 (standalone tasks) complete ✅.
+Phases 1, 1.2, 1.3, 1.4, and 2 complete ✅.
 
-Now building: full `/calendar` page — week/day view with GCal events + Crelyzor meetings + Tasks on calendar.
+Goal: make tasks Todoist-quality with views, drag-and-drop, detail panel, board view, and Crelyzor-exclusive integrations (meeting context, AI extraction, contact linking, calendar blocking).
 
-Remaining in Phase 3:
-- `/calendar` page (week/day view — dedicated route)
-- Tasks with `dueDate` as all-day markers on calendar
-- Drag task to time slot → sets `scheduledTime`
-- Link tasks to contacts (`cardId` on Task)
+**Build order:**
+1. Schema migration — `status`, `sortOrder`, `parentTaskId`, `cardId`, `transcriptContext` on `Task`
+2. Task detail slide panel (biggest UX gap)
+3. Task row redesign (priority border, overdue, contact chip)
+4. Sidebar nav + Today / Upcoming / Inbox / From Meetings views
+5. Board view (Kanban by `status`)
+6. From Meetings view (AI-extracted tasks grouped by meeting, transcript tooltip)
+7. Drag and drop (list reorder + board column move)
+8. Global quick-add (Cmd+K, natural language parsing)
+9. `/calendar` page (week/day view — GCal events + meetings + tasks unified)
 
+Full design doc: `docs/dev-notes/phase-3-tasks-calendar.md`
 Full roadmap: `docs/roadmap.md`
 
 ---
