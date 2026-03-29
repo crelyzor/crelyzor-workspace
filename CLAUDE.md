@@ -30,7 +30,7 @@ An all-in-one productivity OS for professionals.
 
 **`cards-frontend` is the public frontend** — all public, shareable, SEO-indexed URLs live here:
 - `/:username` — public card / profile page
-- `/schedule/:username` — availability + booking (Phase 2)
+- `/schedule/:username` — availability + booking (Phase 1.2)
 - `/m/:id` — published meeting (transcript, summary, tasks — Phase 1 P2)
 
 `calendar-frontend` is the authenticated dashboard. No public routes live there.
@@ -94,6 +94,7 @@ UPSTASH_REDIS_REST_TOKEN=""
 # Recall.ai (optional — enables auto-record for online meetings)
 RECALL_API_KEY=""                     # Platform-level Recall.ai key
 RECALL_WEBHOOK_SECRET=""              # HMAC signing key for webhook verification
+RECALL_BASE_URL=""                    # Regional endpoint, e.g. https://ap-northeast-1.recall.ai/api/v1
 
 # Optional
 HARD_DELETE_ENABLED=false
@@ -106,9 +107,15 @@ AUTO_START_CRON=false
 
 **Phase 3 — Calendar View** ← current
 
-Phase 1 (all features), Phase 2 (standalone tasks) complete ✅.
+Phases 1, 1.2, 1.3, 1.4, and 2 (standalone tasks) complete ✅.
 
 Now building: full `/calendar` page — week/day view with GCal events + Crelyzor meetings + Tasks on calendar.
+
+Remaining in Phase 3:
+- `/calendar` page (week/day view — dedicated route)
+- Tasks with `dueDate` as all-day markers on calendar
+- Drag task to time slot → sets `scheduledTime`
+- Link tasks to contacts (`cardId` on Task)
 
 Full roadmap: `docs/roadmap.md`
 
