@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-03-28 (Phase 2 standalone tasks complete — moving to Phase 3)
+Last updated: 2026-04-02 (Phase 3 complete)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -170,11 +170,11 @@ Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_
 
 - [x] Tasks with `scheduledTime` appear on `TodayTimeline` as timed items
 - [x] Tasks with only `dueDate` appear as "Due today" section on `TodayTimeline`
-- [ ] Full `/calendar` page — week/day view (GCal events + Crelyzor meetings + Tasks)
-- [ ] Tasks with `scheduledTime` appear as time blocks on calendar
-- [ ] Tasks with `dueDate` appear as all-day markers
-- [ ] Drag task to time slot → sets `scheduledTime`
-- [ ] Click empty slot → quick-create (Meeting | Task)
+- [x] Full `/calendar` page — week/day view (GCal events + Crelyzor meetings + Tasks)
+- [x] Tasks with `scheduledTime` appear as time blocks on calendar
+- [x] Tasks with `dueDate` appear as all-day markers
+- [x] Drag task to time slot → sets `scheduledTime`
+- [x] Click empty slot → quick-create (Meeting | Task)
 
 ---
 
