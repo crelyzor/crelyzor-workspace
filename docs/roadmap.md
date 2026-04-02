@@ -189,7 +189,7 @@ Full design doc: `docs/dev-notes/phase-1.4-recall-platform.md`
 
 ---
 
-## Phase 3 — Todoist-Level Tasks + Calendar View ← current
+## Phase 3 — Todoist-Level Tasks + Calendar View ✅ COMPLETE
 
 **Goal:** Tasks become a first-class Todoist-quality system — with views, drag-and-drop, a detail panel, board view, and Crelyzor-exclusive integrations (meeting context, contact linking, AI extraction, calendar blocking). The `/calendar` page ties it all together.
 
@@ -245,40 +245,76 @@ Full design doc: `docs/dev-notes/phase-3-tasks-calendar.md`
 
 ---
 
-### P3 — Board View + Drag and Drop (`crelyzor-frontend`)
+### P3 — Board View + Drag and Drop (`crelyzor-frontend`) ✅
 
-- [ ] **View toggle** — List / Board / Grouped (by date) switcher in header
-- [ ] **Board view** — 3 Kanban columns: Todo · In Progress · Done. Drag task between columns → updates `status`
-- [ ] **List drag-to-reorder** — drag handle on task rows, persists `sortOrder` via `PATCH /tasks/reorder`
-- [ ] **Grouped view** — tasks grouped under: Overdue / Today / Tomorrow / This Week / Later
-
----
-
-### P4 — Global Quick-Add + Integrations (`crelyzor-frontend` + `crelyzor-backend`)
-
-- [ ] **Global quick-add** — `Cmd+K` from anywhere in app → input with natural language parsing
-  - "Follow up with John tomorrow P1 #Launch" → sets dueDate, priority, tag automatically
-  - Powered by simple regex parser (no LLM needed for this)
-- [ ] **Auto-create "Prepare" task on booking confirmed** — when booking is confirmed, auto-create task: "Prepare for [event type title] with [guest name]", dueDate = 1hr before startTime, linked to the created meeting (`crelyzor-backend`: `bookingManagementService.ts`)
-- [ ] **Contact-linked tasks on Card detail** — Card detail page shows open tasks linked to that contact via `cardId`
+- [x] **View toggle** — List / Board / Grouped (by date) switcher in header
+- [x] **Board view** — 3 Kanban columns: Todo · In Progress · Done. Drag task between columns → updates `status`
+- [x] **List drag-to-reorder** — drag handle on task rows, persists `sortOrder` via `PATCH /tasks/reorder`
+- [x] **Grouped view** — tasks grouped under: Overdue / Today / Tomorrow / This Week / Later
 
 ---
 
-### P5 — Calendar View (`crelyzor-frontend`)
+### P4 — Global Quick-Add + Integrations (`crelyzor-frontend` + `crelyzor-backend`) ✅
 
-- [ ] `/calendar` page — dedicated week/day view (separate route, not just home TodayTimeline)
-- [ ] GCal events + Crelyzor meetings + Tasks with `scheduledTime` — unified in one calendar grid
-- [ ] Tasks with only `dueDate` appear as all-day markers at top of day column
-- [ ] Drag a task from the task sidebar onto a time slot → sets `scheduledTime` + triggers `PATCH /tasks/:id`
-- [ ] Click a time slot with no task → quick-create task with that `scheduledTime` pre-filled
+- [x] **Global quick-add** — `Cmd+K` from anywhere in app → input with natural language parsing
+- [x] **Contact-linked tasks on Card detail** — Card detail page shows open tasks linked to that contact via `cardId`
 
 ---
 
-## Phase 4 — Big Brain (Global AI)
+### P5 — Calendar View (`crelyzor-frontend`) ✅
+
+- [x] `/calendar` page — dedicated week/day view (separate route, not just home TodayTimeline)
+- [x] GCal events + Crelyzor meetings + Tasks with `scheduledTime` — unified in one calendar grid
+- [x] Tasks with only `dueDate` appear as all-day markers at top of day column
+- [x] Drag a task to a time slot → sets `scheduledTime`
+- [x] Click empty time slot → quick-create (Task | Meeting)
+
+---
+
+## Phase 3.2 — Polish, Enhancements & Power Features ← current
+
+**Goal:** Make everything already built feel production-quality. Fix embarrassing gaps, add quick wins, and ship the power features that turn casual users into daily users.
+
+**No new infrastructure required.** All work is within existing stack.
+
+### P0 — Bugs & Embarrassing Gaps
+- [ ] Fix "Reschedule meeting" button (currently shows "coming soon" toast)
+- [ ] Privacy Settings tab — build (data export + delete account) or remove
+
+### P1 — Quick Wins
+- [ ] Task count badges on sidebar nav (Inbox · Today · Upcoming)
+- [ ] Overdue tasks section on home dashboard
+- [ ] NL parsing in inline task create (same parser as Cmd+K)
+- [ ] Task duration field — `durationMinutes` on Task + detail panel picker + calendar block height
+- [ ] Jump-to-date on calendar header
+- [ ] Email signature generator for cards
+
+### P2 — Meaningful Features
+- [ ] Auto-create "Prepare for [meeting]" task on booking confirmed (backend)
+- [ ] "New AI tasks from meeting" badge on home dashboard
+- [ ] Task bulk actions (select multiple → complete / delete / priority)
+- [ ] Card analytics improvement (views trend chart + link clicks)
+- [ ] Onboarding flow for new users (3-step, skippable)
+
+### P3 — Bigger Features
+- [ ] Global search — `GET /search?q=` endpoint + results page UI
+- [ ] Calendar month view
+- [ ] Keyboard shortcuts on tasks page (J/K/E/D/P/Space/Escape)
+- [ ] Schedule task → create GCal block (opt-in toggle in task detail)
+- [ ] Meeting ↔ Card contact auto-linking (match participant email → card contact)
+
+### P4 — Major Feature
+- [ ] Recurring tasks — `recurringRule` (RRULE) on Task + UI picker + auto-generate next on complete
+
+---
+
+## Phase 4 — Big Brain (Global AI) ⛔ BLOCKED
 
 **Goal:** One AI that knows everything about the user across all of Crelyzor.
 
-**Prerequisite:** Phase 3 complete.
+**Status:** Explicitly blocked. Do not start. Requires separate vector DB infrastructure not yet in place.
+
+**Prerequisite:** Phase 3 complete ✅ — infrastructure decision pending.
 
 - [ ] Vector embeddings for all transcripts, notes, tasks
 - [ ] RAG pipeline over user's full data

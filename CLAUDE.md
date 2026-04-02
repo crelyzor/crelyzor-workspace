@@ -103,21 +103,20 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 3 — Todoist-Level Tasks + Calendar View** ← current
+**Phase 3.2 — Polish, Enhancements & Power Features** ← current
 
-Phases 1, 1.2, 1.3, 1.4, and 2 complete ✅.
+Phases 1 → 3 complete ✅. Phase 4 (Big Brain) blocked ⛔.
 
-Goal: make tasks Todoist-quality with views, drag-and-drop, detail panel, board view, and Crelyzor-exclusive integrations (meeting context, AI extraction, contact linking, calendar blocking).
+Phase 3.2 is a product quality pass — fixing bugs, quick wins, and meaningful features identified after a full product audit. No new infrastructure required.
 
-**Build order:**
-1. ✅ Schema migration — `status`, `sortOrder`, `parentTaskId`, `cardId`, `transcriptContext` on `Task`
-2. ✅ Task detail slide panel + Task row redesign
-3. ✅ Sidebar nav + Inbox / Today / Upcoming / All / From Meetings views
-4. Board view (Kanban by `status`) + drag-and-drop (dnd-kit)
-5. Global quick-add (Cmd+K, natural language parsing)
-6. `/calendar` page (week/day view — GCal events + meetings + tasks unified)
+**Priority order:**
+1. P0 — Fix embarrassing gaps (Reschedule button, Privacy Settings placeholder)
+2. P1 — Quick wins (task counts, overdue on home, NL parsing, task duration, date picker, email sig)
+3. P2 — Meaningful features (auto-prepare task, AI task badge, bulk actions, analytics, onboarding)
+4. P3 — Bigger features (global search, month view, keyboard shortcuts, GCal task blocks, contact linking)
+5. P4 — Major feature (recurring tasks)
 
-Full design doc: `docs/dev-notes/phase-3-tasks-calendar.md`
+Full breakdown: `TASKS.md` (root), per-repo `TASKS.md` files.
 Full roadmap: `docs/roadmap.md`
 
 ---

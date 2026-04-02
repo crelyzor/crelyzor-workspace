@@ -178,9 +178,46 @@ Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_
 
 ---
 
-## Phase 4 — Big Brain
+## Phase 3.2 — Polish, Enhancements & Power Features ← current focus
 
-Requires separate infrastructure (vector DB, embeddings pipeline). Completely different track from Phase 3.
+Full breakdown per repo:
+- [crelyzor-backend/TASKS.md](./crelyzor-backend/TASKS.md)
+- [crelyzor-frontend/TASKS.md](./crelyzor-frontend/TASKS.md)
+
+### P0 — Bugs & Embarrassing Gaps (fix first)
+- [ ] **Frontend:** Fix "Reschedule meeting" button — remove "coming soon" toast, implement rescheduling
+- [ ] **Frontend:** Privacy Settings tab — either build (data export + delete account) or remove the tab
+
+### P1 — Quick Wins (high value, low effort)
+- [ ] **Frontend:** Task count badges on sidebar nav items (Inbox · Today · Upcoming)
+- [ ] **Frontend:** Overdue tasks section on home dashboard (above the timeline)
+- [ ] **Frontend:** NL parsing in inline task create form (same parser as Cmd+K)
+- [ ] **Backend + Frontend:** Task duration field — `durationMinutes` on Task schema + detail panel picker + calendar renders correct block height
+- [ ] **Frontend:** Jump-to-date on calendar — clicking the week label opens a date picker
+- [ ] **Frontend:** Email signature generator for cards
+
+### P2 — Meaningful Features
+- [ ] **Backend:** Auto-create "Prepare for [meeting]" task on booking confirmed
+- [ ] **Frontend:** "New tasks from meeting" badge on home dashboard after AI processes
+- [ ] **Frontend:** Task bulk actions — select multiple, bulk complete / delete / set priority
+- [ ] **Frontend:** Card analytics — views trend chart + link click breakdown
+- [ ] **Frontend:** Onboarding flow for new users (empty state → guided first actions)
+
+### P3 — Bigger Features
+- [ ] **Backend + Frontend:** Global search — across meetings, tasks, cards, contacts
+- [ ] **Frontend:** Calendar month view
+- [ ] **Frontend:** Keyboard shortcuts — J/K navigation, E edit, D due date, P priority, Enter open panel
+- [ ] **Backend + Frontend:** Schedule task → create GCal block (when scheduledTime is set)
+- [ ] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (match participant email to card contact)
+
+### P4 — Major Feature
+- [ ] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete
+
+---
+
+## Phase 4 — Big Brain ⛔ BLOCKED
+
+Explicitly blocked. Do not start. Requires separate vector DB infrastructure that is not yet in place.
 
 - [ ] Vector embeddings pipeline — embed transcripts, notes, tasks on creation/update
 - [ ] Global Ask AI — RAG query over all user data ("What do I know about Acme Corp?")
