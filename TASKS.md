@@ -192,9 +192,9 @@ Full breakdown per repo:
 - [x] **Frontend:** Task count badges on sidebar nav items (Inbox · Today · Upcoming)
 - [x] **Frontend:** Overdue tasks section on home dashboard (above the timeline)
 - [x] **Frontend:** NL parsing in inline task create form (same parser as Cmd+K)
-- [ ] **Backend + Frontend:** Task duration field — `durationMinutes` on Task schema + detail panel picker + calendar renders correct block height
-- [ ] **Frontend:** Jump-to-date on calendar — clicking the week label opens a date picker
-- [ ] **Frontend:** Email signature generator for cards
+- [x] **Backend + Frontend:** Task duration field — `durationMinutes` on Task schema + detail panel picker + calendar renders correct block height
+- [x] **Frontend:** Jump-to-date on calendar — clicking the week label opens a date picker
+- [x] **Frontend:** Email signature generator for cards
 
 ### P2 — Meaningful Features
 - [ ] **Backend:** Auto-create "Prepare for [meeting]" task on booking confirmed
