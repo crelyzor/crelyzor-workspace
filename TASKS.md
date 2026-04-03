@@ -185,11 +185,11 @@ Full breakdown per repo:
 - [crelyzor-frontend/TASKS.md](./crelyzor-frontend/TASKS.md)
 
 ### P0 — Bugs & Embarrassing Gaps (fix first)
-- [ ] **Frontend:** Fix "Reschedule meeting" button — remove "coming soon" toast, implement rescheduling
-- [ ] **Frontend:** Privacy Settings tab — either build (data export + delete account) or remove the tab
+- [x] **Frontend:** Fix "Reschedule meeting" button — remove "coming soon" toast, implement rescheduling
+- [x] **Frontend:** Privacy Settings tab — removed (was empty placeholder)
 
 ### P1 — Quick Wins (high value, low effort)
-- [ ] **Frontend:** Task count badges on sidebar nav items (Inbox · Today · Upcoming)
+- [x] **Frontend:** Task count badges on sidebar nav items (Inbox · Today · Upcoming)
 - [ ] **Frontend:** Overdue tasks section on home dashboard (above the timeline)
 - [ ] **Frontend:** NL parsing in inline task create form (same parser as Cmd+K)
 - [ ] **Backend + Frontend:** Task duration field — `durationMinutes` on Task schema + detail panel picker + calendar renders correct block height
