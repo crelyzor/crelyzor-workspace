@@ -190,8 +190,8 @@ Full breakdown per repo:
 
 ### P1 — Quick Wins (high value, low effort)
 - [x] **Frontend:** Task count badges on sidebar nav items (Inbox · Today · Upcoming)
-- [ ] **Frontend:** Overdue tasks section on home dashboard (above the timeline)
-- [ ] **Frontend:** NL parsing in inline task create form (same parser as Cmd+K)
+- [x] **Frontend:** Overdue tasks section on home dashboard (above the timeline)
+- [x] **Frontend:** NL parsing in inline task create form (same parser as Cmd+K)
 - [ ] **Backend + Frontend:** Task duration field — `durationMinutes` on Task schema + detail panel picker + calendar renders correct block height
 - [ ] **Frontend:** Jump-to-date on calendar — clicking the week label opens a date picker
 - [ ] **Frontend:** Email signature generator for cards
