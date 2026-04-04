@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-02 (Phase 3 complete)
+Last updated: 2026-04-04 (Phase 3.3 product gaps identified from full user review)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -197,21 +197,75 @@ Full breakdown per repo:
 - [x] **Frontend:** Email signature generator for cards
 
 ### P2 — Meaningful Features
-- [ ] **Backend:** Auto-create "Prepare for [meeting]" task on booking confirmed
-- [ ] **Frontend:** "New tasks from meeting" badge on home dashboard after AI processes
-- [ ] **Frontend:** Task bulk actions — select multiple, bulk complete / delete / set priority
-- [ ] **Frontend:** Card analytics — views trend chart + link click breakdown
-- [ ] **Frontend:** Onboarding flow for new users (empty state → guided first actions)
+- [x] **Backend:** Auto-create "Prepare for [meeting]" task on booking confirmed
+- [x] **Frontend:** "New tasks from meeting" badge on home dashboard after AI processes
+- [x] **Frontend:** Task bulk actions — select multiple, bulk complete / delete / set priority
+- [x] **Frontend:** Card analytics — views trend chart + link click breakdown
+- [x] **Frontend:** Onboarding flow for new users (empty state → guided first actions)
 
 ### P3 — Bigger Features
-- [ ] **Backend + Frontend:** Global search — across meetings, tasks, cards, contacts
-- [ ] **Frontend:** Calendar month view
-- [ ] **Frontend:** Keyboard shortcuts — J/K navigation, E edit, D due date, P priority, Enter open panel
+- [x] **Backend + Frontend:** Global search — across meetings, tasks, cards, contacts
+- [x] **Frontend:** Calendar month view
+- [x] **Frontend:** Keyboard shortcuts — J/K navigation, E edit, D due date, P priority, Enter open panel
 - [ ] **Backend + Frontend:** Schedule task → create GCal block (when scheduledTime is set)
 - [ ] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (match participant email to card contact)
 
 ### P4 — Major Feature
 - [ ] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete
+
+---
+
+---
+
+## Phase 3.3 — Close the Product Gaps
+
+> Identified via full user-perspective product review (2026-04-04).
+> Each gap below is something a real user would hit on their first week.
+
+Full breakdown per repo:
+- [crelyzor-backend/TASKS.md](./crelyzor-backend/TASKS.md)
+- [crelyzor-frontend/TASKS.md](./crelyzor-frontend/TASKS.md)
+- [crelyzor-public/TASKS.md](./crelyzor-public/TASKS.md)
+
+### P0 — Fix the Front Door (public card page)
+The public card page is what you hand to strangers. It currently has broken/missing states.
+- [ ] **Public:** Avatar fallback — show initials on gold background when no photo
+- [ ] **Public:** Loading skeleton — match card shape and dark bg while fetching
+- [ ] **Public:** Proper 404 — nice error page when card not found (not broken layout)
+- [ ] **Public:** Contact form validation — name required + email or phone required
+- [ ] **Public:** Contact form states — success state after submit, error state on fail, loading spinner during submit
+- [ ] **Public:** Smooth avatar image load — fade in, no layout shift
+- [ ] **Public:** Verify vCard download works on iOS and Android
+
+### P1 — Email Notifications (the product is silent right now)
+Not a single email is sent proactively. Productivity apps push value to you.
+- [ ] **Backend:** Transactional email service — integrate Resend (simple API, free tier, great DX)
+- [ ] **Backend:** Booking received — email to host when guest books (`bookingManagementService.ts`)
+- [ ] **Backend:** Booking confirmation — email to guest with details + calendar links (currently only stored in sessionStorage)
+- [ ] **Backend:** Booking reminder — email to both host + guest 24h before meeting
+- [ ] **Backend:** Meeting AI complete — email to user when transcript + summary are ready ("Your meeting '[title]' has been processed")
+- [ ] **Backend:** Daily task digest — 8am email with today's tasks + overdue items (Bull cron job, opt-in)
+- [ ] **Frontend:** Notification preferences in Settings — toggles for each email type
+
+### P2 — Scheduling Completeness (can't replace Cal.com with these gaps)
+- [ ] **Backend + Frontend:** Guest cancellation link — include a cancel URL in the booking confirmation email. `PATCH /public/bookings/:id/cancel` already exists, just needs to be surfaced.
+- [ ] **Backend + Frontend:** Guest reschedule — "Need to reschedule?" link in confirmation email → takes guest back to the date picker with the booking pre-loaded
+- [ ] **Frontend:** Minimum notice UI — expose `minNoticeHours` field on EventType editor (backend already supports it)
+- [ ] **Frontend:** Buffer time UI — expose `bufferBefore` / `bufferAfter` fields on EventType editor (backend already supports it)
+- [ ] **Frontend:** Max bookings per day UI — expose `maxPerDay` on EventType editor (backend already supports it)
+- [ ] **Backend + Frontend:** Booking cancelled notification — email to both parties when a booking is cancelled (host or guest)
+
+### P3 — Connection Features (deliver the "everything talks" promise)
+- [ ] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (already in P3.2 backlog — bump priority)
+- [ ] **Frontend:** Ask AI discovery — surface "Ask AI" as a prominent action on the meeting list row and home dashboard (not buried at the bottom of meeting detail)
+- [ ] **Backend:** Speaker memory — when user renames "Speaker 0" → "John Smith" in one meeting, remember the mapping so future meetings from the same voice are pre-labeled (requires voice fingerprint from Deepgram)
+
+### P4 — Recurring Tasks (table stakes for task management)
+- [ ] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete (already in 3.2 P4 — carry forward)
+
+### P5 — Data Import (how people switch tools)
+- [ ] **Backend + Frontend:** Contact CSV import — upload a CSV, map columns (name, email, phone, company), bulk-create CardContacts on a chosen card
+- [ ] **Backend + Frontend:** Calendar import — import .ics file → create Meeting records for past meetings (gives AI something to process)
 
 ---
 
