@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-04 (Phase 3.3 product gaps identified from full user review)
+Last updated: 2026-04-06 (Phase 3.4 — Global Tags planned)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -266,6 +266,55 @@ Not a single email is sent proactively. Productivity apps push value to you.
 ### P5 — Data Import (how people switch tools)
 - [ ] **Backend + Frontend:** Contact CSV import — upload a CSV, map columns (name, email, phone, company), bulk-create CardContacts on a chosen card
 - [ ] **Backend + Frontend:** Calendar import — import .ics file → create Meeting records for past meetings (gives AI something to process)
+
+---
+
+## Phase 3.4 — Global Tags ← next
+
+> Tags already exist on meetings, cards, and tasks. This phase makes them truly global — adding contacts, adding a tags index page, and a tag detail page that shows everything tagged with a given tag across all entity types.
+
+Full breakdown per repo:
+- [crelyzor-backend/TASKS.md](./crelyzor-backend/TASKS.md)
+- [crelyzor-frontend/TASKS.md](./crelyzor-frontend/TASKS.md)
+
+### What's being built
+
+**Tag universe after this phase:**
+```
+#any-tag
+├── Meetings  (incl. voice notes)  — MeetingTag  ✅ exists
+├── Cards                          — CardTag      ✅ exists
+├── Tasks                          — TaskTag      ✅ exists
+└── Contacts                       — ContactTag   ← new (ContactTag junction)
+```
+
+**New surfaces:**
+- `/tags` — index page: all your tags with item counts per type
+- `/tags/:tagId` — detail page: everything tagged with this tag, grouped by type
+- Tag chips on contacts + tag editor on contact rows
+- Tag chip anywhere in the app navigates to its tag detail page
+
+### P0 — Schema (do first — everything depends on it)
+- [ ] **Backend:** `ContactTag` junction model + migrate `Tag` + `CardContact` relations
+- [ ] **Backend:** Add `contactTags` cleanup to `deleteTag` transaction
+
+### P1 — Backend APIs
+- [ ] **Backend:** Contact tag endpoints (`GET/POST/DELETE /cards/:cardId/contacts/:contactId/tags/:tagId`)
+- [ ] **Backend:** `GET /tags/:tagId/items` — returns `{ tag, meetings[], cards[], tasks[], contacts[], counts }`
+- [ ] **Backend:** `listTags` updated to include counts per type
+
+### P2 — Frontend: Tags Index + Detail Pages
+- [ ] **Frontend:** `/tags` index page — tag grid with counts, inline create, rename, delete
+- [ ] **Frontend:** `/tags/:tagId` detail page — 4 sections (Meetings / Cards / Tasks / Contacts)
+- [ ] **Frontend:** Register routes + add "Tags" to sidebar nav
+
+### P3 — Frontend: Tags on Contacts
+- [ ] **Frontend:** Tag chips on contact rows in Cards contacts view
+- [ ] **Frontend:** Tag editor popover on contacts (same pattern as meetings/cards)
+- [ ] **Frontend:** Tag filter bar on contacts list
+
+### P4 — Tag Chip Navigation
+- [ ] **Frontend:** Clicking any tag chip anywhere navigates to `/tags/:tagId`
 
 ---
 
