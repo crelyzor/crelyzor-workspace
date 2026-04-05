@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-06 (Phase 3.4 — Global Tags planned)
+Last updated: 2026-04-06 (Phase 3.4 planned + Phase 3.2/3.3 audit)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -207,7 +207,7 @@ Full breakdown per repo:
 - [x] **Backend + Frontend:** Global search — across meetings, tasks, cards, contacts
 - [x] **Frontend:** Calendar month view
 - [x] **Frontend:** Keyboard shortcuts — J/K navigation, E edit, D due date, P priority, Enter open panel
-- [ ] **Backend + Frontend:** Schedule task → create GCal block (when scheduledTime is set)
+- [x] **Backend + Frontend:** Schedule task → create GCal block (when scheduledTime is set)
 - [ ] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (match participant email to card contact)
 
 ### P4 — Major Feature
@@ -229,12 +229,12 @@ Full breakdown per repo:
 
 ### P0 — Fix the Front Door (public card page)
 The public card page is what you hand to strangers. It currently has broken/missing states.
-- [ ] **Public:** Avatar fallback — show initials on gold background when no photo
-- [ ] **Public:** Loading skeleton — match card shape and dark bg while fetching
-- [ ] **Public:** Proper 404 — nice error page when card not found (not broken layout)
-- [ ] **Public:** Contact form validation — name required + email or phone required
-- [ ] **Public:** Contact form states — success state after submit, error state on fail, loading spinner during submit
-- [ ] **Public:** Smooth avatar image load — fade in, no layout shift
+- [x] **Public:** Avatar fallback — show initials on gold background when no photo
+- [x] **Public:** Loading skeleton — match card shape and dark bg while fetching
+- [x] **Public:** Proper 404 — nice error page when card not found (not broken layout)
+- [x] **Public:** Contact form validation — name required + email or phone required
+- [x] **Public:** Contact form states — success state after submit, error state on fail, loading spinner during submit
+- [x] **Public:** Smooth avatar image load — fade in, no layout shift
 - [ ] **Public:** Verify vCard download works on iOS and Android
 
 ### P1 — Email Notifications (the product is silent right now)
