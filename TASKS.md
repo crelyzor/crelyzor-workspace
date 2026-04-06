@@ -311,12 +311,12 @@ Full breakdown per repo:
 - [x] **Frontend:** Register routes + add "Tags" to sidebar nav
 
 ### P3 — Frontend: Tags on Contacts
-- [ ] **Frontend:** Tag chips on contact rows in Cards contacts view
-- [ ] **Frontend:** Tag editor popover on contacts (same pattern as meetings/cards)
-- [ ] **Frontend:** Tag filter bar on contacts list
+- [x] **Frontend:** Tag chips on contact rows in Cards contacts view
+- [x] **Frontend:** Tag editor popover on contacts (same pattern as meetings/cards)
+- [x] **Frontend:** Tag filter bar on contacts list
 
 ### P4 — Tag Chip Navigation
-- [ ] **Frontend:** Clicking any tag chip anywhere navigates to `/tags/:tagId`
+- [x] **Frontend:** Clicking any tag chip anywhere navigates to `/tags/:tagId`
 
 ---
 
