@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-07 (Phase 3.2/3.3 complete, Phase 3.4 next)
+Last updated: 2026-04-07 (Phase 3.2 complete ✅, Phase 3.4 next)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -211,7 +211,7 @@ Full breakdown per repo:
 - [x] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (match participant email to card contact)
 
 ### P4 — Major Feature
-- [ ] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete
+- [x] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete
 
 ---
 
@@ -263,7 +263,7 @@ Not a single email is sent proactively. Productivity apps push value to you.
 - [ ] **Backend:** Speaker memory — when user renames "Speaker 0" → "John Smith" in one meeting, remember the mapping so future meetings from the same voice are pre-labeled (requires voice fingerprint from Deepgram)
 
 ### P4 — Recurring Tasks (table stakes for task management)
-- [ ] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete (already in 3.2 P4 — carry forward)
+- [x] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete
 
 ### P5 — Data Import (how people switch tools)
 - [ ] **Backend + Frontend:** Contact CSV import — upload a CSV, map columns (name, email, phone, company), bulk-create CardContacts on a chosen card
