@@ -302,13 +302,13 @@ Full breakdown per repo:
 
 ### P1 — Backend APIs
 - [x] **Backend:** Contact tag endpoints (`GET/POST/DELETE /cards/:cardId/contacts/:contactId/tags/:tagId`)
-- [ ] **Backend:** `GET /tags/:tagId/items` — returns `{ tag, meetings[], cards[], tasks[], contacts[], counts }`
-- [ ] **Backend:** `listTags` updated to include counts per type
+- [x] **Backend:** `GET /tags/:tagId/items` — returns `{ tag, meetings[], cards[], tasks[], contacts[], counts }`
+- [x] **Backend:** `listTags` updated to include counts per type
 
 ### P2 — Frontend: Tags Index + Detail Pages
-- [ ] **Frontend:** `/tags` index page — tag grid with counts, inline create, rename, delete
-- [ ] **Frontend:** `/tags/:tagId` detail page — 4 sections (Meetings / Cards / Tasks / Contacts)
-- [ ] **Frontend:** Register routes + add "Tags" to sidebar nav
+- [x] **Frontend:** `/tags` index page — tag grid with counts, inline create, rename, delete
+- [x] **Frontend:** `/tags/:tagId` detail page — 4 sections (Meetings / Cards / Tasks / Contacts)
+- [x] **Frontend:** Register routes + add "Tags" to sidebar nav
 
 ### P3 — Frontend: Tags on Contacts
 - [ ] **Frontend:** Tag chips on contact rows in Cards contacts view
