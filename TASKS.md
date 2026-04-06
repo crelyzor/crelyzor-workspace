@@ -248,7 +248,9 @@ Not a single email is sent proactively. Productivity apps push value to you.
 - [x] **Frontend:** Notification preferences in Settings — toggles for each email type
 
 ### P2 — Scheduling Completeness (can't replace Cal.com with these gaps)
-- [ ] **Backend + Frontend:** Guest cancellation link — include a cancel URL in the booking confirmation email. `PATCH /public/bookings/:id/cancel` already exists, just needs to be surfaced.
+- [x] **Backend + Frontend:** Guest cancellation link — include a cancel URL in the booking confirmation email. `PATCH /public/bookings/:id/cancel` already exists, just needs to be surfaced.
+  - Frontend: New page `cards-frontend/src/app/bookings/[id]/cancel/page.tsx` — shows booking details (need to fetch `GET /public/bookings/:id` first) + "Cancel this booking" button + reason text area.
+  - Backend: Add `GET /api/v1/public/bookings/:id` — returns public booking details.
 - [ ] **Backend + Frontend:** Guest reschedule — "Need to reschedule?" link in confirmation email → takes guest back to the date picker with the booking pre-loaded
 - [ ] **Frontend:** Minimum notice UI — expose `minNoticeHours` field on EventType editor (backend already supports it)
 - [ ] **Frontend:** Buffer time UI — expose `bufferBefore` / `bufferAfter` fields on EventType editor (backend already supports it)
