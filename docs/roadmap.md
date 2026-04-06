@@ -17,7 +17,7 @@ Ship a solo product that feels like one unified system — not three features du
 - [x] vCard download
 - [x] Contact exchange (lead capture)
 - [x] Card analytics
-- [ ] Email signature generator (polish — low priority)
+- [x] Email signature generator (done in Phase 3.2)
 - [ ] Card templates polish (low priority)
 
 ### Smart Meeting Recordings
@@ -271,40 +271,125 @@ Full design doc: `docs/dev-notes/phase-3-tasks-calendar.md`
 
 ---
 
-## Phase 3.2 — Polish, Enhancements & Power Features ← current
+## Phase 3.2 — Polish, Enhancements & Power Features ✅ MOSTLY COMPLETE
 
 **Goal:** Make everything already built feel production-quality. Fix embarrassing gaps, add quick wins, and ship the power features that turn casual users into daily users.
 
 **No new infrastructure required.** All work is within existing stack.
 
-### P0 — Bugs & Embarrassing Gaps
-- [ ] Fix "Reschedule meeting" button (currently shows "coming soon" toast)
-- [ ] Privacy Settings tab — build (data export + delete account) or remove
+### P0 — Bugs & Embarrassing Gaps ✅
+- [x] Fix "Reschedule meeting" button — `RescheduleMeetingModal` implemented
+- [x] Privacy Settings tab — removed (empty placeholder)
 
-### P1 — Quick Wins
-- [ ] Task count badges on sidebar nav (Inbox · Today · Upcoming)
-- [ ] Overdue tasks section on home dashboard
-- [ ] NL parsing in inline task create (same parser as Cmd+K)
-- [ ] Task duration field — `durationMinutes` on Task + detail panel picker + calendar block height
-- [ ] Jump-to-date on calendar header
-- [ ] Email signature generator for cards
+### P1 — Quick Wins ✅
+- [x] Task count badges on sidebar nav (Inbox · Today · Upcoming)
+- [x] Overdue tasks section on home dashboard
+- [x] NL parsing in inline task create (same parser as Cmd+K)
+- [x] Task duration field — `durationMinutes` on Task + detail panel picker + calendar block height
+- [x] Jump-to-date on calendar header
+- [x] Email signature generator for cards
 
-### P2 — Meaningful Features
-- [ ] Auto-create "Prepare for [meeting]" task on booking confirmed (backend)
-- [ ] "New AI tasks from meeting" badge on home dashboard
-- [ ] Task bulk actions (select multiple → complete / delete / priority)
-- [ ] Card analytics improvement (views trend chart + link clicks)
-- [ ] Onboarding flow for new users (3-step, skippable)
+### P2 — Meaningful Features ✅
+- [x] Auto-create "Prepare for [meeting]" task on booking confirmed (backend)
+- [x] "New AI tasks from meeting" badge on home dashboard
+- [x] Task bulk actions (select multiple → complete / delete / priority)
+- [x] Card analytics improvement (views trend chart + link clicks)
+- [x] Onboarding flow for new users (3-step, skippable)
 
-### P3 — Bigger Features
-- [ ] Global search — `GET /search?q=` endpoint + results page UI
-- [ ] Calendar month view
-- [ ] Keyboard shortcuts on tasks page (J/K/E/D/P/Space/Escape)
-- [ ] Schedule task → create GCal block (opt-in toggle in task detail)
-- [ ] Meeting ↔ Card contact auto-linking (match participant email → card contact)
+### P3 — Bigger Features ✅ (mostly done)
+- [x] Global search — `GET /search?q=` endpoint + results page UI
+- [x] Calendar month view
+- [x] Keyboard shortcuts on tasks page (J/K/E/D/P/Space/Escape)
+- [x] Schedule task → create GCal block (opt-in toggle in task detail)
+- [ ] Meeting ↔ Card contact auto-linking — backend done, frontend UI still needed
 
 ### P4 — Major Feature
 - [ ] Recurring tasks — `recurringRule` (RRULE) on Task + UI picker + auto-generate next on complete
+
+---
+
+## Phase 3.3 — Close the Product Gaps ✅ MOSTLY COMPLETE
+
+**Goal:** Fix things a real user would hit in their first week. Public card page, email notifications, scheduling completeness.
+
+Full breakdown: per-repo TASKS.md files.
+
+### P0 — Fix the Front Door (public card page) ✅
+- [x] Avatar fallback — initials on gold background when no photo
+- [x] Loading skeleton — match card shape + dark bg while fetching
+- [x] Proper 404 — on-brand error page when card not found
+- [x] Contact form validation — name required + email or phone required
+- [x] Contact form states — success / error / loading
+- [x] Smooth avatar image load — fade in, no layout shift
+- [ ] Verify vCard download works on iOS and Android (mobile testing)
+
+### P1 — Email Notifications ✅
+- [x] Resend integration — `emailService.ts` with fail-open wrapper
+- [x] Booking received email → host
+- [x] Booking confirmation email → guest (with calendar links + cancel link)
+- [x] Booking reminder — Bull delayed job at 24h before
+- [x] Booking cancelled — both parties notified
+- [x] Meeting AI complete — email when transcript + summary are ready
+- [x] Daily task digest — 8am Bull cron job, opt-in per user
+- [x] Email notification preferences in Settings → Notifications tab
+
+### P2 — Scheduling Completeness ✅
+- [x] Guest cancellation page — `/bookings/[id]/cancel` in `crelyzor-public`
+- [x] `GET /public/bookings/:id` — public booking details endpoint
+- [x] Guest reschedule — "Need to reschedule?" link in email → back to date picker
+- [x] EventType editor: min notice, buffer time, max per day fields exposed in UI
+- [x] Cancelled bookings shown in bookings list (strikethrough + badge)
+
+### P3 — Connection Features (not started)
+- [ ] Ask AI discovery — prominent action on meeting list row + home dashboard
+- [ ] Meeting ↔ Card contact chips — participant → card chip (requires backend P3 complete)
+- [ ] Speaker memory — voice fingerprint → pre-label future meetings (Deepgram)
+
+### P4 — Recurring Tasks (carry forward from 3.2)
+- [ ] Recurring tasks — `recurringRule` (RRULE) on Task + UI picker + auto-generate next on complete
+
+### P5 — Data Import
+- [ ] Contact CSV import — `POST /cards/:cardId/contacts/import` + UI file picker
+- [ ] Calendar .ics import — `POST /meetings/import/ics` + UI file picker
+
+---
+
+## Phase 3.4 — Global Tags ← current focus
+
+**Goal:** Tags are already on meetings, cards, and tasks. This phase makes them truly global — adding contacts, a tags index page, and a tag detail page that shows everything tagged with a given tag across all entity types.
+
+Full breakdown: per-repo TASKS.md files.
+
+### Tag universe after this phase
+```
+#any-tag
+├── Meetings  (incl. voice notes)  — MeetingTag  ✅ exists
+├── Cards                          — CardTag      ✅ exists
+├── Tasks                          — TaskTag      ✅ exists
+└── Contacts                       — ContactTag   ← new (ContactTag junction)
+```
+
+### P0 — Schema (backend)
+- [ ] `ContactTag` junction model + migrate relations on `Tag` + `CardContact`
+- [ ] `deleteTag` transaction updated to cascade `contactTags`
+
+### P1 — Backend APIs
+- [ ] Contact tag endpoints (`GET/POST/DELETE /cards/:cardId/contacts/:contactId/tags/:tagId`)
+- [ ] `GET /tags/:tagId/items` — returns `{ tag, meetings[], cards[], tasks[], contacts[], counts }`
+- [ ] `listTags` updated to include counts per type
+
+### P2 — Tags Index + Detail Pages (frontend)
+- [ ] `/tags` index page — tag grid with counts, inline create, rename, delete
+- [ ] `/tags/:tagId` detail page — 4 sections (Meetings / Cards / Tasks / Contacts)
+- [ ] Route registration + sidebar nav "Tags" item
+
+### P3 — Tags on Contacts (frontend)
+- [ ] Tag chips on contact rows in Cards contacts view
+- [ ] Tag editor popover on contacts
+- [ ] Tag filter bar on contacts list
+
+### P4 — Tag Chip Navigation (frontend)
+- [ ] Every tag chip in the app navigates to `/tags/:tagId`
 
 ---
 
