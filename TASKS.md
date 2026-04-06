@@ -208,7 +208,7 @@ Full breakdown per repo:
 - [x] **Frontend:** Calendar month view
 - [x] **Frontend:** Keyboard shortcuts — J/K navigation, E edit, D due date, P priority, Enter open panel
 - [x] **Backend + Frontend:** Schedule task → create GCal block (when scheduledTime is set)
-- [ ] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (match participant email to card contact)
+- [x] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (match participant email to card contact)
 
 ### P4 — Major Feature
 - [ ] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete

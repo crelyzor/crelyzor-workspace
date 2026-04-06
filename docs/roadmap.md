@@ -301,7 +301,7 @@ Full design doc: `docs/dev-notes/phase-3-tasks-calendar.md`
 - [x] Calendar month view
 - [x] Keyboard shortcuts on tasks page (J/K/E/D/P/Space/Escape)
 - [x] Schedule task → create GCal block (opt-in toggle in task detail)
-- [ ] Meeting ↔ Card contact auto-linking — backend done, frontend UI still needed
+- [x] Meeting ↔ Card contact auto-linking — backend + frontend done
 
 ### P4 — Major Feature
 - [ ] Recurring tasks — `recurringRule` (RRULE) on Task + UI picker + auto-generate next on complete
