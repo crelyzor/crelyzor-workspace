@@ -255,7 +255,7 @@ Not a single email is sent proactively. Productivity apps push value to you.
 - [x] **Frontend:** Minimum notice UI — expose `minNoticeHours` field on EventType editor (backend already supports it)
 - [x] **Frontend:** Buffer time UI — expose `bufferBefore` / `bufferAfter` fields on EventType editor (backend already supports it)
 - [x] **Frontend:** Max bookings per day UI — expose `maxPerDay` on EventType editor (backend already supports it)
-- [ ] **Backend + Frontend:** Booking cancelled notification — email to both parties when a booking is cancelled (host or guest)
+- [x] **Backend + Frontend:** Booking cancelled notification — email to both parties when a booking is cancelled (host or guest)
 
 ### P3 — Connection Features (deliver the "everything talks" promise)
 - [ ] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (already in P3.2 backlog — bump priority)
