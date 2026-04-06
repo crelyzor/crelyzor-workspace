@@ -245,7 +245,7 @@ Not a single email is sent proactively. Productivity apps push value to you.
 - [x] **Backend:** Booking reminder — email to both host + guest 24h before meeting
 - [x] **Backend:** Meeting AI complete — email to user when transcript + summary are ready ("Your meeting '[title]' has been processed")
 - [x] **Backend:** Daily task digest — 8am email with today's tasks + overdue items (Bull cron job, opt-in)
-- [ ] **Frontend:** Notification preferences in Settings — toggles for each email type
+- [x] **Frontend:** Notification preferences in Settings — toggles for each email type
 
 ### P2 — Scheduling Completeness (can't replace Cal.com with these gaps)
 - [ ] **Backend + Frontend:** Guest cancellation link — include a cancel URL in the booking confirmation email. `PATCH /public/bookings/:id/cancel` already exists, just needs to be surfaced.
