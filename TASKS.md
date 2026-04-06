@@ -239,12 +239,12 @@ The public card page is what you hand to strangers. It currently has broken/miss
 
 ### P1 — Email Notifications (the product is silent right now)
 Not a single email is sent proactively. Productivity apps push value to you.
-- [ ] **Backend:** Transactional email service — integrate Resend (simple API, free tier, great DX)
-- [ ] **Backend:** Booking received — email to host when guest books (`bookingManagementService.ts`)
-- [ ] **Backend:** Booking confirmation — email to guest with details + calendar links (currently only stored in sessionStorage)
-- [ ] **Backend:** Booking reminder — email to both host + guest 24h before meeting
-- [ ] **Backend:** Meeting AI complete — email to user when transcript + summary are ready ("Your meeting '[title]' has been processed")
-- [ ] **Backend:** Daily task digest — 8am email with today's tasks + overdue items (Bull cron job, opt-in)
+- [x] **Backend:** Transactional email service — integrate Resend (simple API, free tier, great DX)
+- [x] **Backend:** Booking received — email to host when guest books (`bookingManagementService.ts`)
+- [x] **Backend:** Booking confirmation — email to guest with details + calendar links (currently only stored in sessionStorage)
+- [x] **Backend:** Booking reminder — email to both host + guest 24h before meeting
+- [x] **Backend:** Meeting AI complete — email to user when transcript + summary are ready ("Your meeting '[title]' has been processed")
+- [x] **Backend:** Daily task digest — 8am email with today's tasks + overdue items (Bull cron job, opt-in)
 - [ ] **Frontend:** Notification preferences in Settings — toggles for each email type
 
 ### P2 — Scheduling Completeness (can't replace Cal.com with these gaps)
