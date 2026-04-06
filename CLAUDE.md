@@ -250,7 +250,7 @@ Full AI design: `docs/ai-brain.md`
 
 **PostgreSQL only.** Prisma ORM. Schema: `calendar-backend/prisma/schema.prisma`
 
-Key models: `User`, `Meeting`, `MeetingRecording`, `MeetingTranscript`, `TranscriptSegment`, `MeetingAISummary`, `MeetingNote`, `Task`, `Tag`, `MeetingTag`, `CardTag`, `TaskTag`, `Card`, `CardContact`, `CardView`, `EventType`, `Availability`, `Booking`, `UserSettings`, `MeetingShare`, `MeetingAttachment`, `MeetingAIContent`
+Key models: `User`, `Meeting`, `MeetingRecording`, `MeetingTranscript`, `TranscriptSegment`, `MeetingAISummary`, `MeetingNote`, `Task`, `Tag`, `MeetingTag`, `CardTag`, `TaskTag`, `ContactTag`, `Card`, `CardContact`, `CardView`, `EventType`, `Availability`, `Booking`, `UserSettings`, `MeetingShare`, `MeetingAttachment`, `MeetingAIContent`
 
 > `MeetingActionItem` is dropped — replaced by `Task` model.
 

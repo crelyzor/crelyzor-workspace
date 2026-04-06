@@ -301,7 +301,7 @@ Full breakdown per repo:
 - [ ] **Backend:** Add `contactTags` cleanup to `deleteTag` transaction
 
 ### P1 — Backend APIs
-- [ ] **Backend:** Contact tag endpoints (`GET/POST/DELETE /cards/:cardId/contacts/:contactId/tags/:tagId`)
+- [x] **Backend:** Contact tag endpoints (`GET/POST/DELETE /cards/:cardId/contacts/:contactId/tags/:tagId`)
 - [ ] **Backend:** `GET /tags/:tagId/items` — returns `{ tag, meetings[], cards[], tasks[], contacts[], counts }`
 - [ ] **Backend:** `listTags` updated to include counts per type
 
