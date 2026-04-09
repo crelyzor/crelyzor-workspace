@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-07 (Phase 3.2 complete ✅, Phase 3.4 next)
+Last updated: 2026-04-09 (Phase 3 complete ✅, Phase 4 blocked)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -235,7 +235,7 @@ The public card page is what you hand to strangers. It currently has broken/miss
 - [x] **Public:** Contact form validation — name required + email or phone required
 - [x] **Public:** Contact form states — success state after submit, error state on fail, loading spinner during submit
 - [x] **Public:** Smooth avatar image load — fade in, no layout shift
-- [ ] **Public:** Verify vCard download works on iOS and Android
+- [x] **Public:** Verify vCard download works on iOS and Android
 
 ### P1 — Email Notifications (the product is silent right now)
 Not a single email is sent proactively. Productivity apps push value to you.
@@ -271,7 +271,7 @@ Not a single email is sent proactively. Productivity apps push value to you.
 
 ---
 
-## Phase 3.4 — Global Tags ← next
+## Phase 3.4 — Global Tags ✅ Complete
 
 > Tags already exist on meetings, cards, and tasks. This phase makes them truly global — adding contacts, adding a tags index page, and a tag detail page that shows everything tagged with a given tag across all entity types.
 
@@ -297,8 +297,8 @@ Full breakdown per repo:
 - Tag chip anywhere in the app navigates to its tag detail page
 
 ### P0 — Schema (do first — everything depends on it)
-- [ ] **Backend:** `ContactTag` junction model + migrate `Tag` + `CardContact` relations
-- [ ] **Backend:** Add `contactTags` cleanup to `deleteTag` transaction
+- [x] **Backend:** `ContactTag` junction model + migrate `Tag` + `CardContact` relations
+- [x] **Backend:** Add `contactTags` cleanup to `deleteTag` transaction
 
 ### P1 — Backend APIs
 - [x] **Backend:** Contact tag endpoints (`GET/POST/DELETE /cards/:cardId/contacts/:contactId/tags/:tagId`)
