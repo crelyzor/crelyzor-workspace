@@ -258,16 +258,16 @@ Not a single email is sent proactively. Productivity apps push value to you.
 - [x] **Backend + Frontend:** Booking cancelled notification — email to both parties when a booking is cancelled (host or guest)
 
 ### P3 — Connection Features (deliver the "everything talks" promise)
-- [ ] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (already in P3.2 backlog — bump priority)
+- [x] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (already in P3.2 backlog — bump priority)
 - [x] **Frontend:** Ask AI discovery — surface "Ask AI" as a prominent action on the meeting list row and home dashboard (not buried at the bottom of meeting detail)
-- [ ] **Backend:** Speaker memory — when user renames "Speaker 0" → "John Smith" in one meeting, remember the mapping so future meetings from the same voice are pre-labeled (requires voice fingerprint from Deepgram)
+- [x] **Backend:** Speaker memory — when user renames "Speaker 0" → "John Smith" in one meeting, remember the mapping so future meetings from the same voice are pre-labeled (requires voice fingerprint from Deepgram)
 
 ### P4 — Recurring Tasks (table stakes for task management)
 - [x] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete
 
 ### P5 — Data Import (how people switch tools)
-- [ ] **Backend + Frontend:** Contact CSV import — upload a CSV, map columns (name, email, phone, company), bulk-create CardContacts on a chosen card
-- [ ] **Backend + Frontend:** Calendar import — import .ics file → create Meeting records for past meetings (gives AI something to process)
+- [x] **Backend + Frontend:** Contact CSV import — upload a CSV, map columns (name, email, phone, company), bulk-create CardContacts on a chosen card
+- [x] **Backend + Frontend:** Calendar import — import .ics file → create Meeting records for past meetings (gives AI something to process)
 
 ---
 
