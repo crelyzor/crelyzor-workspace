@@ -2,8 +2,10 @@
   "name": "crelyzor",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "concurrently --names \"API,WORKER,DASH,PUBLIC\" --prefix-colors \"cyan,magenta,green,yellow\" --kill-others-on-fail \"cd crelyzor-backend && pnpm dev\" \"cd crelyzor-backend && pnpm dev:worker\" \"cd crelyzor-frontend && pnpm dev\" \"cd crelyzor-public && pnpm dev\"",
+    "dev": "node scripts/dev.js",
+    "dev:expose": "node scripts/dev.js --expose",
     "dev:backend": "cd crelyzor-backend && pnpm dev",
     "dev:frontend": "cd crelyzor-frontend && pnpm dev",
     "dev:public": "cd crelyzor-public && pnpm dev",
