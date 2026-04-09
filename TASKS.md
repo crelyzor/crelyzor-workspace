@@ -259,7 +259,7 @@ Not a single email is sent proactively. Productivity apps push value to you.
 
 ### P3 — Connection Features (deliver the "everything talks" promise)
 - [ ] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (already in P3.2 backlog — bump priority)
-- [ ] **Frontend:** Ask AI discovery — surface "Ask AI" as a prominent action on the meeting list row and home dashboard (not buried at the bottom of meeting detail)
+- [x] **Frontend:** Ask AI discovery — surface "Ask AI" as a prominent action on the meeting list row and home dashboard (not buried at the bottom of meeting detail)
 - [ ] **Backend:** Speaker memory — when user renames "Speaker 0" → "John Smith" in one meeting, remember the mapping so future meetings from the same voice are pre-labeled (requires voice fingerprint from Deepgram)
 
 ### P4 — Recurring Tasks (table stakes for task management)
