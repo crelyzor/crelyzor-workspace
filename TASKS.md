@@ -398,32 +398,65 @@ Per-repo task breakdowns: each repo's `TASKS.md`
 
 ## Phase 4.2 — Ask AI Persistence
 
-> **Goal:** Ask AI conversations survive page refreshes. User closes the meeting detail, comes back, conversation is still there.
+> **Goal:** Ask AI conversations survive page refreshes and work across devices. User closes the meeting detail, comes back, conversation is exactly where they left off.
 >
-> **Storage:** localStorage per device, keyed by meeting ID. No backend changes needed — this is purely a frontend concern. When Phase 5 Big Brain is built, server-side history can be added on top.
+> **Storage:** PostgreSQL via two new Prisma models — `AskAIConversation` (one per user per meeting) and `AskAIMessage` (each turn). Proper server-side history, not localStorage.
 >
-> **Scope:** `crelyzor-frontend` only. No backend tasks. No schema migration.
+> **Why not localStorage:** Doesn't survive device switches, can be wiped by the browser, and doesn't set up Phase 5 Big Brain correctly — RAG needs server-side message history to include in context windows.
+>
+> **Scope:** Backend (schema + service + endpoints) + Frontend (query hooks + UI).
 
-Full breakdown: `crelyzor-frontend/TASKS.md`
+Full breakdown: per-repo `TASKS.md` files.
 
-### What's being built
+### Schema
 
-- `AskAITab` reads prior messages from `localStorage` on mount — conversation resumes where it left off
-- Messages written to `localStorage` after each complete AI response (not mid-stream)
-- Hard cap at 50 messages per meeting — oldest are dropped to prevent storage bloat
-- "Clear conversation" button clears both state and localStorage
-- Suggestion chips hidden when a prior conversation exists — don't interrupt resumed context
+```prisma
+model AskAIConversation {
+  id        String         @id @default(uuid()) @db.Uuid
+  meetingId String         @db.Uuid
+  userId    String         @db.Uuid
+  meeting   Meeting        @relation(fields: [meetingId], references: [id])
+  user      User           @relation(fields: [userId], references: [id])
+  messages  AskAIMessage[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
-### P0 — Core Persistence
+  @@unique([meetingId, userId])
+}
 
-- [ ] **Frontend:** `AskAITab` — read `localStorage["askai_${meetingId}"]` on mount, initialize messages state
-- [ ] **Frontend:** `AskAITab` — write to localStorage in `onDone` callback after streaming completes (capped at 50 messages)
-- [ ] **Frontend:** `AskAITab` — "Clear" icon button in header (only visible when messages exist), clears state + localStorage
+model AskAIMessage {
+  id             String            @id @default(uuid()) @db.Uuid
+  conversationId String            @db.Uuid
+  conversation   AskAIConversation @relation(fields: [conversationId], references: [id])
+  role           String            // "user" | "assistant"
+  content        String
+  createdAt      DateTime          @default(now())
+}
+```
 
-### P1 — UX Details
+### P0 — Backend: Schema + Service
 
-- [ ] **Frontend:** Hide suggestion chips when prior conversation is restored (they're for empty-state discovery only)
-- [ ] **Frontend:** Graceful error handling — catch JSON parse errors + localStorage quota exceeded silently (don't crash the component)
+- [ ] **Backend:** Add `AskAIConversation` + `AskAIMessage` models to `schema.prisma` + migrate
+- [ ] **Backend:** `src/services/ai/askAIConversationService.ts`
+  - `getOrCreateConversation(userId, meetingId)` — fetch existing or create new
+  - `getMessages(userId, meetingId)` — returns messages ordered by `createdAt`
+  - `appendMessage(conversationId, role, content)` — inserts one message row
+  - `clearMessages(userId, meetingId)` — hard deletes all messages for a conversation
+
+### P1 — Backend: Endpoints
+
+- [ ] **Backend:** `GET /sma/meetings/:meetingId/ask/history` — returns prior messages array
+- [ ] **Backend:** `DELETE /sma/meetings/:meetingId/ask/history` — clear conversation
+- [ ] **Backend:** Update `POST /sma/meetings/:meetingId/ask` — save user message before streaming starts, save complete assistant message in `onDone` callback
+
+### P2 — Frontend: Hooks + UI
+
+- [ ] **Frontend:** `queryKeys.sma.askHistory(meetingId)` added to `queryKeys.ts`
+- [ ] **Frontend:** `useAskAIHistory(meetingId)` query in `useSMAQueries.ts` — fetches prior messages
+- [ ] **Frontend:** `useClearAskAIHistory(meetingId)` mutation in `useSMAQueries.ts`
+- [ ] **Frontend:** `AskAITab` — initialize messages from `useAskAIHistory` query (skeleton while loading)
+- [ ] **Frontend:** "Clear" icon button — calls `useClearAskAIHistory`, optimistically clears messages
+- [ ] **Frontend:** Suggestion chips — only shown when conversation is empty
 
 ---
 
