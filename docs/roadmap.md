@@ -411,7 +411,7 @@ Full design: `docs/pricing-and-costs.md`
 - [x] `usageService.ts` — check + deduct transcription, Recall, AI credits
 - [x] Wire into transcription, Recall, AI services
 - [x] Monthly usage reset cron job
-- [ ] Stripe integration — checkout, billing portal, webhooks
+- [ ] Razorpay integration — subscription creation, webhook handling (`subscription.activated/charged/cancelled/halted`)
 - [ ] Billing endpoints: `GET /billing/usage`, `POST /billing/checkout`, `POST /billing/portal`
 - [ ] Enforcement layer — 402 responses with upgrade context
 

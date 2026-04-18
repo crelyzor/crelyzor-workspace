@@ -306,14 +306,22 @@ Both model upgrades were shipped at the start of Phase 4.
 
 ## 7. Payment Infrastructure (To Build)
 
-- **Stripe** — subscription billing, plan management
-- **Webhook:** Stripe → backend → update `user.plan` in DB
-- **`UserUsage` model** — tracks per user per month:
-  - `transcriptionMinutesUsed`
-  - `recallHoursUsed`
-  - `aiCreditsUsed`
-  - `storageGbUsed`
-  - `resetAt` — first day of next month
-- **Credit deduction:** calculated from actual token counts returned by OpenAI API response (`usage.prompt_tokens`, `usage.completion_tokens`)
-- **Enforcement:** check limits before every billable action, return `402` with upgrade prompt if over limit
-- **Credit formula:** `credits = (prompt_tokens × 0.00075) + (completion_tokens × 0.0045)` rounded up to nearest integer
+- **Razorpay** — subscription billing, plan management. Chosen over Stripe because:
+  - UPI support (critical for Indian users)
+  - International cards (Visa/MC/Amex) also supported
+  - Settles in INR to Indian bank account
+  - Familiar DX (team has prior Razorpay experience)
+- **Razorpay flow:**
+  1. Backend creates Razorpay subscription → returns `{ subscriptionId, keyId }`
+  2. Frontend opens Razorpay checkout (JS SDK) with those IDs
+  3. User pays via UPI / card / NetBanking on Razorpay's hosted sheet
+  4. Razorpay sends webhook → `POST /webhooks/razorpay` → verify HMAC → update `user.plan`
+- **Webhook events we handle:**
+  - `subscription.activated` → set plan = PRO
+  - `subscription.charged` → sync `currentPeriodEnd`
+  - `subscription.cancelled` → downgrade to FREE
+  - `subscription.halted` → mark status = halted (payment failure)
+- **Env vars needed:** `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_PRO_PLAN_ID`
+- **`UserUsage` model** — tracks per user per month (already built ✅):
+  - `transcriptionMinutesUsed`, `recallHoursUsed`, `aiCreditsUsed`, `storageGbUsed`, `resetAt`
+- **Credit formula:** `credits = ceil((prompt_tokens × 0.00075) + (completion_tokens × 0.0045))`

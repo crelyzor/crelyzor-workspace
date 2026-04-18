@@ -364,18 +364,18 @@ Per-repo task breakdowns: each repo's `TASKS.md`
 
 - [x] `plan` enum on `User` — `FREE | PRO | BUSINESS`
 - [x] `UserUsage` model — transcription minutes, Recall hours, AI credits, storage, reset date
-- [x] `Subscription` model — Stripe customer/subscription IDs, plan, status, period end
+- [x] `Subscription` model — Razorpay customer/subscription IDs, plan, status, period end
 - [x] Migration
 - [x] `usageService.ts` — check + deduct for each resource type
   - [x] Wire into transcription, Recall, AI services
   - [x] Monthly reset cron job
 
-### P1 — Backend: Stripe Integration
+### P1 — Backend: Razorpay Integration
 
-- [ ] `stripeService.ts` — checkout session, billing portal, webhook handling
+- [ ] `razorpayService.ts` — create subscription, verify payment signature, webhook handling
 - [ ] `POST /billing/checkout`, `POST /billing/portal`, `GET /billing/usage`
-- [ ] `POST /webhooks/stripe` — update plan on subscription events
-- [ ] `.env.example` — Stripe keys
+- [ ] `POST /webhooks/razorpay` — update plan on subscription events
+- [ ] `.env.example` — Razorpay keys (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_PRO_PLAN_ID`)
 
 ### P2 — Frontend: Settings > Billing + Upgrade Prompts
 
