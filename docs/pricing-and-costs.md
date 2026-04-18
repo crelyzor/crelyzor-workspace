@@ -9,8 +9,7 @@
 
 ### 1.1 Deepgram — Transcription
 
-**Current model:** `nova-2`
-**Planned model:** `nova-3` (multilingual) — upgrade at Phase 4 start
+**Current model:** `nova-3` (multilingual) — upgraded at Phase 4 start ✅
 
 | Model | Pre-Recorded (PAYG) | Pre-Recorded (Growth) |
 |-------|--------------------|-----------------------|
@@ -30,8 +29,7 @@
 
 ### 1.2 OpenAI — AI Processing
 
-**Current model:** `gpt-4o-mini`
-**Planned model:** `gpt-5.4-mini` — upgrade at Phase 4 start
+**Current model:** `gpt-5.4-mini` — upgraded at Phase 4 start ✅
 
 | Model | Input | Cached Input | Output |
 |-------|-------|--------------|--------|
@@ -287,19 +285,19 @@ Need ~5% free → Pro conversion = 50 Pro users = $950/mo revenue.
 
 ---
 
-## 6. Planned Model Upgrades (Phase 4)
+## 6. Model Upgrades ✅ Done (Phase 4 start)
 
-Do these two changes at the start of Phase 4, before any AI work begins.
+Both model upgrades were shipped at the start of Phase 4.
 
-### Deepgram: nova-2 → nova-3 (multilingual)
+### Deepgram: nova-2 → nova-3 (multilingual) ✅
 - **File:** `crelyzor-backend/src/services/transcription/transcriptionService.ts`
-- **Change:** `const DEEPGRAM_MODEL = "nova-2"` → `"nova-3"`
+- **Change:** `const DEEPGRAM_MODEL = "nova-3"` — live
 - **Cost impact:** $0.26/hr → $0.31/hr (+$0.05/hr)
 - **Why:** Better accuracy, 45+ languages, supports diarization fully
 
-### OpenAI: gpt-4o-mini → gpt-5.4-mini
+### OpenAI: gpt-4o-mini → gpt-5.4-mini ✅
 - **File:** `crelyzor-backend/src/services/ai/aiService.ts`
-- **Change:** `const OPENAI_MODEL = "gpt-4o-mini"` → `"gpt-5.4-mini"`
+- **Change:** `const OPENAI_MODEL = "gpt-5.4-mini"` — live
 - **Cost impact:** Input 5x ($0.15→$0.75/1M), Output 7.5x ($0.60→$4.50/1M)
 - **Net increase per Pro user/month:** ~$1.30
 - **Why:** Significantly better summaries, task extraction, and Ask AI quality

@@ -1,11 +1,12 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-18 (Phase 3.4 complete ✅, Phase 4 blocked)
+Last updated: 2026-04-19 (Phase 4 backend P0–P3 complete, Stripe next)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
 
 See per-repo tasks for implementation details:
+
 - [crelyzor-backend/TASKS.md](./crelyzor-backend/TASKS.md)
 - [crelyzor-frontend/TASKS.md](./crelyzor-frontend/TASKS.md)
 - [crelyzor-public/TASKS.md](./crelyzor-public/TASKS.md)
@@ -44,6 +45,7 @@ Task {
 ## Phase 1 — Current State
 
 ### Working ✅
+
 - Cards (create, edit, public page, QR, vCard, contacts, analytics)
 - Google OAuth sign-in
 - Meeting CRUD (create, update, cancel, complete)
@@ -107,6 +109,7 @@ Task {
 ---
 
 ### Not Built Yet ❌
+
 - Nothing. Phase 1 P2 is complete. ✅
 
 ---
@@ -135,6 +138,7 @@ Full design doc: `docs/dev-notes/phase-1.4-recall-platform.md`
 Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_KEY` in `.env`, users get a simple toggle.
 
 ### Backend
+
 - [x] Schema: drop `recallApiKey` from UserSettings, keep `recallEnabled`
 - [x] Env: add `RECALL_API_KEY`, remove `RECALL_ENCRYPTION_KEY`
 - [x] Remove `PUT /settings/recall-api-key` endpoint + encryption utilities
@@ -146,12 +150,14 @@ Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_
 - [x] URL allowlist validation (`isVideoMeetingUrl`) — only known video platforms passed to Recall
 
 ### Frontend
+
 - [x] Remove API key input + save from Settings > Integrations
 - [x] Toggle shown only when `recallAvailable === true`
 - [x] Copy: "Auto-record online meetings" (don't expose vendor name)
 - [x] Remove dead types, services, hooks
 
 ### Cleanup
+
 - [x] Remove dead code (encryption.ts, recallApiKeySchema, useSaveRecallApiKey)
 - [x] Update `.env.example`
 
@@ -181,14 +187,17 @@ Move Recall.ai from per-user BYO-key to platform-level service. One `RECALL_API_
 ## Phase 3.2 — Polish, Enhancements & Power Features ← current focus
 
 Full breakdown per repo:
+
 - [crelyzor-backend/TASKS.md](./crelyzor-backend/TASKS.md)
 - [crelyzor-frontend/TASKS.md](./crelyzor-frontend/TASKS.md)
 
 ### P0 — Bugs & Embarrassing Gaps (fix first)
+
 - [x] **Frontend:** Fix "Reschedule meeting" button — remove "coming soon" toast, implement rescheduling
 - [x] **Frontend:** Privacy Settings tab — removed (was empty placeholder)
 
 ### P1 — Quick Wins (high value, low effort)
+
 - [x] **Frontend:** Task count badges on sidebar nav items (Inbox · Today · Upcoming)
 - [x] **Frontend:** Overdue tasks section on home dashboard (above the timeline)
 - [x] **Frontend:** NL parsing in inline task create form (same parser as Cmd+K)
@@ -197,6 +206,7 @@ Full breakdown per repo:
 - [x] **Frontend:** Email signature generator for cards
 
 ### P2 — Meaningful Features
+
 - [x] **Backend:** Auto-create "Prepare for [meeting]" task on booking confirmed
 - [x] **Frontend:** "New tasks from meeting" badge on home dashboard after AI processes
 - [x] **Frontend:** Task bulk actions — select multiple, bulk complete / delete / set priority
@@ -204,6 +214,7 @@ Full breakdown per repo:
 - [x] **Frontend:** Onboarding flow for new users (empty state → guided first actions)
 
 ### P3 — Bigger Features
+
 - [x] **Backend + Frontend:** Global search — across meetings, tasks, cards, contacts
 - [x] **Frontend:** Calendar month view
 - [x] **Frontend:** Keyboard shortcuts — J/K navigation, E edit, D due date, P priority, Enter open panel
@@ -211,6 +222,7 @@ Full breakdown per repo:
 - [x] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (match participant email to card contact)
 
 ### P4 — Major Feature
+
 - [x] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete
 
 ---
@@ -223,12 +235,15 @@ Full breakdown per repo:
 > Each gap below is something a real user would hit on their first week.
 
 Full breakdown per repo:
+
 - [crelyzor-backend/TASKS.md](./crelyzor-backend/TASKS.md)
 - [crelyzor-frontend/TASKS.md](./crelyzor-frontend/TASKS.md)
 - [crelyzor-public/TASKS.md](./crelyzor-public/TASKS.md)
 
 ### P0 — Fix the Front Door (public card page)
+
 The public card page is what you hand to strangers. It currently has broken/missing states.
+
 - [x] **Public:** Avatar fallback — show initials on gold background when no photo
 - [x] **Public:** Loading skeleton — match card shape and dark bg while fetching
 - [x] **Public:** Proper 404 — nice error page when card not found (not broken layout)
@@ -238,7 +253,9 @@ The public card page is what you hand to strangers. It currently has broken/miss
 - [x] **Public:** Verify vCard download works on iOS and Android
 
 ### P1 — Email Notifications (the product is silent right now)
+
 Not a single email is sent proactively. Productivity apps push value to you.
+
 - [x] **Backend:** Transactional email service — integrate Resend (simple API, free tier, great DX)
 - [x] **Backend:** Booking received — email to host when guest books (`bookingManagementService.ts`)
 - [x] **Backend:** Booking confirmation — email to guest with details + calendar links (currently only stored in sessionStorage)
@@ -248,6 +265,7 @@ Not a single email is sent proactively. Productivity apps push value to you.
 - [x] **Frontend:** Notification preferences in Settings — toggles for each email type
 
 ### P2 — Scheduling Completeness (can't replace Cal.com with these gaps)
+
 - [x] **Backend + Frontend:** Guest cancellation link — include a cancel URL in the booking confirmation email. `PATCH /public/bookings/:id/cancel` already exists, just needs to be surfaced.
   - Frontend: New page `cards-frontend/src/app/bookings/[id]/cancel/page.tsx` — shows booking details (need to fetch `GET /public/bookings/:id` first) + "Cancel this booking" button + reason text area.
   - Backend: Add `GET /api/v1/public/bookings/:id` — returns public booking details.
@@ -258,14 +276,17 @@ Not a single email is sent proactively. Productivity apps push value to you.
 - [x] **Backend + Frontend:** Booking cancelled notification — email to both parties when a booking is cancelled (host or guest)
 
 ### P3 — Connection Features (deliver the "everything talks" promise)
+
 - [x] **Backend + Frontend:** Meeting ↔ Card contact auto-linking (already in P3.2 backlog — bump priority)
 - [x] **Frontend:** Ask AI discovery — surface "Ask AI" as a prominent action on the meeting list row and home dashboard (not buried at the bottom of meeting detail)
 - [x] **Backend:** Speaker memory — when user renames "Speaker 0" → "John Smith" in one meeting, remember the mapping so future meetings from the same voice are pre-labeled (requires voice fingerprint from Deepgram)
 
 ### P4 — Recurring Tasks (table stakes for task management)
+
 - [x] **Backend + Frontend:** Recurring tasks — `recurringRule` (RRULE) on Task schema + UI picker + auto-generate next occurrence on complete
 
 ### P5 — Data Import (how people switch tools)
+
 - [x] **Backend + Frontend:** Contact CSV import — upload a CSV, map columns (name, email, phone, company), bulk-create CardContacts on a chosen card
 - [x] **Backend + Frontend:** Calendar import — import .ics file → create Meeting records for past meetings (gives AI something to process)
 
@@ -276,12 +297,14 @@ Not a single email is sent proactively. Productivity apps push value to you.
 > Tags already exist on meetings, cards, and tasks. This phase makes them truly global — adding contacts, adding a tags index page, and a tag detail page that shows everything tagged with a given tag across all entity types.
 
 Full breakdown per repo:
+
 - [crelyzor-backend/TASKS.md](./crelyzor-backend/TASKS.md)
 - [crelyzor-frontend/TASKS.md](./crelyzor-frontend/TASKS.md)
 
 ### What's being built
 
 **Tag universe after this phase:**
+
 ```
 #any-tag
 ├── Meetings  (incl. voice notes)  — MeetingTag  ✅ exists
@@ -291,31 +314,37 @@ Full breakdown per repo:
 ```
 
 **New surfaces:**
+
 - `/tags` — index page: all your tags with item counts per type
 - `/tags/:tagId` — detail page: everything tagged with this tag, grouped by type
 - Tag chips on contacts + tag editor on contact rows
 - Tag chip anywhere in the app navigates to its tag detail page
 
 ### P0 — Schema (do first — everything depends on it)
+
 - [x] **Backend:** `ContactTag` junction model + migrate `Tag` + `CardContact` relations
 - [x] **Backend:** Add `contactTags` cleanup to `deleteTag` transaction
 
 ### P1 — Backend APIs
+
 - [x] **Backend:** Contact tag endpoints (`GET/POST/DELETE /cards/:cardId/contacts/:contactId/tags/:tagId`)
 - [x] **Backend:** `GET /tags/:tagId/items` — returns `{ tag, meetings[], cards[], tasks[], contacts[], counts }`
 - [x] **Backend:** `listTags` updated to include counts per type
 
 ### P2 — Frontend: Tags Index + Detail Pages
+
 - [x] **Frontend:** `/tags` index page — tag grid with counts, inline create, rename, delete
 - [x] **Frontend:** `/tags/:tagId` detail page — 4 sections (Meetings / Cards / Tasks / Contacts)
 - [x] **Frontend:** Register routes + add "Tags" to sidebar nav
 
 ### P3 — Frontend: Tags on Contacts
+
 - [x] **Frontend:** Tag chips on contact rows in Cards contacts view
 - [x] **Frontend:** Tag editor popover on contacts (same pattern as meetings/cards)
 - [x] **Frontend:** Tag filter bar on contacts list
 
 ### P4 — Tag Chip Navigation
+
 - [x] **Frontend:** Clicking any tag chip anywhere navigates to `/tags/:tagId`
 
 ---
@@ -326,32 +355,37 @@ Full design doc: `docs/pricing-and-costs.md`
 Per-repo task breakdowns: each repo's `TASKS.md`
 
 ### Plans
+
 - **Free** — 120 min transcription, 50 AI Credits, no Recall.ai
 - **Pro ($19/mo)** — 600 min transcription, 1,000 AI Credits, 5 hrs Recall.ai
 - **Business** — custom pricing, negotiated per deal
 
 ### P0 — Backend: Schema + Usage Service
+
 - [x] `plan` enum on `User` — `FREE | PRO | BUSINESS`
 - [x] `UserUsage` model — transcription minutes, Recall hours, AI credits, storage, reset date
 - [x] `Subscription` model — Stripe customer/subscription IDs, plan, status, period end
 - [x] Migration
-- [ ] `usageService.ts` — check + deduct for each resource type
-- [ ] Wire into transcription, Recall, AI services
-- [ ] Monthly reset cron job
+- [x] `usageService.ts` — check + deduct for each resource type
+  - [x] Wire into transcription, Recall, AI services
+  - [x] Monthly reset cron job
 
 ### P1 — Backend: Stripe Integration
+
 - [ ] `stripeService.ts` — checkout session, billing portal, webhook handling
 - [ ] `POST /billing/checkout`, `POST /billing/portal`, `GET /billing/usage`
 - [ ] `POST /webhooks/stripe` — update plan on subscription events
 - [ ] `.env.example` — Stripe keys
 
 ### P2 — Frontend: Settings > Billing + Upgrade Prompts
+
 - [ ] Settings > Billing tab — plan badge, usage meters, upgrade CTA
 - [ ] `<UpgradeModal />` — reusable, context-aware upgrade prompt
 - [ ] Soft warning at 80% usage on any limit
 - [ ] In-context indicators — credits in Ask AI panel, minutes on upload modal
 
 ### P3 — Public: Pricing Page
+
 - [ ] `/pricing` page in `crelyzor-public` — SEO, plan comparison, CTAs
 
 ---
