@@ -135,7 +135,7 @@ When user asks something:
 
 ```typescript
 {
-  model: "nova-2",
+  model: "nova-3",  // Multilingual — upgraded at Phase 4.1
   diarize: true,          // Speaker separation (Speaker 0, Speaker 1...)
   smart_format: true,     // Paragraph breaks, formatting
   punctuate: true,        // Punctuation

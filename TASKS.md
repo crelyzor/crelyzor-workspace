@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-19 (Phase 4 backend P0–P3 complete, Stripe next)
+Last updated: 2026-04-19 (Phase 4.1 complete ✅ — Phase 4.2 Ask AI Persistence planned)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -349,7 +349,7 @@ Full breakdown per repo:
 
 ---
 
-## Phase 4 — Billing & Monetization
+## Phase 4.1 — Billing & Monetization ✅ Complete
 
 Full design doc: `docs/pricing-and-costs.md`
 Per-repo task breakdowns: each repo's `TASKS.md`
@@ -387,8 +387,8 @@ Per-repo task breakdowns: each repo's `TASKS.md`
 - [x] `<UsageWarningBanner />` — soft warning at 80% on any limit
 - [x] In-context indicators — credits in Ask AI, minutes on upload/FAB, hours on Recall toggle
 - [x] Dashboard `/pricing` page
-- [ ] Free users trying content gen → `UpgradeModal` with `reason="feature_gate"`
-- [ ] Content gen buttons — credit cost tooltip
+- [x] Free users trying content gen → `UpgradeModal` with `reason="feature_gate"`
+- [x] Content gen buttons — credit cost badge (~Ncr on each type card)
 
 ### P3 — Public: Pricing Page
 
@@ -396,17 +396,48 @@ Per-repo task breakdowns: each repo's `TASKS.md`
 
 ---
 
+## Phase 4.2 — Ask AI Persistence
+
+> **Goal:** Ask AI conversations survive page refreshes. User closes the meeting detail, comes back, conversation is still there.
+>
+> **Storage:** localStorage per device, keyed by meeting ID. No backend changes needed — this is purely a frontend concern. When Phase 5 Big Brain is built, server-side history can be added on top.
+>
+> **Scope:** `crelyzor-frontend` only. No backend tasks. No schema migration.
+
+Full breakdown: `crelyzor-frontend/TASKS.md`
+
+### What's being built
+
+- `AskAITab` reads prior messages from `localStorage` on mount — conversation resumes where it left off
+- Messages written to `localStorage` after each complete AI response (not mid-stream)
+- Hard cap at 50 messages per meeting — oldest are dropped to prevent storage bloat
+- "Clear conversation" button clears both state and localStorage
+- Suggestion chips hidden when a prior conversation exists — don't interrupt resumed context
+
+### P0 — Core Persistence
+
+- [ ] **Frontend:** `AskAITab` — read `localStorage["askai_${meetingId}"]` on mount, initialize messages state
+- [ ] **Frontend:** `AskAITab` — write to localStorage in `onDone` callback after streaming completes (capped at 50 messages)
+- [ ] **Frontend:** `AskAITab` — "Clear" icon button in header (only visible when messages exist), clears state + localStorage
+
+### P1 — UX Details
+
+- [ ] **Frontend:** Hide suggestion chips when prior conversation is restored (they're for empty-state discovery only)
+- [ ] **Frontend:** Graceful error handling — catch JSON parse errors + localStorage quota exceeded silently (don't crash the component)
+
+---
+
 ## Phase 5 — Big Brain ⛔ BLOCKED
 
 Explicitly blocked. Do not start. Requires separate vector DB infrastructure that is not yet in place.
-Requires Phase 4 (Billing) complete first — Big Brain features are paid-only.
+Requires Phase 4.1 + 4.2 complete first — Big Brain features are paid-only.
 
 - [ ] Vector embeddings pipeline — embed transcripts, notes, tasks on creation/update
 - [ ] Global Ask AI — RAG query over all user data ("What do I know about Acme Corp?")
 - [ ] Cross-meeting insights — surface patterns across meetings
 - [ ] Proactive nudges — missed follow-ups, upcoming meeting prep
 - [ ] **Full two-way GCal sync** — GCal push webhooks → GCal edits/cancels reflect in Crelyzor (deferred from 1.3 — requires webhook infra + conflict resolution)
-- [ ] Model upgrades — Nova-3 Multilingual + gpt-5.4-mini (see `docs/pricing-and-costs.md` Section 6)
+- [x] Model upgrades — Nova-3 Multilingual + gpt-5.4-mini ✅ done in Phase 4
 
 ---
 
