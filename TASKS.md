@@ -370,35 +370,28 @@ Per-repo task breakdowns: each repo's `TASKS.md`
   - [x] Wire into transcription, Recall, AI services
   - [x] Monthly reset cron job
 
-### P1 — Backend: Billing Endpoints + Enforcement
+### P1 — Backend: Billing Endpoints + Enforcement ✅ Done
 
-- [ ] `GET /billing/usage`, `POST /billing/checkout` (stub), `POST /billing/portal` (stub)
-- [ ] Enforcement layer — 402 responses with error codes + upgrade context
-- [ ] Monthly reset cron already done ✅
+- [x] `GET /billing/usage`, `POST /billing/checkout` (stub), `POST /billing/portal` (stub)
+- [x] Enforcement layer — 402 responses with error codes + upgrade context
+- [x] Monthly reset cron
 
 > ⛔ **Payment gateway — NOT DOING NOW.** Razorpay account blocked. Upgrade users manually via Prisma Studio (`user.plan = PRO`). Revisit later.
 
 ### P2 — Frontend: Billing UI
 
-- [ ] Settings > Billing tab — plan badge, usage meters, upgrade CTA
-- [ ] `<UpgradeModal />` — shows on 402 or upgrade click
-- [ ] In-context indicators — credits in Ask AI, minutes on upload, hours on Recall
-- [ ] 402 interceptor in `apiClient.ts`
+- [x] Settings > Billing tab — plan badge, usage meters, upgrade CTA
+- [x] `<UpgradeModal />` — shows on 402 or upgrade click
+- [x] 402 interceptor in `apiClient.ts`
+- [x] `billingService.ts`, `useBillingUsage()` hook, `queryKeys.billing`
+- [ ] `<UsageWarningBanner />` — soft warning at 80% on any limit
+- [ ] In-context indicators — credits in Ask AI panel, minutes on upload modal, hours on Recall toggle
+- [ ] Free users trying content gen → `UpgradeModal` immediately
+- [ ] Dashboard `/pricing` page
 
 ### P3 — Public: Pricing Page
 
-- [ ] `/pricing` — SSR, plan comparison table, CTAs, FAQ
-
-### P2 — Frontend: Settings > Billing + Upgrade Prompts
-
-- [ ] Settings > Billing tab — plan badge, usage meters, upgrade CTA
-- [ ] `<UpgradeModal />` — reusable, context-aware upgrade prompt
-- [ ] Soft warning at 80% usage on any limit
-- [ ] In-context indicators — credits in Ask AI panel, minutes on upload modal
-
-### P3 — Public: Pricing Page
-
-- [ ] `/pricing` page in `crelyzor-public` — SEO, plan comparison, CTAs
+- [ ] `/pricing` in `crelyzor-public` — SSR, plan comparison table, CTAs, FAQ
 
 ---
 
