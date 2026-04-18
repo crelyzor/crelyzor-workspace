@@ -331,10 +331,10 @@ Per-repo task breakdowns: each repo's `TASKS.md`
 - **Business** — custom pricing, negotiated per deal
 
 ### P0 — Backend: Schema + Usage Service
-- [ ] `plan` enum on `User` — `FREE | PRO | BUSINESS`
-- [ ] `UserUsage` model — transcription minutes, Recall hours, AI credits, storage, reset date
-- [ ] `Subscription` model — Stripe customer/subscription IDs, plan, status, period end
-- [ ] Migration
+- [x] `plan` enum on `User` — `FREE | PRO | BUSINESS`
+- [x] `UserUsage` model — transcription minutes, Recall hours, AI credits, storage, reset date
+- [x] `Subscription` model — Stripe customer/subscription IDs, plan, status, period end
+- [x] Migration
 - [ ] `usageService.ts` — check + deduct for each resource type
 - [ ] Wire into transcription, Recall, AI services
 - [ ] Monthly reset cron job
