@@ -320,15 +320,53 @@ Full breakdown per repo:
 
 ---
 
-## Phase 4 — Big Brain ⛔ BLOCKED
+## Phase 4 — Billing & Monetization
+
+Full design doc: `docs/pricing-and-costs.md`
+Per-repo task breakdowns: each repo's `TASKS.md`
+
+### Plans
+- **Free** — 120 min transcription, 50 AI Credits, no Recall.ai
+- **Pro ($19/mo)** — 600 min transcription, 1,000 AI Credits, 5 hrs Recall.ai
+- **Business** — custom pricing, negotiated per deal
+
+### P0 — Backend: Schema + Usage Service
+- [ ] `plan` enum on `User` — `FREE | PRO | BUSINESS`
+- [ ] `UserUsage` model — transcription minutes, Recall hours, AI credits, storage, reset date
+- [ ] `Subscription` model — Stripe customer/subscription IDs, plan, status, period end
+- [ ] Migration
+- [ ] `usageService.ts` — check + deduct for each resource type
+- [ ] Wire into transcription, Recall, AI services
+- [ ] Monthly reset cron job
+
+### P1 — Backend: Stripe Integration
+- [ ] `stripeService.ts` — checkout session, billing portal, webhook handling
+- [ ] `POST /billing/checkout`, `POST /billing/portal`, `GET /billing/usage`
+- [ ] `POST /webhooks/stripe` — update plan on subscription events
+- [ ] `.env.example` — Stripe keys
+
+### P2 — Frontend: Settings > Billing + Upgrade Prompts
+- [ ] Settings > Billing tab — plan badge, usage meters, upgrade CTA
+- [ ] `<UpgradeModal />` — reusable, context-aware upgrade prompt
+- [ ] Soft warning at 80% usage on any limit
+- [ ] In-context indicators — credits in Ask AI panel, minutes on upload modal
+
+### P3 — Public: Pricing Page
+- [ ] `/pricing` page in `crelyzor-public` — SEO, plan comparison, CTAs
+
+---
+
+## Phase 5 — Big Brain ⛔ BLOCKED
 
 Explicitly blocked. Do not start. Requires separate vector DB infrastructure that is not yet in place.
+Requires Phase 4 (Billing) complete first — Big Brain features are paid-only.
 
 - [ ] Vector embeddings pipeline — embed transcripts, notes, tasks on creation/update
 - [ ] Global Ask AI — RAG query over all user data ("What do I know about Acme Corp?")
 - [ ] Cross-meeting insights — surface patterns across meetings
 - [ ] Proactive nudges — missed follow-ups, upcoming meeting prep
 - [ ] **Full two-way GCal sync** — GCal push webhooks → GCal edits/cancels reflect in Crelyzor (deferred from 1.3 — requires webhook infra + conflict resolution)
+- [ ] Model upgrades — Nova-3 Multilingual + gpt-5.4-mini (see `docs/pricing-and-costs.md` Section 6)
 
 ---
 

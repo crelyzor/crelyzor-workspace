@@ -103,11 +103,11 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 3.4 — Global Tags** ← complete ✅
+**Phase 4 — Billing & Monetization** ← current
 
-Phases 1 → 3.4 complete ✅. Phase 4 (Big Brain) blocked ⛔. No active phase — ready for next initiative.
+Phases 1 → 3.4 complete ✅. Phase 5 (Big Brain) blocked ⛔.
 
-All phases 1 → 3.4 are complete. The product is feature-complete through global tags, recurring tasks, scheduling, email notifications, and data import. Phase 4 (Big Brain / vector search) is blocked until vector DB infrastructure is in place.
+Phase 4 is the monetization layer — Stripe integration, usage tracking (transcription minutes, Recall hours, AI Credits), enforcement, and billing UI. Full design in `docs/pricing-and-costs.md`.
 
 Full breakdown: `TASKS.md` (root), per-repo `TASKS.md` files.
 Full roadmap: `docs/roadmap.md`

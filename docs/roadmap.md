@@ -393,7 +393,42 @@ Full breakdown: per-repo TASKS.md files.
 
 ---
 
-## Phase 4 — Big Brain (Global AI) ⛔ BLOCKED
+## Phase 4 — Billing & Monetization
+
+**Goal:** Monetize the product. Gate AI features behind usage limits. Integrate Stripe. Make limits visible and intuitive in the UI.
+
+**Prerequisite:** Phase 3.4 complete ✅
+
+Full design: `docs/pricing-and-costs.md`
+
+### Plans
+- **Free** — 120 min transcription/mo, 50 AI Credits/mo, no Recall.ai
+- **Pro ($19/mo)** — 600 min/mo, 1,000 AI Credits/mo, 5 hrs Recall.ai/mo
+- **Business** — custom pricing per deal
+
+### Backend
+- [ ] Schema: `plan` on User, `UserUsage` model, `Subscription` model
+- [ ] `usageService.ts` — check + deduct transcription, Recall, AI credits
+- [ ] Wire into transcription, Recall, AI services
+- [ ] Monthly usage reset cron job
+- [ ] Stripe integration — checkout, billing portal, webhooks
+- [ ] Billing endpoints: `GET /billing/usage`, `POST /billing/checkout`, `POST /billing/portal`
+- [ ] Enforcement layer — 402 responses with upgrade context
+
+### Frontend
+- [ ] Settings > Billing tab — plan badge, usage meters, upgrade CTA
+- [ ] `<UpgradeModal />` — reusable, context-aware
+- [ ] Soft warning banner at 80% usage
+- [ ] In-context indicators — credits in Ask AI, minutes on upload, hours on Recall toggle
+- [ ] Hard wall: 402 interceptor → UpgradeModal
+- [ ] `/pricing` route in dashboard
+
+### Public
+- [ ] `/pricing` page — SSR, SEO, plan comparison, CTAs
+
+---
+
+## Phase 5 — Big Brain (Global AI) ⛔ BLOCKED
 
 **Goal:** One AI that knows everything about the user across all of Crelyzor.
 
