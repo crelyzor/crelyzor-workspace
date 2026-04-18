@@ -384,14 +384,15 @@ Per-repo task breakdowns: each repo's `TASKS.md`
 - [x] `<UpgradeModal />` — shows on 402 or upgrade click
 - [x] 402 interceptor in `apiClient.ts`
 - [x] `billingService.ts`, `useBillingUsage()` hook, `queryKeys.billing`
-- [ ] `<UsageWarningBanner />` — soft warning at 80% on any limit
-- [ ] In-context indicators — credits in Ask AI panel, minutes on upload modal, hours on Recall toggle
-- [ ] Free users trying content gen → `UpgradeModal` immediately
-- [ ] Dashboard `/pricing` page
+- [x] `<UsageWarningBanner />` — soft warning at 80% on any limit
+- [x] In-context indicators — credits in Ask AI, minutes on upload/FAB, hours on Recall toggle
+- [x] Dashboard `/pricing` page
+- [ ] Free users trying content gen → `UpgradeModal` with `reason="feature_gate"`
+- [ ] Content gen buttons — credit cost tooltip
 
 ### P3 — Public: Pricing Page
 
-- [ ] `/pricing` in `crelyzor-public` — SSR, plan comparison table, CTAs, FAQ
+- [x] `/pricing` in `crelyzor-public` — SSR, plan comparison table, CTAs, FAQ
 
 ---
 
