@@ -103,18 +103,11 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 3.2 — Polish, Enhancements & Power Features** ← current
+**Phase 3.4 — Global Tags** ← complete ✅
 
-Phases 1 → 3 complete ✅. Phase 4 (Big Brain) blocked ⛔.
+Phases 1 → 3.4 complete ✅. Phase 4 (Big Brain) blocked ⛔. No active phase — ready for next initiative.
 
-Phase 3.2 is a product quality pass — fixing bugs, quick wins, and meaningful features identified after a full product audit. No new infrastructure required.
-
-**Priority order:**
-1. P0 — Fix embarrassing gaps (Reschedule button, Privacy Settings placeholder)
-2. P1 — Quick wins (task counts, overdue on home, NL parsing, task duration, date picker, email sig)
-3. P2 — Meaningful features (auto-prepare task, AI task badge, bulk actions, analytics, onboarding)
-4. P3 — Bigger features (global search, month view, keyboard shortcuts, GCal task blocks, contact linking)
-5. P4 — Major feature (recurring tasks)
+All phases 1 → 3.4 are complete. The product is feature-complete through global tags, recurring tasks, scheduling, email notifications, and data import. Phase 4 (Big Brain / vector search) is blocked until vector DB infrastructure is in place.
 
 Full breakdown: `TASKS.md` (root), per-repo `TASKS.md` files.
 Full roadmap: `docs/roadmap.md`

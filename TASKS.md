@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-09 (Phase 3 complete ✅, Phase 4 blocked)
+Last updated: 2026-04-18 (Phase 3.4 complete ✅, Phase 4 blocked)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
