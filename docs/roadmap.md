@@ -413,7 +413,7 @@ Full design: `docs/pricing-and-costs.md`
 - [x] Monthly usage reset cron job
 - [ ] Billing endpoints: `GET /billing/usage`, `POST /billing/checkout` (stub), `POST /billing/portal` (stub)
 - [ ] Enforcement layer — 402 responses with upgrade context
-- [ ] ⏸ Razorpay integration — **deferred** (account blocked). Stub endpoints built. Early users upgraded manually via DB. Wire gateway when unblocked.
+- ⛔ Payment gateway (Razorpay) — **NOT DOING NOW.** Account blocked. Early users upgraded manually via Prisma Studio. Revisit later.
 
 ### Frontend
 - [ ] Settings > Billing tab — plan badge, usage meters, upgrade CTA

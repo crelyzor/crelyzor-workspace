@@ -312,13 +312,15 @@ Both model upgrades were shipped at the start of Phase 4.
 - **Usage enforcement** — built ✅ (402 errors on limit exceeded)
 - **Manual upgrades** — set `user.plan = PRO` directly in Prisma Studio for early paid users
 
-### Payment Gateway — ⏸ Deferred
+### Payment Gateway — ⛔ NOT DOING NOW
 
-**Chosen gateway:** Razorpay (UPI + cards + NetBanking, India-first, INR settlement)
+**Do not build.** Razorpay account is blocked. Payment collection is out of scope for the current phase.
 
-**Blocked:** Razorpay account currently blocked. Will wire when unblocked. Alternative: Cashfree or PayU as drop-in replacements with identical webhook patterns.
+Early paid users are upgraded manually: open Prisma Studio → set `user.plan = PRO`.
 
-**Planned flow (when unblocked):**
+Revisit when Razorpay unblocks, or pick Cashfree / PayU as a drop-in replacement.
+
+**Planned flow (for future reference):**
 1. Backend creates Razorpay subscription → returns `{ subscriptionId, keyId }`
 2. Frontend opens Razorpay checkout SDK with those IDs
 3. User pays via UPI / card / NetBanking

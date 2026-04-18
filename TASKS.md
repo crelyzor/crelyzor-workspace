@@ -376,7 +376,7 @@ Per-repo task breakdowns: each repo's `TASKS.md`
 - [ ] Enforcement layer — 402 responses with error codes + upgrade context
 - [ ] Monthly reset cron already done ✅
 
-> **Payment gateway deferred** — Razorpay account blocked. Early paid users upgraded manually via Prisma Studio. Gateway wired when unblocked (see P6 in backend TASKS.md).
+> ⛔ **Payment gateway — NOT DOING NOW.** Razorpay account blocked. Upgrade users manually via Prisma Studio (`user.plan = PRO`). Revisit later.
 
 ### P2 — Frontend: Billing UI
 
