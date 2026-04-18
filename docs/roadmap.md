@@ -271,7 +271,7 @@ Full design doc: `docs/dev-notes/phase-3-tasks-calendar.md`
 
 ---
 
-## Phase 3.2 — Polish, Enhancements & Power Features ✅ MOSTLY COMPLETE
+## Phase 3.2 — Polish, Enhancements & Power Features ✅ COMPLETE
 
 **Goal:** Make everything already built feel production-quality. Fix embarrassing gaps, add quick wins, and ship the power features that turn casual users into daily users.
 
@@ -304,11 +304,11 @@ Full design doc: `docs/dev-notes/phase-3-tasks-calendar.md`
 - [x] Meeting ↔ Card contact auto-linking — backend + frontend done
 
 ### P4 — Major Feature
-- [ ] Recurring tasks — `recurringRule` (RRULE) on Task + UI picker + auto-generate next on complete
+- [x] Recurring tasks — `recurringRule` (RRULE) on Task + UI picker + auto-generate next on complete
 
 ---
 
-## Phase 3.3 — Close the Product Gaps ✅ MOSTLY COMPLETE
+## Phase 3.3 — Close the Product Gaps ✅ COMPLETE
 
 **Goal:** Fix things a real user would hit in their first week. Public card page, email notifications, scheduling completeness.
 
@@ -321,7 +321,7 @@ Full breakdown: per-repo TASKS.md files.
 - [x] Contact form validation — name required + email or phone required
 - [x] Contact form states — success / error / loading
 - [x] Smooth avatar image load — fade in, no layout shift
-- [ ] Verify vCard download works on iOS and Android (mobile testing)
+- [x] Verify vCard download works on iOS and Android (mobile testing)
 
 ### P1 — Email Notifications ✅
 - [x] Resend integration — `emailService.ts` with fail-open wrapper
@@ -340,21 +340,21 @@ Full breakdown: per-repo TASKS.md files.
 - [x] EventType editor: min notice, buffer time, max per day fields exposed in UI
 - [x] Cancelled bookings shown in bookings list (strikethrough + badge)
 
-### P3 — Connection Features (not started)
-- [ ] Ask AI discovery — prominent action on meeting list row + home dashboard
-- [ ] Meeting ↔ Card contact chips — participant → card chip (requires backend P3 complete)
-- [ ] Speaker memory — voice fingerprint → pre-label future meetings (Deepgram)
+### P3 — Connection Features ✅
+- [x] Ask AI discovery — prominent action on meeting list row + home dashboard
+- [x] Meeting ↔ Card contact chips — participant → card chip (requires backend P3 complete)
+- [x] Speaker memory — voice fingerprint → pre-label future meetings (Deepgram)
 
-### P4 — Recurring Tasks (carry forward from 3.2)
-- [ ] Recurring tasks — `recurringRule` (RRULE) on Task + UI picker + auto-generate next on complete
+### P4 — Recurring Tasks ✅
+- [x] Recurring tasks — `recurringRule` (RRULE) on Task + UI picker + auto-generate next on complete
 
-### P5 — Data Import
-- [ ] Contact CSV import — `POST /cards/:cardId/contacts/import` + UI file picker
-- [ ] Calendar .ics import — `POST /meetings/import/ics` + UI file picker
+### P5 — Data Import ✅
+- [x] Contact CSV import — `POST /cards/:cardId/contacts/import` + UI file picker
+- [x] Calendar .ics import — `POST /meetings/import/ics` + UI file picker
 
 ---
 
-## Phase 3.4 — Global Tags ← current focus
+## Phase 3.4 — Global Tags ✅ COMPLETE
 
 **Goal:** Tags are already on meetings, cards, and tasks. This phase makes them truly global — adding contacts, a tags index page, and a tag detail page that shows everything tagged with a given tag across all entity types.
 
@@ -370,26 +370,26 @@ Full breakdown: per-repo TASKS.md files.
 ```
 
 ### P0 — Schema (backend)
-- [ ] `ContactTag` junction model + migrate relations on `Tag` + `CardContact`
-- [ ] `deleteTag` transaction updated to cascade `contactTags`
+- [x] `ContactTag` junction model + migrate relations on `Tag` + `CardContact`
+- [x] `deleteTag` transaction updated to cascade `contactTags`
 
 ### P1 — Backend APIs
-- [ ] Contact tag endpoints (`GET/POST/DELETE /cards/:cardId/contacts/:contactId/tags/:tagId`)
-- [ ] `GET /tags/:tagId/items` — returns `{ tag, meetings[], cards[], tasks[], contacts[], counts }`
-- [ ] `listTags` updated to include counts per type
+- [x] Contact tag endpoints (`GET/POST/DELETE /cards/:cardId/contacts/:contactId/tags/:tagId`)
+- [x] `GET /tags/:tagId/items` — returns `{ tag, meetings[], cards[], tasks[], contacts[], counts }`
+- [x] `listTags` updated to include counts per type
 
 ### P2 — Tags Index + Detail Pages (frontend)
-- [ ] `/tags` index page — tag grid with counts, inline create, rename, delete
-- [ ] `/tags/:tagId` detail page — 4 sections (Meetings / Cards / Tasks / Contacts)
-- [ ] Route registration + sidebar nav "Tags" item
+- [x] `/tags` index page — tag grid with counts, inline create, rename, delete
+- [x] `/tags/:tagId` detail page — 4 sections (Meetings / Cards / Tasks / Contacts)
+- [x] Route registration + sidebar nav "Tags" item
 
 ### P3 — Tags on Contacts (frontend)
-- [ ] Tag chips on contact rows in Cards contacts view
-- [ ] Tag editor popover on contacts
-- [ ] Tag filter bar on contacts list
+- [x] Tag chips on contact rows in Cards contacts view
+- [x] Tag editor popover on contacts
+- [x] Tag filter bar on contacts list
 
 ### P4 — Tag Chip Navigation (frontend)
-- [ ] Every tag chip in the app navigates to `/tags/:tagId`
+- [x] Every tag chip in the app navigates to `/tags/:tagId`
 
 ---
 
