@@ -304,24 +304,33 @@ Both model upgrades were shipped at the start of Phase 4.
 
 ---
 
-## 7. Payment Infrastructure (To Build)
+## 7. Payment Infrastructure
 
-- **Razorpay** — subscription billing, plan management. Chosen over Stripe because:
-  - UPI support (critical for Indian users)
-  - International cards (Visa/MC/Amex) also supported
-  - Settles in INR to Indian bank account
-  - Familiar DX (team has prior Razorpay experience)
-- **Razorpay flow:**
-  1. Backend creates Razorpay subscription → returns `{ subscriptionId, keyId }`
-  2. Frontend opens Razorpay checkout (JS SDK) with those IDs
-  3. User pays via UPI / card / NetBanking on Razorpay's hosted sheet
-  4. Razorpay sends webhook → `POST /webhooks/razorpay` → verify HMAC → update `user.plan`
-- **Webhook events we handle:**
-  - `subscription.activated` → set plan = PRO
-  - `subscription.charged` → sync `currentPeriodEnd`
-  - `subscription.cancelled` → downgrade to FREE
-  - `subscription.halted` → mark status = halted (payment failure)
-- **Env vars needed:** `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_PRO_PLAN_ID`
-- **`UserUsage` model** — tracks per user per month (already built ✅):
-  - `transcriptionMinutesUsed`, `recallHoursUsed`, `aiCreditsUsed`, `storageGbUsed`, `resetAt`
-- **Credit formula:** `credits = ceil((prompt_tokens × 0.00075) + (completion_tokens × 0.0045))`
+### Current State
+- **`UserUsage` model** — built ✅
+- **`Subscription` model** — built ✅ (fields: `razorpayCustomerId`, `razorpaySubscriptionId`, `plan`, `status`, `currentPeriodEnd`)
+- **Usage enforcement** — built ✅ (402 errors on limit exceeded)
+- **Manual upgrades** — set `user.plan = PRO` directly in Prisma Studio for early paid users
+
+### Payment Gateway — ⏸ Deferred
+
+**Chosen gateway:** Razorpay (UPI + cards + NetBanking, India-first, INR settlement)
+
+**Blocked:** Razorpay account currently blocked. Will wire when unblocked. Alternative: Cashfree or PayU as drop-in replacements with identical webhook patterns.
+
+**Planned flow (when unblocked):**
+1. Backend creates Razorpay subscription → returns `{ subscriptionId, keyId }`
+2. Frontend opens Razorpay checkout SDK with those IDs
+3. User pays via UPI / card / NetBanking
+4. Razorpay webhook → `POST /webhooks/razorpay` → verify HMAC → update `user.plan`
+
+**Webhook events:**
+- `subscription.activated` → set plan = PRO
+- `subscription.charged` → sync `currentPeriodEnd`
+- `subscription.cancelled` → downgrade to FREE
+- `subscription.halted` → mark status = halted
+
+**Env vars (future):** `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_PRO_PLAN_ID`
+
+### Credit formula
+`credits = ceil((prompt_tokens × 0.00075) + (completion_tokens × 0.0045))`

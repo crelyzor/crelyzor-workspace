@@ -370,12 +370,24 @@ Per-repo task breakdowns: each repo's `TASKS.md`
   - [x] Wire into transcription, Recall, AI services
   - [x] Monthly reset cron job
 
-### P1 — Backend: Razorpay Integration
+### P1 — Backend: Billing Endpoints + Enforcement
 
-- [ ] `razorpayService.ts` — create subscription, verify payment signature, webhook handling
-- [ ] `POST /billing/checkout`, `POST /billing/portal`, `GET /billing/usage`
-- [ ] `POST /webhooks/razorpay` — update plan on subscription events
-- [ ] `.env.example` — Razorpay keys (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_PRO_PLAN_ID`)
+- [ ] `GET /billing/usage`, `POST /billing/checkout` (stub), `POST /billing/portal` (stub)
+- [ ] Enforcement layer — 402 responses with error codes + upgrade context
+- [ ] Monthly reset cron already done ✅
+
+> **Payment gateway deferred** — Razorpay account blocked. Early paid users upgraded manually via Prisma Studio. Gateway wired when unblocked (see P6 in backend TASKS.md).
+
+### P2 — Frontend: Billing UI
+
+- [ ] Settings > Billing tab — plan badge, usage meters, upgrade CTA
+- [ ] `<UpgradeModal />` — shows on 402 or upgrade click
+- [ ] In-context indicators — credits in Ask AI, minutes on upload, hours on Recall
+- [ ] 402 interceptor in `apiClient.ts`
+
+### P3 — Public: Pricing Page
+
+- [ ] `/pricing` — SSR, plan comparison table, CTAs, FAQ
 
 ### P2 — Frontend: Settings > Billing + Upgrade Prompts
 
