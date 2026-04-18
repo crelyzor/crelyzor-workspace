@@ -411,6 +411,21 @@ Full breakdown: per-repo TASKS.md files.
 
 ---
 
+### Model Upgrades (do at Phase 4 start, before any AI work)
+
+**Deepgram:** `nova-2` → `nova-3` (multilingual)
+- File: `crelyzor-backend/src/services/transcription/transcriptionService.ts`
+- Change: `const DEEPGRAM_MODEL = "nova-2"` → `"nova-3"`
+- Cost impact: $0.26/hr → $0.31/hr (+19%). Worth it — better accuracy + 45 languages.
+
+**OpenAI:** `gpt-4o-mini` → `gpt-5.4-mini`
+- File: `crelyzor-backend/src/services/ai/aiService.ts`
+- Change: `const OPENAI_MODEL = "gpt-4o-mini"` → `"gpt-5.4-mini"`
+- Cost impact: input 5x ($0.15 → $0.75/1M), output 7.5x ($0.60 → $4.50/1M). Adds ~$0.92/Pro user/month. Worth it — significantly better summaries, task extraction, Ask AI quality.
+- Net monthly cost increase per Pro user: ~$1.30
+
+---
+
 ## Future — Teams
 
 **Not scoped. Do not build.**
