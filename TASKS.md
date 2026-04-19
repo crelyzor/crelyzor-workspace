@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-19 (Phase 4.2 complete ✅ — Ask AI Persistence shipped)
+Last updated: 2026-04-19 (Phase 4.3 complete ✅ — Two-way GCal Push Webhooks shipped)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -418,19 +418,10 @@ Per-repo task breakdowns: each repo's `TASKS.md`
 
 ---
 
-## Phase 4.3 — Two-way GCal Push Webhooks
+## Phase 4.3 — Two-way GCal Push Webhooks ✅ Complete
 
-> **Goal:** GCal edits and cancellations reflect in Crelyzor in real-time, not just when the user opens the dashboard.
->
-> **What already works (pull-based):** `syncLinkedMeetingsFromGoogle()` runs on every `fetchGCalEvents()` call — any time the user opens the dashboard or calendar, we ingest GCal-side changes for linked meetings. This covers the majority of use cases.
->
-> **What's missing (push-based):** If the user doesn't open Crelyzor for days, their meeting times/titles won't reflect GCal edits. Push webhooks fix this — Google pings us the moment something changes.
->
-> **How Google push webhooks work:**
-> 1. We call `calendar.events.watch()` → Google gives us a `channelId` + `resourceId` + expiry
-> 2. Google sends `POST /webhooks/google/calendar` whenever any event changes
-> 3. The notification is just a ping — no event details. We then call `calendar.events.list(syncToken)` to get only what changed
-> 4. Channels expire after max 30 days — we renew them before expiry
+> GCal edits/cancels now reflect in Crelyzor in real-time via Google Calendar push webhooks.
+> Pull-based sync (on dashboard load) still runs as fallback. All push operations fail-open.
 
 Full breakdown: per-repo `TASKS.md` files.
 
@@ -438,9 +429,25 @@ Full breakdown: per-repo `TASKS.md` files.
 
 ## Phase 4.4 — Polish & First-Run Experience
 
-> **Goal:** Fix anything a real user hits in their first week. Audit gaps, improve empty states, first-run flow, and any UX rough edges not yet addressed.
+> **Goal:** Fix the gaps a real user hits in their first week. Based on full product audit (2026-04-19).
 
-Full breakdown: per-repo `TASKS.md` files. Scope defined after Phase 4.3 ships and a fresh audit is done.
+### Backend
+- [ ] `CardContact` soft delete — schema + `db:push` + update `cardService.ts` (currently hard-deletes, violates convention)
+
+### Frontend
+- [ ] **Setup page** — explain why username is required upfront
+- [ ] **Onboarding** — re-trigger mechanism (getting started link); fix trigger condition to check actual step completion
+- [ ] **Cards page** — Retry button on error state
+- [ ] **Voice notes** — Retry + Delete actions on failed transcription items
+- [ ] **Meetings** — "Clear filters" CTA when filter combo produces empty state
+- [ ] **Meeting detail → Generate tab** — explicit "transcript required" message instead of vague error
+- [ ] **Meeting creation** — show link warning upfront, not post-submit
+- [ ] **Bookings** — show timezone on all booking times
+- [ ] **Pricing page** — add Upgrade CTA for free users
+- [ ] **Home widgets** — "No meetings today" / "No recent meetings" link to /meetings
+- [ ] **Ask AI** — visually distinct low-credits warning (amber) so user notices before hitting the wall
+
+Full breakdown: per-repo `TASKS.md` files.
 
 ---
 
