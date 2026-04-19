@@ -149,22 +149,30 @@ Speaker labels map to `MeetingSpeaker` — user can rename "Speaker 0" → "John
 
 ## Ask AI — Prompt Design
 
+Each request builds the OpenAI messages array as:
+
 ```
-System:
-You are an AI assistant for a meeting titled "[Meeting Title]"
-that took place on [Date].
-Your job is to answer questions about this specific meeting based
-only on the transcript provided.
-Be concise. Reference speaker names when available.
-If the answer isn't in the transcript, say so clearly.
+[system]  — meeting title + "answer based solely on transcript" instruction
+[user]    — prior turn 1 (if history exists)
+[assistant] — prior answer 1
+... up to 6 prior messages (3 exchanges) ...
+[user]    — "Transcript:\n<context>\n\nQuestion: <current question>"
+```
 
-Context (transcript):
-[Speaker 0 - John]: "We need to finalize the budget by Friday..."
-[Speaker 1 - Sarah]: "I think we should push it to next week..."
-...
+The transcript context is relevance-filtered (`buildRelevantAskAIContext`) and capped at ~12,000 chars (~3k tokens) to control cost on long meetings.
 
-User:
-[User's question]
+**Conversation persistence:** Each meeting has one `AskAIConversation` row per user (`@@unique([meetingId, userId])`). Every user/assistant turn is an `AskAIMessage` row. History loads on tab open; the last 6 messages are injected as context on every new question.
+
+```
+POST /sma/meetings/:meetingId/ask
+  → getOrCreateConversation(userId, meetingId)
+  → getMessages(userId, meetingId) — last 6 for context
+  → appendMessage(conversationId, "user", question)
+  → stream OpenAI response (SSE)
+  → appendMessage(conversationId, "assistant", fullResponse)
+
+GET  /sma/meetings/:meetingId/ask/history  → full message list
+DELETE /sma/meetings/:meetingId/ask/history → clears all messages
 ```
 
 ---
@@ -173,15 +181,19 @@ User:
 
 | Feature | Status |
 |---------|--------|
-| Deepgram transcription | ✅ Built |
-| Speaker diarization | ✅ Built |
+| Deepgram transcription (Nova-3 Multilingual) | ✅ Built |
+| Speaker diarization + rename | ✅ Built |
 | AI summary generation | ✅ Built |
 | Key points extraction | ✅ Built |
-| Action item extraction | ✅ Built |
+| Task extraction (AI_EXTRACTED) | ✅ Built |
 | Meeting notes | ✅ Built |
-| Ask AI — backend endpoint | ❌ Not built |
-| Ask AI — frontend chat UI | ❌ Not built |
+| Ask AI — streaming SSE endpoint | ✅ Built |
+| Ask AI — frontend chat UI (all 3 layouts) | ✅ Built |
+| Ask AI — conversation persistence (PostgreSQL) | ✅ Built |
+| Ask AI — rolling context window (last 6 messages) | ✅ Built |
+| Ask AI — clear conversation | ✅ Built |
+| AI content generation (Report, Tweet, Blog, Email) | ✅ Built |
 | Pre-generated decisions/follow-ups | ❌ Not built |
-| Big Brain — embeddings pipeline | ❌ Not built |
-| Big Brain — RAG query interface | ❌ Not built |
-| Recall.ai integration | ❌ Not built |
+| Big Brain — embeddings pipeline | ❌ Not built (Phase 5) |
+| Big Brain — RAG query interface | ❌ Not built (Phase 5) |
+| Recall.ai integration | ✅ Built |

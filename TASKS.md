@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-19 (Phase 4.1 complete ✅ — Phase 4.2 Ask AI Persistence planned)
+Last updated: 2026-04-19 (Phase 4.2 complete ✅ — Ask AI Persistence shipped)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -104,7 +104,7 @@ Task {
 2. ~~**Meeting list click UX** — single click navigates to detail, context menu handles actions~~ ✅
 3. ~~**RECORDED meeting status badge** — hidden for RECORDED, shown only for SCHEDULED~~ ✅
 4. ~~**Hover jitter on meeting list** — scoped to `border-color` + `box-shadow` only~~ ✅
-5. **Ask AI persistence** — deferred to Phase 2 Big Brain.
+5. ~~**Ask AI persistence** — per-meeting conversation history persisted in PostgreSQL, seeded on mount, rolling 6-message context window, clear chat~~ ✅ (Phase 4.2)
 
 ---
 
@@ -396,67 +396,25 @@ Per-repo task breakdowns: each repo's `TASKS.md`
 
 ---
 
-## Phase 4.2 — Ask AI Persistence
+## Phase 4.2 — Ask AI Persistence ✅ Complete
 
-> **Goal:** Ask AI conversations survive page refreshes and work across devices. User closes the meeting detail, comes back, conversation is exactly where they left off.
->
-> **Storage:** PostgreSQL via two new Prisma models — `AskAIConversation` (one per user per meeting) and `AskAIMessage` (each turn). Proper server-side history, not localStorage.
->
-> **Why not localStorage:** Doesn't survive device switches, can be wiped by the browser, and doesn't set up Phase 5 Big Brain correctly — RAG needs server-side message history to include in context windows.
->
-> **Scope:** Backend (schema + service + endpoints) + Frontend (query hooks + UI).
+> Ask AI conversations are now persisted in PostgreSQL and survive page refreshes and device switches.
+> The last 6 messages (3 exchanges) are included as context in each OpenAI call for follow-up awareness.
 
-Full breakdown: per-repo `TASKS.md` files.
+### What was built
 
-### Schema
-
-```prisma
-model AskAIConversation {
-  id        String         @id @default(uuid()) @db.Uuid
-  meetingId String         @db.Uuid
-  userId    String         @db.Uuid
-  meeting   Meeting        @relation(fields: [meetingId], references: [id])
-  user      User           @relation(fields: [userId], references: [id])
-  messages  AskAIMessage[]
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-
-  @@unique([meetingId, userId])
-}
-
-model AskAIMessage {
-  id             String            @id @default(uuid()) @db.Uuid
-  conversationId String            @db.Uuid
-  conversation   AskAIConversation @relation(fields: [conversationId], references: [id])
-  role           String            // "user" | "assistant"
-  content        String
-  createdAt      DateTime          @default(now())
-}
-```
-
-### P0 — Backend: Schema + Service
-
-- [ ] **Backend:** Add `AskAIConversation` + `AskAIMessage` models to `schema.prisma` + migrate
-- [ ] **Backend:** `src/services/ai/askAIConversationService.ts`
-  - `getOrCreateConversation(userId, meetingId)` — fetch existing or create new
-  - `getMessages(userId, meetingId)` — returns messages ordered by `createdAt`
-  - `appendMessage(conversationId, role, content)` — inserts one message row
-  - `clearMessages(userId, meetingId)` — hard deletes all messages for a conversation
-
-### P1 — Backend: Endpoints
-
-- [ ] **Backend:** `GET /sma/meetings/:meetingId/ask/history` — returns prior messages array
-- [ ] **Backend:** `DELETE /sma/meetings/:meetingId/ask/history` — clear conversation
-- [ ] **Backend:** Update `POST /sma/meetings/:meetingId/ask` — save user message before streaming starts, save complete assistant message in `onDone` callback
-
-### P2 — Frontend: Hooks + UI
-
-- [ ] **Frontend:** `queryKeys.sma.askHistory(meetingId)` added to `queryKeys.ts`
-- [ ] **Frontend:** `useAskAIHistory(meetingId)` query in `useSMAQueries.ts` — fetches prior messages
-- [ ] **Frontend:** `useClearAskAIHistory(meetingId)` mutation in `useSMAQueries.ts`
-- [ ] **Frontend:** `AskAITab` — initialize messages from `useAskAIHistory` query (skeleton while loading)
-- [ ] **Frontend:** "Clear" icon button — calls `useClearAskAIHistory`, optimistically clears messages
-- [ ] **Frontend:** Suggestion chips — only shown when conversation is empty
+- **Schema:** `AskAIConversation` (one per user × meeting, `@@unique([meetingId, userId])`) + `AskAIMessage` (`@db.Text` content, composite index on `[conversationId, createdAt]`). Tables created via `pnpm db:push`.
+- **Service:** `src/services/ai/askAIConversationService.ts` — `getOrCreateConversation`, `getMessages`, `appendMessage`, `clearMessages`
+- **Endpoints:**
+  - `GET /sma/meetings/:meetingId/ask/history` — fetch persisted conversation
+  - `DELETE /sma/meetings/:meetingId/ask/history` — clear conversation
+  - `POST /sma/meetings/:meetingId/ask` — now persists user message before streaming, assistant message after; injects last 6 messages as OpenAI context
+- **Frontend:**
+  - `queryKeys.sma.askHistory(meetingId)` in `queryKeys.ts`
+  - `useAskAIHistory` + `useClearAskAIHistory` hooks in `useSMAQueries.ts`
+  - `AskAITab` seeds from DB history on first mount (skeleton while loading), ref-based seeding guard prevents re-seeding on background refetches
+  - Clear button (`Trash2`) in Ask AI header — only visible when messages exist, optimistically clears local + cache
+  - Suggestion chips only shown on empty conversation
 
 ---
 
