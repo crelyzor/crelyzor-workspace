@@ -418,6 +418,38 @@ Per-repo task breakdowns: each repo's `TASKS.md`
 
 ---
 
+## Phase 4.3 — Two-way GCal Push Webhooks
+
+> **Goal:** GCal edits and cancellations reflect in Crelyzor in real-time, not just when the user opens the dashboard.
+>
+> **What already works (pull-based):** `syncLinkedMeetingsFromGoogle()` runs on every `fetchGCalEvents()` call — any time the user opens the dashboard or calendar, we ingest GCal-side changes for linked meetings. This covers the majority of use cases.
+>
+> **What's missing (push-based):** If the user doesn't open Crelyzor for days, their meeting times/titles won't reflect GCal edits. Push webhooks fix this — Google pings us the moment something changes.
+>
+> **How Google push webhooks work:**
+> 1. We call `calendar.events.watch()` → Google gives us a `channelId` + `resourceId` + expiry
+> 2. Google sends `POST /webhooks/google/calendar` whenever any event changes
+> 3. The notification is just a ping — no event details. We then call `calendar.events.list(syncToken)` to get only what changed
+> 4. Channels expire after max 30 days — we renew them before expiry
+
+Full breakdown: per-repo `TASKS.md` files.
+
+---
+
+## Phase 4.4 — Polish & First-Run Experience
+
+> **Goal:** Fix anything a real user hits in their first week. Audit gaps, improve empty states, first-run flow, and any UX rough edges not yet addressed.
+
+Full breakdown: per-repo `TASKS.md` files. Scope defined after Phase 4.3 ships and a fresh audit is done.
+
+---
+
+## Phase 4.5 — Razorpay ⛔ BLOCKED
+
+Account blocked. Do not start. Uncomment env vars and build when account is live.
+
+---
+
 ## Phase 5 — Big Brain ⛔ BLOCKED
 
 Explicitly blocked. Do not start. Requires separate vector DB infrastructure that is not yet in place.

@@ -428,13 +428,61 @@ Full design: `docs/pricing-and-costs.md`
 
 ---
 
+## Phase 4.3 — Two-way GCal Push Webhooks
+
+**Goal:** GCal edits and cancellations reflect in Crelyzor in real-time, not just when the user opens the dashboard.
+
+**Status:** Planned. Starting next.
+
+**What already works:** Pull-based sync (`syncLinkedMeetingsFromGoogle`) runs on every dashboard load — already handles updates and cancellations for linked meetings. This phase adds Google Calendar push webhooks for real-time delivery.
+
+### P0 — Schema
+- [ ] `GCalSyncState` model — `channelId`, `resourceId`, `expiration`, `syncToken` per user
+
+### P1 — Push Channel Service
+- [ ] `registerWatchChannel(userId)` — call `calendar.events.watch()`, store in DB
+- [ ] `stopWatchChannel(userId)` — call `calendar.channels.stop()`, remove from DB
+- [ ] `processIncomingNotification(channelId)` — fetch changed events via syncToken, run sync logic
+- [ ] `renewExpiringChannels()` — cron target for daily renewal check
+
+### P2 — Webhook Endpoint
+- [ ] `POST /webhooks/google/calendar` — receive ping, validate token, queue Bull job, return 200
+- [ ] `gcal-push-sync` Bull job — calls `processIncomingNotification`
+
+### P3 — Wiring
+- [ ] Register channel after GCal connect callback
+- [ ] Stop channel on GCal disconnect
+- [ ] Daily cron at 02:00 UTC — renew expiring channels
+- [ ] Backfill endpoint for existing connected users: `POST /integrations/google/calendar/push/register`
+
+### P4 — Frontend
+- [ ] `pushEnabled` field on integration status response
+- [ ] "Real-time sync" badge in Settings > Integrations when channel is active
+- [ ] Auto-register push channel after GCal connect success
+
+---
+
+## Phase 4.4 — Polish & First-Run Experience
+
+**Goal:** Fix anything a real new user hits in their first week.
+
+**Status:** Scope defined after Phase 4.3 ships via fresh product audit.
+
+---
+
+## Phase 4.5 — Razorpay ⛔ BLOCKED
+
+Account blocked. Env vars in `.env.example` (commented). Do not start.
+
+---
+
 ## Phase 5 — Big Brain (Global AI) ⛔ BLOCKED
 
 **Goal:** One AI that knows everything about the user across all of Crelyzor.
 
 **Status:** Explicitly blocked. Do not start. Requires separate vector DB infrastructure not yet in place.
 
-**Prerequisite:** Phase 3 complete ✅ — infrastructure decision pending.
+**Prerequisite:** All Phase 4.x complete.
 
 - [ ] Vector embeddings for all transcripts, notes, tasks
 - [ ] RAG pipeline over user's full data
@@ -442,7 +490,6 @@ Full design: `docs/pricing-and-costs.md`
 - [ ] Proactive nudges — missed follow-ups, upcoming meeting prep
 - [ ] "Prepare me for my 3pm call" feature
 - [ ] Cross-meeting insights: "What do I know about Acme Corp?"
-- [ ] **Full two-way GCal sync** — GCal edits/cancels reflect back in Crelyzor (requires Google Calendar push webhook subscription + conflict resolution). Deferred from 1.3.
 
 ---
 
