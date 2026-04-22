@@ -466,7 +466,15 @@ Full design: `docs/pricing-and-costs.md`
 
 **Goal:** Fix anything a real new user hits in their first week.
 
-**Status:** Scope defined after Phase 4.3 ships via fresh product audit.
+**Status:** In progress.
+
+### First-run polish
+- [x] Home getting-started checklist driven by real setup state
+- [x] Checklist actions for card, meeting/voice note, Google Calendar, and first task
+- [x] Per-user checklist dismissal
+- [x] Setup page branding/url copy aligned with Crelyzor public card URLs
+- [ ] Fresh new-user walkthrough QA
+- [ ] Empty-state copy audit across core pages
 
 ---
 

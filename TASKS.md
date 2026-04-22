@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-19 (Phase 4.3 complete ✅ — Two-way GCal Push Webhooks shipped)
+Last updated: 2026-04-22 (Phase 4.4 complete ✅ — Polish & First-Run Experience shipped)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -427,25 +427,25 @@ Full breakdown: per-repo `TASKS.md` files.
 
 ---
 
-## Phase 4.4 — Polish & First-Run Experience
+## Phase 4.4 — Polish & First-Run Experience ✅ Complete
 
 > **Goal:** Fix the gaps a real user hits in their first week. Based on full product audit (2026-04-19).
 
 ### Backend
-- [ ] `CardContact` soft delete — schema + `db:push` + update `cardService.ts` (currently hard-deletes, violates convention)
+- [x] `CardContact` soft delete — schema + `db:push` + update `cardService.ts` (currently hard-deletes, violates convention)
 
 ### Frontend
-- [ ] **Setup page** — explain why username is required upfront
-- [ ] **Onboarding** — re-trigger mechanism (getting started link); fix trigger condition to check actual step completion
-- [ ] **Cards page** — Retry button on error state
-- [ ] **Voice notes** — Retry + Delete actions on failed transcription items
-- [ ] **Meetings** — "Clear filters" CTA when filter combo produces empty state
-- [ ] **Meeting detail → Generate tab** — explicit "transcript required" message instead of vague error
-- [ ] **Meeting creation** — show link warning upfront, not post-submit
-- [ ] **Bookings** — show timezone on all booking times
-- [ ] **Pricing page** — add Upgrade CTA for free users
-- [ ] **Home widgets** — "No meetings today" / "No recent meetings" link to /meetings
-- [ ] **Ask AI** — visually distinct low-credits warning (amber) so user notices before hitting the wall
+- [x] **Setup page** — explain why username is required upfront
+- [x] **Onboarding** — re-trigger mechanism (getting started link); fix trigger condition to check actual step completion
+- [x] **Cards page** — Retry button on error state
+- [x] **Voice notes** — Retry + Delete actions on failed transcription items
+- [x] **Meetings** — "Clear filters" CTA when filter combo produces empty state
+- [x] **Meeting detail → Generate tab** — explicit "transcript required" message instead of vague error
+- [x] **Meeting creation** — show link warning upfront, not post-submit
+- [x] **Bookings** — show timezone on all booking times
+- [x] **Pricing page** — add Upgrade CTA for free users
+- [x] **Home widgets** — "No meetings today" / "No recent meetings" link to /meetings
+- [x] **Ask AI** — visually distinct low-credits warning (amber) so user notices before hitting the wall
 
 Full breakdown: per-repo `TASKS.md` files.
 
