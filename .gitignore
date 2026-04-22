@@ -20,3 +20,8 @@ node_modules/
 
 # Local Claude settings (keep skills/agents/settings.json but not local overrides)
 .claude/settings.local.json
+
+# Environment secrets — never commit
+.env.local
+.env.prod
+.env.staging

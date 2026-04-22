@@ -40,9 +40,17 @@ Everything is connected.
 
 | Repo | Role |
 |------|------|
-| `calendar-backend` | Node.js + Express + PostgreSQL — all API and business logic |
-| `calendar-frontend` | React app — main dashboard (cards, meetings, settings) |
-| `cards-frontend` | React app — public card pages (shareable URLs) |
+| `crelyzor-backend` | Node.js + Express + PostgreSQL — all API and business logic |
+| `crelyzor-frontend` | React app — main dashboard (cards, meetings, settings) |
+| `crelyzor-public` | Next.js — public pages (cards, scheduling, SEO) |
+
+## Running Locally
+
+```bash
+docker compose up
+```
+
+All services start including Postgres. Hot reload enabled. See `CLAUDE.md` for details.
 
 ---
 

@@ -1,197 +1,126 @@
-# Crelyzor — Setup Guide
+# Crelyzor — First Time Setup
 
-Complete setup from zero to running. Follow in order.
+Get from zero to running in ~10 minutes.
 
 ---
 
 ## Prerequisites
 
-Install these before anything else:
+Install these once:
 
-| Tool | Version | Install |
-|------|---------|---------|
-| Node.js | >= 20 | https://nodejs.org or `nvm install 20` |
-| pnpm | >= 9 | `npm install -g pnpm` |
-| Git | any | https://git-scm.com |
-| Claude Code | latest | `npm install -g @anthropic/claude-code` |
+| Tool | Install |
+|------|---------|
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Required — runs everything |
+| [Git](https://git-scm.com) | Required — clone repos |
+
+That's it. No Node, no pnpm, no local Postgres needed.
 
 ---
 
-## Step 1 — Clone All Repos
+## Step 1 — Clone the Repos
 
-Create a `Calendar` folder and clone everything inside it:
+Clone the workspace first, then the 3 code repos inside it:
 
 ```bash
-mkdir Calendar && cd Calendar
-```
+git clone https://github.com/crelyzor/crelyzor-workspace.git
+cd crelyzor-workspace
 
-Clone the workspace (this repo):
-```bash
-git clone <this-repo-url> .
-```
-
-Clone the 3 code repos into the same folder:
-```bash
-git clone <calendar-backend-url>   calendar-backend
-git clone <calendar-frontend-url>  calendar-frontend
-git clone <cards-frontend-url>     cards-frontend
+git clone https://github.com/crelyzor/crelyzor-backend.git
+git clone https://github.com/crelyzor/crelyzor-frontend.git
+git clone https://github.com/crelyzor/crelyzor-public.git
 ```
 
 Your folder should look like this:
+
 ```
-Calendar/
-├── calendar-backend/
-├── calendar-frontend/
-├── cards-frontend/
-├── CLAUDE.md
-├── TASKS.md
-├── START_HERE.md
+crelyzor-workspace/
+├── crelyzor-backend/
+├── crelyzor-frontend/
+├── crelyzor-public/
+├── docker-compose.yml
+├── SETUP.md
 └── ...
 ```
 
 ---
 
-## Step 2 — Environment Variables
+## Step 2 — Environment Files
 
-The backend needs a `.env` file. Ask the team for the values.
-
-```bash
-cp calendar-backend/.env.example calendar-backend/.env
-```
-
-Open `calendar-backend/.env` and fill in:
+Copy the env templates and fill in your API keys:
 
 ```bash
-# Database (Neon PostgreSQL — get connection string from team)
-DATABASE_URL=""
-
-# Auth
-JWT_SECRET=""
-GOOGLE_CLIENT_ID=""
-GOOGLE_CLIENT_SECRET=""
-GOOGLE_CALLBACK_URL="http://localhost:3000/api/v1/auth/google/login/callback"
-
-# AI & Transcription
-OPENAI_API_KEY=""       # Get from platform.openai.com
-DEEPGRAM_API_KEY=""     # Get from console.deepgram.com
-
-# Storage (Google Cloud Storage)
-GCS_BUCKET_NAME=""
-GCS_PROJECT_ID=""
-GOOGLE_APPLICATION_CREDENTIALS=""   # Path to service account JSON
-
-# Queue (Upstash Redis)
-UPSTASH_REDIS_REST_URL=""
-UPSTASH_REDIS_REST_TOKEN=""
-
-# Config
-PORT=3000
-BASE_URL_SHORTNER=http://localhost:3000
-HARD_DELETE_ENABLED=false
-AUTO_START_CRON=false
+# Backend
+cp crelyzor-backend/.env.example crelyzor-backend/.env.local
 ```
 
-Frontends have no `.env` files — they point to the backend at `localhost:3000`.
+Open `crelyzor-backend/.env.local` and fill in the keys marked `CHANGE_ME`.
+The minimum you need to get the app running:
+
+```bash
+JWT_ACCESS_SECRET=any_random_string_here
+JWT_REFRESH_SECRET=another_random_string_here
+GOOGLE_CLIENT_ID=          # from Google Cloud Console
+GOOGLE_CLIENT_SECRET=      # from Google Cloud Console
+OPENAI_API_KEY=            # from platform.openai.com
+DEEPGRAM_API_KEY=          # from console.deepgram.com
+GCS_BUCKET_NAME=           # Google Cloud Storage bucket
+UPSTASH_REDIS_REST_URL=    # from upstash.com
+UPSTASH_REDIS_REST_TOKEN=  # from upstash.com
+```
+
+The `DATABASE_URL` is already set — it points to the local Docker Postgres. Don't change it.
+
+Frontend env files are already configured for local dev. No changes needed.
 
 ---
 
-## Step 3 — Install Dependencies
+## Step 3 — Start Docker Desktop
 
-From the root `Calendar/` folder:
-
-```bash
-pnpm install          # installs root (concurrently)
-pnpm install:all      # installs all 3 repos
-```
+Open Docker Desktop and wait for it to say "Docker Desktop is running".
 
 ---
 
-## Step 4 — Database
-
-Generate the Prisma client:
+## Step 4 — Run
 
 ```bash
-pnpm db:generate    # runs prisma generate in calendar-backend
+docker compose up
 ```
 
-If you have a fresh database:
-```bash
-pnpm db:migrate     # runs migrations
-```
+First run takes ~3-5 minutes (downloading images, installing deps). Subsequent runs are fast.
 
-If the schema is already deployed (most cases):
-```bash
-# Nothing to do — DATABASE_URL connects to Neon which already has the schema
-```
+---
 
-To browse the database:
+## Step 5 — Run Migrations (first time only)
+
+In a new terminal, while the containers are running:
+
 ```bash
-pnpm db:studio      # opens Prisma Studio at localhost:5555
+docker compose exec backend pnpm db:migrate
 ```
 
 ---
 
-## Step 5 — Run Everything
-
-```bash
-# Start all 3 services
-pnpm dev
-
-# Or start everything including the job worker (required for transcription)
-pnpm dev:full
-```
+## Done
 
 | Service | URL |
 |---------|-----|
-| API | http://localhost:3000 |
+| Backend API | http://localhost:3000 |
 | Dashboard | http://localhost:5173 |
-| Public Cards | http://localhost:5174 |
+| Public site | http://localhost:5174 |
 
-The job worker is required for recording transcription and AI processing to work. Use `pnpm dev:full` if you're working on meeting features.
-
----
-
-## Step 6 — Claude Code Setup
-
-Open Claude Code from the `Calendar/` root:
-
-```bash
-claude
-```
-
-### Add MCP Servers
-
-First, export the DB URL as a named env var (add this to your `~/.zshrc` or `~/.zprofile`):
-
-```bash
-# Local Testing — Crelyzor DB URL (Neon PostgreSQL)
-export CRELYZOR_TEST_DB_URL="<your DATABASE_URL from calendar-backend/.env>"
-```
-
-Then reload your shell:
-
-```bash
-source ~/.zshrc
-```
-
-Now add the MCP servers:
-
-```bash
-claude mcp add context7 -- npx -y @upstash/context7-mcp
-claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres "$CRELYZOR_TEST_DB_URL"
-```
-
-### Verify Setup
-
-Type `/crelyzor` in Claude Code — it should read the task lists and tell you what to work on next.
+Go to http://localhost:5173 and sign in with Google.
 
 ---
 
-## Step 7 — Verify Everything Works
+## Daily Use
 
-1. **Auth** — go to `http://localhost:5173`, sign in with Google
-2. **Cards** — create a card, visit the public URL at `http://localhost:5174/:username`
-3. **Meetings** — create a meeting, check it appears in the list
+```bash
+docker compose up          # start everything
+docker compose down        # stop (data is preserved)
+docker compose down -v     # stop + wipe database
+```
+
+Hot reload is enabled — save a file, the change is live instantly.
 
 ---
 
@@ -199,44 +128,22 @@ Type `/crelyzor` in Claude Code — it should read the task lists and tell you w
 
 **Port already in use:**
 ```bash
-lsof -ti:3000 | xargs kill    # kill process on port 3000
-lsof -ti:5173 | xargs kill    # kill process on port 5173
+docker compose down        # make sure nothing else is running
 ```
 
-**Prisma client out of sync:**
+**Database out of sync after pulling new code:**
 ```bash
-cd calendar-backend && pnpm db:generate
+docker compose exec backend pnpm db:migrate
 ```
 
-**pnpm not found:**
+**Containers won't start / weird errors:**
 ```bash
-npm install -g pnpm
+docker compose down -v     # wipe everything
+docker compose up --build  # rebuild from scratch
 ```
 
-**Node version too old:**
+**Want to browse the database visually:**
 ```bash
-nvm install 20 && nvm use 20
+docker compose exec backend pnpm db:studio
+# Opens Prisma Studio at http://localhost:5555
 ```
-
-**Transcription not working:**
-- Make sure you ran `pnpm dev:full` (not just `pnpm dev`) — the worker process is required
-- Check `DEEPGRAM_API_KEY` is set in `.env`
-
----
-
-## Project Structure
-
-```
-Calendar/               ← Workspace root (this repo)
-├── calendar-backend/   ← Express API (port 3000)
-├── calendar-frontend/  ← React dashboard (port 5173)
-├── cards-frontend/     ← Public cards (port 5174)
-├── CLAUDE.md           ← Claude reads this every session
-├── TASKS.md            ← What's done and what's next
-├── START_HERE.md       ← Quick start after setup
-├── DECISIONS.md        ← Why things were built the way they were
-├── docs/               ← Full product and architecture docs
-└── .claude/            ← Claude Code skills, agents, and hooks
-```
-
-Once set up, read `START_HERE.md` for the development workflow.

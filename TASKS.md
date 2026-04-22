@@ -451,7 +451,55 @@ Full breakdown: per-repo `TASKS.md` files.
 
 ---
 
-## Phase 4.5 — Razorpay ⛔ BLOCKED
+## Phase 4.5 — Docker & Deployment
+
+> Full design doc: `docs/dev-notes/phase-4.5-docker-deployment.md`
+
+### Prerequisites
+- [x] Docker basics — images, containers, Dockerfile, Compose (learn before building)
+
+### P0 — Dockerfiles
+- [x] `crelyzor-backend/Dockerfile` — multi-stage, Node 20 alpine
+- [x] `crelyzor-frontend/Dockerfile` — multi-stage, Vite build → nginx static
+- [x] `crelyzor-public/Dockerfile` — multi-stage, Next.js server
+
+### P1 — Docker Compose
+- [x] `docker-compose.prod.yml` — backend, worker, frontend, public, postgres, nginx
+- [x] `docker-compose.yml` — local dev version (hot reload, no SSL, direct ports)
+- [x] `docker-compose.staging.yml` — staging server (full build, nginx, SSL)
+
+### P2 — Nginx Config
+- [x] `nginx/nginx.conf` — prod: 3 domains, SSE support, 500MB upload limit
+- [x] `nginx/nginx.staging.conf` — staging: same pattern for staging.* subdomains
+
+### P3 — Environment Files
+- [x] `.env.prod` — workspace-level Compose build args (gitignored)
+- [x] `.env.staging` — workspace-level Compose build args (gitignored)
+- [x] `deploy.sh` — `./deploy.sh prod` or `./deploy.sh staging`
+
+### P4 — CI/CD
+- [x] `.github/workflows/deploy.yml` — typecheck all 3 repos in parallel, then SSH deploy
+  - push to `main` → production
+  - push to `dev` → staging
+  - deploy blocked if any typecheck fails
+
+### P5 — VM Setup
+- [ ] Provision VM (EC2 t3.small or GCE e2-medium)
+- [ ] Docker + Certbot installed on VM
+- [ ] DNS A records pointing to server IP
+- [ ] SSL certs issued via Certbot (`certbot certonly --nginx -d crelyzor.com -d app.crelyzor.com -d api.crelyzor.com`)
+- [ ] GCS service account key on server
+- [ ] Add GitHub Secrets: `VM_HOST`, `VM_USER`, `VM_SSH_KEY`, `VM_WORKSPACE_PATH`
+- [ ] `crelyzor-backend/.env.prod` filled with real values on VM
+
+### P6 — Go Live
+- [ ] DB migrations run on prod (`docker compose -f docker-compose.prod.yml exec backend pnpm db:migrate`)
+- [ ] Google OAuth callback URL updated in Google Console
+- [ ] End-to-end test: sign in → create meeting → upload recording
+
+---
+
+## Phase 4.6 — Razorpay ⛔ BLOCKED
 
 Account blocked. Do not start. Uncomment env vars and build when account is live.
 

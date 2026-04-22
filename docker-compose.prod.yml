@@ -1,0 +1,106 @@
+services:
+
+  # ── Database ────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: crelyzor
+      POSTGRES_USER: crelyzor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data   # data survives restarts
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crelyzor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  # ── Backend API ──────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./crelyzor-backend
+    restart: always
+    env_file: ./crelyzor-backend/.env.prod
+    depends_on:
+      postgres:
+        condition: service_healthy   # wait for postgres to be ready
+    networks:
+      - internal
+    expose:
+      - "3000"                       # internal only — nginx routes to this
+
+
+  # ── Bull Worker ──────────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./crelyzor-backend    # same image as backend
+    command: node dist/worker.js     # different entry point
+    restart: always
+    env_file: ./crelyzor-backend/.env.prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+
+  # ── Dashboard (Vite static) ──────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./crelyzor-frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_CARDS_PUBLIC_URL: ${VITE_CARDS_PUBLIC_URL}
+    restart: always
+    networks:
+      - internal
+    expose:
+      - "5173"
+
+
+  # ── Public site (Next.js) ────────────────────────────────────────────────────
+  public:
+    build:
+      context: ./crelyzor-public
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL}
+    restart: always
+    networks:
+      - internal
+    expose:
+      - "5174"
+
+
+  # ── Nginx (reverse proxy + SSL) ──────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"       # only nginx is exposed to the internet
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro     # SSL certs from Certbot on host
+    depends_on:
+      - backend
+      - frontend
+      - public
+    networks:
+      - internal
+
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:     # named volume — Docker manages it, survives compose down
+
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  internal:
+    driver: bridge   # all containers on this network can reach each other by name

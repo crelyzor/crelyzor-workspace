@@ -1,0 +1,92 @@
+services:
+
+  # ── Database ────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: crelyzor
+      POSTGRES_USER: crelyzor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crelyzor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  # ── Backend API ──────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./crelyzor-backend
+      target: deps
+    command: pnpm dev
+    restart: unless-stopped
+    env_file: ./crelyzor-backend/.env.local
+    environment:
+      DATABASE_URL: postgresql://crelyzor:${POSTGRES_PASSWORD}@postgres:5432/crelyzor
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./crelyzor-backend:/app          # full repo mounted
+      - /app/node_modules                # keep container's node_modules
+
+
+  # ── Bull Worker ──────────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./crelyzor-backend
+      target: deps
+    command: pnpm dev:worker
+    restart: unless-stopped
+    env_file: ./crelyzor-backend/.env.local
+    environment:
+      DATABASE_URL: postgresql://crelyzor:${POSTGRES_PASSWORD}@postgres:5432/crelyzor
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./crelyzor-backend:/app
+      - /app/node_modules
+
+
+  # ── Dashboard (Vite dev server) ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./crelyzor-frontend
+      target: deps
+    command: pnpm dev --host 0.0.0.0
+    restart: unless-stopped
+    env_file: ./crelyzor-frontend/.env.local
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./crelyzor-frontend:/app         # full repo mounted
+      - /app/node_modules                # keep container's node_modules
+
+
+  # ── Public site (Next.js dev server) ────────────────────────────────────────
+  public:
+    build:
+      context: ./crelyzor-public
+      target: deps
+    command: pnpm dev -p 5174
+    restart: unless-stopped
+    env_file: ./crelyzor-public/.env.local
+    ports:
+      - "5174:5174"
+    volumes:
+      - ./crelyzor-public:/app           # full repo mounted
+      - /app/node_modules                # keep container's node_modules
+
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:

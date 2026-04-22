@@ -39,25 +39,29 @@ Both repos are **fully independent** — no shared packages, no monorepo. Same d
 ## How To Run
 
 ```bash
-# Backend
-cd crelyzor-backend
-pnpm install
-pnpm dev              # API server on :3000
-pnpm dev:worker       # Bull job processor (separate terminal)
-pnpm db:studio        # Prisma Studio (DB GUI)
-pnpm db:migrate       # Run migrations
-pnpm db:push          # Push schema without migration
+# Start everything (Postgres included — no local DB install needed)
+docker compose up
 
-# Frontend (dashboard)
-cd crelyzor-frontend
-pnpm install
-pnpm dev              # Vite on :5173
+# First time only — run migrations after Postgres is up
+docker compose exec backend pnpm db:migrate
 
-# Public frontend (Next.js)
-cd crelyzor-public
-pnpm install
-pnpm dev              # Next.js on :5174
+# Prisma Studio (DB GUI)
+docker compose exec backend pnpm db:studio
+
+# Stop (keeps DB data)
+docker compose down
+
+# Stop + wipe DB
+docker compose down -v
 ```
+
+Services:
+- Backend API → `http://localhost:4000`
+- Frontend dashboard → `http://localhost:5173`
+- Public site → `http://localhost:5174`
+- Postgres → `localhost:5432`
+
+Hot reload works — `src/` is volume-mounted for all services.
 
 ---
 
