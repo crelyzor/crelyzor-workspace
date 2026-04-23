@@ -23,10 +23,16 @@ echo "────────────────────────�
 # ── 1. Pull latest code ──────────────────────────────────────────────────────
 echo "[1/5] Pulling latest code from git..."
 if [[ "$ENV" == "prod" ]]; then
-  git pull origin main
+  BRANCH="main"
 else
-  git pull origin dev
+  BRANCH="staging"
 fi
+
+# Pull all 4 repos (workspace + 3 app repos)
+git pull origin $BRANCH
+git -C ./crelyzor-backend pull origin $BRANCH
+git -C ./crelyzor-frontend pull origin $BRANCH
+git -C ./crelyzor-public pull origin $BRANCH
 
 # ── 2. Pick the right compose file ──────────────────────────────────────────
 if [[ "$ENV" == "prod" ]]; then
