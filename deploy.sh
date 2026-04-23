@@ -59,7 +59,7 @@ docker compose -f "$COMPOSE_FILE" up -d
 
 # ── 5. Run database migrations ───────────────────────────────────────────────
 echo "[5/5] Running database migrations..."
-docker compose -f "$COMPOSE_FILE" exec -T backend pnpm db:migrate
+docker compose -f "$COMPOSE_FILE" exec -T backend pnpm db:deploy
 
 echo ""
 echo "✓ Deployed to $ENV successfully."
