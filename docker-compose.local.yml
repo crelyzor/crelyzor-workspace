@@ -29,6 +29,7 @@ services:
     env_file: ./crelyzor-backend/.env.local
     environment:
       DATABASE_URL: postgresql://crelyzor:${POSTGRES_PASSWORD}@postgres:5432/crelyzor
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,9 +39,6 @@ services:
       - ~/.config/gcloud:/root/.config/gcloud:ro  # gcloud ADC credentials (run: gcloud auth application-default login)
       - ./crelyzor-backend:/app          # full repo mounted
       - /app/node_modules                # keep container's node_modules
-    environment:
-      DATABASE_URL: postgresql://crelyzor:${POSTGRES_PASSWORD}@postgres:5432/crelyzor
-      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
 
 
   # ── Bull Worker ──────────────────────────────────────────────────────────────
@@ -53,6 +51,7 @@ services:
     env_file: ./crelyzor-backend/.env.local
     environment:
       DATABASE_URL: postgresql://crelyzor:${POSTGRES_PASSWORD}@postgres:5432/crelyzor
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,9 +59,6 @@ services:
       - ~/.config/gcloud:/root/.config/gcloud:ro  # gcloud ADC credentials
       - ./crelyzor-backend:/app
       - /app/node_modules
-    environment:
-      DATABASE_URL: postgresql://crelyzor:${POSTGRES_PASSWORD}@postgres:5432/crelyzor
-      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
 
 
   # ── Dashboard (Vite dev server) ──────────────────────────────────────────────
