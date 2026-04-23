@@ -31,7 +31,7 @@ services:
     networks:
       - internal
     expose:
-      - "3000"                       # internal only — nginx routes to this
+      - "4000"                       # internal only — nginx routes to this
 
 
   # ── Bull Worker ──────────────────────────────────────────────────────────────

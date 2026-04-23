@@ -21,8 +21,12 @@ echo "  Deploying: $ENV"
 echo "──────────────────────────────────────────"
 
 # ── 1. Pull latest code ──────────────────────────────────────────────────────
-echo "[1/4] Pulling latest code from git..."
-git pull origin main
+echo "[1/5] Pulling latest code from git..."
+if [[ "$ENV" == "prod" ]]; then
+  git pull origin main
+else
+  git pull origin dev
+fi
 
 # ── 2. Pick the right compose file ──────────────────────────────────────────
 if [[ "$ENV" == "prod" ]]; then
@@ -33,7 +37,7 @@ else
   ENV_FILE=".env.staging"
 fi
 
-echo "[2/4] Using compose file: $COMPOSE_FILE"
+echo "[2/5] Using compose file: $COMPOSE_FILE"
 
 # ── 3. Check env file exists ────────────────────────────────────────────────
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -47,11 +51,15 @@ source "$ENV_FILE"
 set +a
 
 # ── 4. Build and restart services ────────────────────────────────────────────
-echo "[3/4] Building images..."
+echo "[3/5] Building images..."
 docker compose -f "$COMPOSE_FILE" build --no-cache
 
-echo "[4/4] Restarting services..."
+echo "[4/5] Restarting services..."
 docker compose -f "$COMPOSE_FILE" up -d
+
+# ── 5. Run database migrations ───────────────────────────────────────────────
+echo "[5/5] Running database migrations..."
+docker compose -f "$COMPOSE_FILE" exec -T backend pnpm db:migrate
 
 echo ""
 echo "✓ Deployed to $ENV successfully."

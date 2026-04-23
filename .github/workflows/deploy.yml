@@ -118,7 +118,7 @@ jobs:
 
     environment:
       name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
-      url: ${{ github.ref_name == 'main' && 'https://crelyzor.com' || 'https://staging.crelyzor.com' }}
+      url: ${{ github.ref_name == 'main' && 'https://crelyzor.app' || 'https://staging.crelyzor.app' }}
 
     steps:
       - name: Determine environment
