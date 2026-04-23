@@ -64,7 +64,7 @@ set +a
 
 # ── 4. Build and restart services ────────────────────────────────────────────
 echo "[3/5] Building images..."
-docker compose -f "$COMPOSE_FILE" build --no-cache
+docker compose -f "$COMPOSE_FILE" build
 
 echo "[4/5] Restarting services..."
 docker compose -f "$COMPOSE_FILE" up -d
