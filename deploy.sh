@@ -28,11 +28,17 @@ else
   BRANCH="staging"
 fi
 
-# Pull all 4 repos (workspace + 3 app repos)
-git pull origin $BRANCH
-git -C ./crelyzor-backend pull origin $BRANCH
-git -C ./crelyzor-frontend pull origin $BRANCH
-git -C ./crelyzor-public pull origin $BRANCH
+# Pull all 4 repos — fetch + reset to handle any diverged state on VM
+sync_repo() {
+  local dir=$1
+  git -C "$dir" fetch origin $BRANCH
+  git -C "$dir" reset --hard origin/$BRANCH
+}
+
+sync_repo .
+sync_repo ./crelyzor-backend
+sync_repo ./crelyzor-frontend
+sync_repo ./crelyzor-public
 
 # ── 2. Pick the right compose file ──────────────────────────────────────────
 if [[ "$ENV" == "prod" ]]; then
