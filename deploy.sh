@@ -21,8 +21,18 @@ echo "  Deploying: $ENV"
 echo "──────────────────────────────────────────"
 
 # ── 1. Pull latest code ──────────────────────────────────────────────────────
-echo "[1/4] Pulling latest code from git..."
-git pull origin main
+echo "[1/5] Pulling latest code from git..."
+if [[ "$ENV" == "prod" ]]; then
+  BRANCH="main"
+else
+  BRANCH="staging"
+fi
+
+# Pull all 4 repos (workspace + 3 app repos)
+git pull origin $BRANCH
+git -C ./crelyzor-backend pull origin $BRANCH
+git -C ./crelyzor-frontend pull origin $BRANCH
+git -C ./crelyzor-public pull origin $BRANCH
 
 # ── 2. Pick the right compose file ──────────────────────────────────────────
 if [[ "$ENV" == "prod" ]]; then
@@ -33,7 +43,7 @@ else
   ENV_FILE=".env.staging"
 fi
 
-echo "[2/4] Using compose file: $COMPOSE_FILE"
+echo "[2/5] Using compose file: $COMPOSE_FILE"
 
 # ── 3. Check env file exists ────────────────────────────────────────────────
 if [[ ! -f "$ENV_FILE" ]]; then
