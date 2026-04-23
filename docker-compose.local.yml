@@ -35,8 +35,12 @@ services:
     ports:
       - "4000:4000"
     volumes:
+      - ~/.config/gcloud:/root/.config/gcloud:ro  # gcloud ADC credentials (run: gcloud auth application-default login)
       - ./crelyzor-backend:/app          # full repo mounted
       - /app/node_modules                # keep container's node_modules
+    environment:
+      DATABASE_URL: postgresql://crelyzor:${POSTGRES_PASSWORD}@postgres:5432/crelyzor
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
 
 
   # ── Bull Worker ──────────────────────────────────────────────────────────────
@@ -53,8 +57,12 @@ services:
       postgres:
         condition: service_healthy
     volumes:
+      - ~/.config/gcloud:/root/.config/gcloud:ro  # gcloud ADC credentials
       - ./crelyzor-backend:/app
       - /app/node_modules
+    environment:
+      DATABASE_URL: postgresql://crelyzor:${POSTGRES_PASSWORD}@postgres:5432/crelyzor
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
 
 
   # ── Dashboard (Vite dev server) ──────────────────────────────────────────────
