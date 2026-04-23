@@ -43,13 +43,13 @@ studio:
 # ── Staging / Prod ────────────────────────────────────────────────────────────
 
 staging-up:
-	docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+	docker compose -f docker-compose.staging.yml --env-file .env.staging up -d --build
 
 staging-down:
 	docker compose -f docker-compose.staging.yml --env-file .env.staging down
 
 prod-up:
-	docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+	docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
 prod-down:
 	docker compose -f docker-compose.prod.yml --env-file .env.prod down
