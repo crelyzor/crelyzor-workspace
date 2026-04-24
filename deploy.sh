@@ -9,6 +9,12 @@
 
 set -e  # stop on any error
 
+# Only one deploy can run at a time — other deploys wait for the lock
+LOCKFILE="/tmp/crelyzor-deploy.lock"
+exec 200>"$LOCKFILE"
+flock 200 || { echo "ERROR: Could not acquire deploy lock"; exit 1; }
+echo "Lock acquired (PID $$)"
+
 ENV=${1:-prod}
 
 if [[ "$ENV" != "prod" && "$ENV" != "staging" ]]; then
