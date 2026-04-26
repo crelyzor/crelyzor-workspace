@@ -75,10 +75,17 @@ set +a
 
 # ── 4. Build and restart services ────────────────────────────────────────────
 # Determine which services need rebuilding
+CANDIDATES=""
+[ "$(git -C ./crelyzor-backend rev-parse HEAD)" != "$PREV_BACKEND" ] && CANDIDATES="$CANDIDATES backend worker"
+[ "$(git -C ./crelyzor-frontend rev-parse HEAD)" != "$PREV_FRONTEND" ] && CANDIDATES="$CANDIDATES frontend"
+[ "$(git -C ./crelyzor-public rev-parse HEAD)" != "$PREV_PUBLIC" ] && CANDIDATES="$CANDIDATES public"
+
+# Filter to only services that exist in this compose file (e.g. staging has no worker)
+COMPOSE_SERVICES=$(docker compose -f "$COMPOSE_FILE" config --services 2>/dev/null)
 CHANGED=""
-[ "$(git -C ./crelyzor-backend rev-parse HEAD)" != "$PREV_BACKEND" ] && CHANGED="$CHANGED backend worker"
-[ "$(git -C ./crelyzor-frontend rev-parse HEAD)" != "$PREV_FRONTEND" ] && CHANGED="$CHANGED frontend"
-[ "$(git -C ./crelyzor-public rev-parse HEAD)" != "$PREV_PUBLIC" ] && CHANGED="$CHANGED public"
+for svc in $CANDIDATES; do
+  echo "$COMPOSE_SERVICES" | grep -qx "$svc" && CHANGED="$CHANGED $svc"
+done
 
 if [ -n "$CHANGED" ]; then
   echo "[3/5] Building changed services:$CHANGED"
