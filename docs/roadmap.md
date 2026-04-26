@@ -484,30 +484,30 @@ Account blocked. Env vars in `.env.example` (commented). Do not start.
 
 ---
 
-## Phase 4.6 — Infrastructure Optimization
+## Phase 4.6 — Infrastructure Optimization ✅ COMPLETE
 
 **Goal:** Eliminate external Redis dependency, optimize Docker images, add resource limits, fix deploy pipeline. Make infra prod-ready before scaling.
 
-**Status:** Ready to implement.
+**Status:** Code complete. Pending: env file update on VMs + deploy.
 
 Full design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.md`
 
 ### Redis
-- [ ] Add local Redis container (redis:7-alpine) to Docker Compose
-- [ ] Replace Upstash REST client with ioredis singleton
-- [ ] Remove `@upstash/redis` dependency
-- [ ] Consolidate 5 Bull queues → 1 queue
-- [ ] Producer-only mode for API server (no polling connections)
-- [ ] Update env vars — remove UPSTASH_*, point REDIS_URL to local
+- [x] Add local Redis container (redis:7-alpine) to Docker Compose
+- [x] Replace Upstash REST client with ioredis singleton
+- [x] Remove `@upstash/redis` dependency
+- [x] Consolidate 5 Bull queues → 1 queue
+- [x] Producer-only mode for API server (no polling connections)
+- [ ] Update env vars on VMs — remove UPSTASH_*, point REDIS_URL to local
 
 ### Docker
-- [ ] Add resource limits (memory + CPU) to all containers
-- [ ] Backend: prune devDependencies from prod image
-- [ ] Public: use Next.js standalone output, remove pnpm from runner
+- [x] Add resource limits (memory + CPU) to all containers
+- [x] Backend: prune devDependencies from prod image
+- [x] Public: use Next.js standalone output, remove pnpm from runner
 
 ### Deploy
-- [ ] Selective service rebuild in deploy.sh (only changed repos)
-- [ ] Remove worker from staging Docker Compose
+- [x] Selective service rebuild in deploy.sh (only changed repos)
+- [x] Remove worker from staging Docker Compose
 
 ---
 

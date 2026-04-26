@@ -499,7 +499,27 @@ Full breakdown: per-repo `TASKS.md` files.
 
 ---
 
-## Phase 4.6 — Razorpay ⛔ BLOCKED
+## Phase 4.6 — Infrastructure Optimization ✅ COMPLETE
+
+Local Redis, queue consolidation, Docker resource limits, slim images, selective deploys.
+Design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.md`
+
+- [x] Replace Upstash REST client with ioredis singleton
+- [x] Remove `@upstash/redis` dependency
+- [x] Consolidate 5 Bull queues → 1 queue ("crelyzor")
+- [x] Producer-only mode for API server (1 connection vs 15)
+- [x] Add local Redis container (redis:7-alpine) to Docker Compose
+- [x] Add resource limits (memory + CPU) to all containers
+- [x] Backend Dockerfile: prune devDependencies from prod image
+- [x] Public Dockerfile: Next.js standalone output, remove pnpm
+- [x] Selective service rebuild in deploy.sh
+- [x] Remove worker from staging Docker Compose
+- [ ] Update env vars on VMs (REDIS_URL=redis://redis:6379, remove UPSTASH_*)
+- [ ] Deploy to staging + prod
+
+---
+
+## Phase 4.7 — Razorpay ⛔ BLOCKED
 
 Account blocked. Do not start. Uncomment env vars and build when account is live.
 
