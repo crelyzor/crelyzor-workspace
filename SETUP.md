@@ -70,8 +70,7 @@ GOOGLE_CLIENT_SECRET=      # from Google Cloud Console
 OPENAI_API_KEY=            # from platform.openai.com
 DEEPGRAM_API_KEY=          # from console.deepgram.com
 GCS_BUCKET_NAME=           # Google Cloud Storage bucket (ask team lead)
-UPSTASH_REDIS_REST_URL=    # from upstash.com
-UPSTASH_REDIS_REST_TOKEN=  # from upstash.com
+REDIS_URL=redis://redis:6379  # local Docker container — no signup needed
 ```
 
 The `DATABASE_URL` is already set — it points to the local Docker Postgres. Don't change it.
