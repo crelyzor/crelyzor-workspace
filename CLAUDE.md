@@ -89,9 +89,8 @@ GCS_BUCKET_NAME=""                     # Google Cloud Storage
 GCS_PROJECT_ID=""
 GOOGLE_APPLICATION_CREDENTIALS=""
 
-# Queue
-UPSTASH_REDIS_REST_URL=""
-UPSTASH_REDIS_REST_TOKEN=""
+# Redis — local container in Docker Compose (no external service needed)
+REDIS_URL="redis://redis:6379"
 
 # Recall.ai (optional — enables auto-record for online meetings)
 RECALL_API_KEY=""                     # Platform-level Recall.ai key
