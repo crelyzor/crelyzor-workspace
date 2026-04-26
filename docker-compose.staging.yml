@@ -67,6 +67,27 @@ services:
           cpus: "0.5"
 
 
+  # ── Bull Worker ──────────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./crelyzor-backend    # same image as backend
+    command: node dist/worker.js     # different entry point
+    restart: always
+    env_file: ./crelyzor-backend/.env.staging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+
   # ── Dashboard (Vite static) ──────────────────────────────────────────────────
   frontend:
     build:
