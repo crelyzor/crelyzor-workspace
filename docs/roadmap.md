@@ -484,6 +484,33 @@ Account blocked. Env vars in `.env.example` (commented). Do not start.
 
 ---
 
+## Phase 4.6 — Infrastructure Optimization
+
+**Goal:** Eliminate external Redis dependency, optimize Docker images, add resource limits, fix deploy pipeline. Make infra prod-ready before scaling.
+
+**Status:** Ready to implement.
+
+Full design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.md`
+
+### Redis
+- [ ] Add local Redis container (redis:7-alpine) to Docker Compose
+- [ ] Replace Upstash REST client with ioredis singleton
+- [ ] Remove `@upstash/redis` dependency
+- [ ] Consolidate 5 Bull queues → 1 queue
+- [ ] Producer-only mode for API server (no polling connections)
+- [ ] Update env vars — remove UPSTASH_*, point REDIS_URL to local
+
+### Docker
+- [ ] Add resource limits (memory + CPU) to all containers
+- [ ] Backend: prune devDependencies from prod image
+- [ ] Public: use Next.js standalone output, remove pnpm from runner
+
+### Deploy
+- [ ] Selective service rebuild in deploy.sh (only changed repos)
+- [ ] Remove worker from staging Docker Compose
+
+---
+
 ## Phase 5 — Big Brain (Global AI) ⛔ BLOCKED
 
 **Goal:** One AI that knows everything about the user across all of Crelyzor.
