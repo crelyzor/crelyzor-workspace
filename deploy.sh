@@ -34,6 +34,11 @@ else
   BRANCH="staging"
 fi
 
+# Save current HEADs before pulling — used for selective rebuild
+PREV_BACKEND=$(git -C ./crelyzor-backend rev-parse HEAD 2>/dev/null || echo "none")
+PREV_FRONTEND=$(git -C ./crelyzor-frontend rev-parse HEAD 2>/dev/null || echo "none")
+PREV_PUBLIC=$(git -C ./crelyzor-public rev-parse HEAD 2>/dev/null || echo "none")
+
 # Pull all 4 repos — fetch + reset to handle any diverged state on VM
 sync_repo() {
   local dir=$1
@@ -69,8 +74,19 @@ source "$ENV_FILE"
 set +a
 
 # ── 4. Build and restart services ────────────────────────────────────────────
-echo "[3/5] Building images..."
-docker compose -f "$COMPOSE_FILE" build
+# Determine which services need rebuilding
+CHANGED=""
+[ "$(git -C ./crelyzor-backend rev-parse HEAD)" != "$PREV_BACKEND" ] && CHANGED="$CHANGED backend worker"
+[ "$(git -C ./crelyzor-frontend rev-parse HEAD)" != "$PREV_FRONTEND" ] && CHANGED="$CHANGED frontend"
+[ "$(git -C ./crelyzor-public rev-parse HEAD)" != "$PREV_PUBLIC" ] && CHANGED="$CHANGED public"
+
+if [ -n "$CHANGED" ]; then
+  echo "[3/5] Building changed services:$CHANGED"
+  docker compose -f "$COMPOSE_FILE" build $CHANGED
+else
+  echo "[3/5] No service changes detected — rebuilding all"
+  docker compose -f "$COMPOSE_FILE" build
+fi
 
 echo "[4/5] Restarting services..."
 docker compose -f "$COMPOSE_FILE" up -d
