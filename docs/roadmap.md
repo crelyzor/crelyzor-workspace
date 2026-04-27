@@ -511,6 +511,86 @@ Full design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-des
 
 ---
 
+## Phase 4.7 — Gemini AI Migration
+
+**Goal:** Replace OpenAI with Google Gemini 2.0 Flash for all AI understanding features. Deepgram transcription and diarization are untouched. The API contract to both frontends is unchanged — this is a pure backend infrastructure swap.
+
+**Status:** Planned. Ready to execute.
+
+**Why now:** Phase 4 billing frontend hasn't been built yet. Doing this first means the credit formula and cost numbers in the billing UI will reflect Gemini pricing from day one. No rework needed later.
+
+**Why Gemini:**
+- 7–11x cheaper per token than gpt-5.4-mini (input: $0.75 → $0.10/1M, output: $4.50 → $0.40/1M)
+- 1M token context window — removes the 30k char transcript truncation cap entirely
+- Ask AI becomes reliable on long meetings (the old 30k cap cut off content after ~15 min)
+- Credits last ~7x longer per user — more value per plan tier
+
+Implementation plan: `docs/superpowers/plans/2026-04-27-gemini-ai-migration.md`
+
+---
+
+### `crelyzor-backend`
+
+#### P0 — SDK + Client
+- [ ] Remove `openai` package, install `@google/generative-ai`
+- [ ] Create `src/config/gemini.ts` — lazy-initialized Gemini client, exports `getGeminiModel()` and `GEMINI_MODEL = "gemini-2.0-flash"`
+- [ ] Delete `src/config/openai.ts`
+- [ ] `src/config/environment.ts` — rename `OPENAI_API_KEY` → `GEMINI_API_KEY` (required field)
+- [ ] `.env.example` — rename key, add comment pointing to aistudio.google.com
+
+#### P1 — AI Pipeline (non-streaming)
+- [ ] `src/services/ai/aiService.ts` — raise `MAX_PIPELINE_CHARS` 30k → 150k
+- [ ] `generateSummary()` — rewrite OpenAI call to `model.generateContent()` with `systemInstruction` + `generationConfig`
+- [ ] `extractKeyPoints()` — same pattern, parse JSON from `result.response.text()`
+- [ ] `generateSummaryAndKeyPoints()` — single combined call, same fallback logic preserved
+- [ ] `extractTasks()` — same pattern
+- [ ] `generateMeetingTitle()` — same pattern, `maxOutputTokens: 30`
+- [ ] `generateContent()` — all 4 content types (MEETING_REPORT, TWEET, BLOG_POST, EMAIL), usage stats from `result.response.usageMetadata`
+- [ ] Rename `logOpenAIUsage` → `logAIUsage`, update `OpenAIUsageMeta` → `AIUsageMeta`, field names `prompt_tokens` → `promptTokenCount` / `completion_tokens` → `candidatesTokenCount`
+
+#### P2 — Ask AI Streaming
+- [ ] `askAI()` — remove `take: 500` segment cap (full transcript in context now)
+- [ ] Rewrite streaming block: `model.generateContentStream()` instead of OpenAI stream, `chunk.text()` instead of `chunk.choices[0]?.delta?.content`
+- [ ] History message format: remap role `"assistant"` → `"model"` when building Gemini history (DB still stores `"assistant"` — only the Gemini call needs `"model"`)
+
+#### P3 — Billing Formula
+- [ ] `src/services/billing/usageService.ts` — update `calculateCredits()`:
+  - Old: `inputTokens × 0.00075 + outputTokens × 0.0045` (gpt-5.4-mini)
+  - New: `inputTokens × 0.0001 + outputTokens × 0.0004` (Gemini 2.0 Flash)
+  - Minimum 1 credit preserved
+
+---
+
+### `crelyzor-frontend`
+
+**No code changes.** All AI endpoints keep the same request/response shape. The only user-visible change is quality (better long-meeting answers in Ask AI) and that credits last longer.
+
+---
+
+### `crelyzor-public`
+
+**No changes.** No AI calls in the public site.
+
+---
+
+### Docs
+
+- [ ] `docs/pricing-and-costs.md` — Section 1.2: OpenAI → Gemini table + new per-call cost estimates, Section 2: updated credit formula, Section 3: updated Pro user cost breakdown, Section 6: Phase 4.7 model upgrade entry
+- [ ] `docs/roadmap.md` — this entry ✅
+
+---
+
+### Production Deploy Checklist
+
+Before deploying, do these in order — wrong order breaks the server:
+
+1. Add `GEMINI_API_KEY` to production env vars (server will refuse to start without it)
+2. Remove `OPENAI_API_KEY` from production env vars (or leave it — it's ignored, just noisy)
+3. Deploy backend — confirm `pnpm tsc --noEmit` passes before building image
+4. Smoke test: trigger AI on one meeting, confirm summary + tasks generate, confirm Ask AI streams
+
+---
+
 ## Phase 5 — Big Brain (Global AI) ⛔ BLOCKED
 
 **Goal:** One AI that knows everything about the user across all of Crelyzor.
