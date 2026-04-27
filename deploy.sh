@@ -54,19 +54,21 @@ sync_repo ./crelyzor-public
 # ── 2. Pick the right compose file ──────────────────────────────────────────
 if [[ "$ENV" == "prod" ]]; then
   COMPOSE_FILE="docker-compose.prod.yml"
-  ENV_FILE=".env.prod"
+  ENV_FILE="crelyzor-backend/.env.prod"
 else
   COMPOSE_FILE="docker-compose.staging.yml"
-  ENV_FILE=".env.staging"
+  ENV_FILE="crelyzor-backend/.env.staging"
 fi
 
 echo "[2/5] Using compose file: $COMPOSE_FILE"
 
-# ── 3. Check env file exists ────────────────────────────────────────────────
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "ERROR: $ENV_FILE not found. Create it from .env.example first."
+# ── 3. Pull env from Secret Manager ─────────────────────────────────────────
+SECRET_NAME="crelyzor-${ENV}-env"
+echo "[3/5] Pulling env from Secret Manager: $SECRET_NAME"
+gcloud secrets versions access latest --secret="$SECRET_NAME" > "$ENV_FILE" || {
+  echo "ERROR: Failed to pull secret $SECRET_NAME — aborting"
   exit 1
-fi
+}
 
 # Source the env file so compose can read the variables
 set -a
