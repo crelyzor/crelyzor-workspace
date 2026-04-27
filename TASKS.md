@@ -514,8 +514,8 @@ Design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.m
 - [x] Public Dockerfile: Next.js standalone output, remove pnpm
 - [x] Selective service rebuild in deploy.sh
 - [x] Remove worker from staging Docker Compose
-- [ ] Update env vars on VMs (REDIS_URL=redis://redis:6379, remove UPSTASH_*)
-- [ ] Deploy to staging + prod
+- [x] Update env vars on VMs (REDIS_URL=redis://redis:6379, remove UPSTASH_*)
+- [x] Deploy to staging + prod
 
 ---
 
