@@ -52,9 +52,9 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - ~/.config/gcloud:/root/.config/gcloud:ro  # gcloud ADC credentials (run: gcloud auth application-default login)
-      - ./crelyzor-backend:/app          # full repo mounted
-      - /app/node_modules                # keep container's node_modules
+      - ~/.config/gcloud:/root/.config/gcloud:ro
+      - ./crelyzor-backend:/app
+      - /app/node_modules
 
 
   # ── Bull Worker ──────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ~/.config/gcloud:/root/.config/gcloud:ro  # gcloud ADC credentials
+      - ~/.config/gcloud:/root/.config/gcloud:ro
       - ./crelyzor-backend:/app
       - /app/node_modules
 
@@ -90,8 +90,8 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./crelyzor-frontend:/app         # full repo mounted
-      - /app/node_modules                # keep container's node_modules
+      - ./crelyzor-frontend:/app
+      - /app/node_modules
 
 
   # ── Public site (Next.js dev server) ────────────────────────────────────────
@@ -105,8 +105,8 @@ services:
     ports:
       - "5174:5174"
     volumes:
-      - ./crelyzor-public:/app           # full repo mounted
-      - /app/node_modules                # keep container's node_modules
+      - ./crelyzor-public:/app
+      - /app/node_modules
 
 
 # ── Volumes ───────────────────────────────────────────────────────────────────

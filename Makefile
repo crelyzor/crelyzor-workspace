@@ -1,9 +1,9 @@
-.PHONY: local-up local-up-build local-down local-down-v local-restart local-ps local-logs local-logs-backend local-logs-frontend local-logs-public migrate studio
+.PHONY: local-up local-up-build local-down local-down-v local-restart local-ps local-logs local-logs-backend local-logs-frontend local-logs-public local-reinstall migrate studio
 
 # ── Local ─────────────────────────────────────────────────────────────────────
 
 local-up:
-	docker compose -f docker-compose.local.yml --env-file .env.local up
+	docker compose -f docker-compose.local.yml --env-file .env.local up -d
 
 local-up-build:
 	docker compose -f docker-compose.local.yml --env-file .env.local up --build
@@ -13,6 +13,11 @@ local-down:
 
 local-down-v:
 	docker compose -f docker-compose.local.yml --env-file .env.local down -v
+
+local-reinstall:
+	docker compose -f docker-compose.local.yml --env-file .env.local down
+	docker volume prune -f
+	docker compose -f docker-compose.local.yml --env-file .env.local up --build
 
 local-restart:
 	docker compose -f docker-compose.local.yml --env-file .env.local restart
