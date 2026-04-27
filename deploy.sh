@@ -95,6 +95,9 @@ else
   docker compose -f "$COMPOSE_FILE" build
 fi
 
+# Free build cache to avoid OOM when starting new containers on small VMs
+docker image prune -f
+
 echo "[4/5] Restarting services..."
 docker compose -f "$COMPOSE_FILE" up -d
 # Restart nginx so it re-resolves container IPs (containers get new IPs after rebuild)
@@ -102,7 +105,12 @@ docker compose -f "$COMPOSE_FILE" restart nginx
 
 # ── 5. Run database migrations ───────────────────────────────────────────────
 echo "[5/5] Running database migrations..."
-docker compose -f "$COMPOSE_FILE" exec -T backend pnpm db:deploy
+# Wait for backend to be healthy before running migrations
+sleep 5
+docker compose -f "$COMPOSE_FILE" exec -T backend pnpm db:deploy || {
+  echo "⚠️  Migration step failed — containers are running but migrations may need attention"
+  exit 1
+}
 
 echo ""
 echo "✓ Deployed to $ENV successfully."
