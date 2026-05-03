@@ -8,6 +8,7 @@
 # Run this on the VM from the workspace root.
 
 set -e  # stop on any error
+export DOCKER_BUILDKIT=1
 
 # Only one deploy can run at a time — other deploys wait for the lock
 LOCKFILE="/tmp/crelyzor-deploy.lock"
