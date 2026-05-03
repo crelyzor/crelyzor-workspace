@@ -60,6 +60,12 @@ services:
       - internal
     expose:
       - "4000"                       # internal only — nginx routes to this
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4000/',r=>process.exit(0)).on('error',()=>process.exit(1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     deploy:
       resources:
         limits:
@@ -100,6 +106,12 @@ services:
       - internal
     expose:
       - "5173"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5173/ >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -120,6 +132,12 @@ services:
       - internal
     expose:
       - "5174"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:5174/',r=>process.exit(0)).on('error',()=>process.exit(1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     deploy:
       resources:
         limits:
@@ -138,9 +156,12 @@ services:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro     # SSL certs from Certbot on host
     depends_on:
-      - backend
-      - frontend
-      - public
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+      public:
+        condition: service_healthy
     networks:
       - internal
     deploy:
