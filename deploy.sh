@@ -43,6 +43,7 @@ PREV_WORKSPACE=$(git rev-parse HEAD 2>/dev/null || echo "none")
 PREV_BACKEND=$(git -C ./crelyzor-backend rev-parse HEAD 2>/dev/null || echo "none")
 PREV_FRONTEND=$(git -C ./crelyzor-frontend rev-parse HEAD 2>/dev/null || echo "none")
 PREV_PUBLIC=$(git -C ./crelyzor-public rev-parse HEAD 2>/dev/null || echo "none")
+PREV_ADMIN=$(git -C ./crelyzor-admin rev-parse HEAD 2>/dev/null || echo "none")
 
 sync_repo() {
   git -C "$1" fetch origin $BRANCH
@@ -52,6 +53,7 @@ sync_repo .
 sync_repo ./crelyzor-backend
 sync_repo ./crelyzor-frontend
 sync_repo ./crelyzor-public
+sync_repo ./crelyzor-admin
 
 # ── 2. Pull env from Secret Manager ─────────────────────────────────────────
 echo "[2/5] Pulling env from Secret Manager..."
@@ -69,11 +71,13 @@ WORKSPACE_CHANGED=false
 BACKEND_CHANGED=false
 FRONTEND_CHANGED=false
 PUBLIC_CHANGED=false
+ADMIN_CHANGED=false
 
 [ "$(git rev-parse HEAD)" != "$PREV_WORKSPACE" ]                        && WORKSPACE_CHANGED=true
 [ "$(git -C ./crelyzor-backend  rev-parse HEAD)" != "$PREV_BACKEND"  ] && BACKEND_CHANGED=true
 [ "$(git -C ./crelyzor-frontend rev-parse HEAD)" != "$PREV_FRONTEND" ] && FRONTEND_CHANGED=true
 [ "$(git -C ./crelyzor-public   rev-parse HEAD)" != "$PREV_PUBLIC"   ] && PUBLIC_CHANGED=true
+[ "$(git -C ./crelyzor-admin    rev-parse HEAD)" != "$PREV_ADMIN"    ] && ADMIN_CHANGED=true
 
 COMPOSE_SERVICES=$(docker compose -f "$COMPOSE_FILE" config --services 2>/dev/null)
 
@@ -81,6 +85,7 @@ BUILD_TARGETS=""
 $BACKEND_CHANGED  && BUILD_TARGETS="$BUILD_TARGETS backend worker"
 $FRONTEND_CHANGED && BUILD_TARGETS="$BUILD_TARGETS frontend"
 $PUBLIC_CHANGED   && BUILD_TARGETS="$BUILD_TARGETS public"
+$ADMIN_CHANGED    && BUILD_TARGETS="$BUILD_TARGETS admin"
 
 # Filter to services that exist in this compose file
 VALID_BUILD=""

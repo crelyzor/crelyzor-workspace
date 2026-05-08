@@ -539,6 +539,30 @@ Requires Phase 4.1 + 4.2 complete first — Big Brain features are paid-only.
 
 ---
 
+## Admin Portal ✅ COMPLETE
+
+Founder ops dashboard — user management, plan upgrades, platform stats.
+Design: `docs/superpowers/specs/2026-05-08-admin-portal-design.md`
+Repo: `github.com/crelyzor/crelyzor-admin` (port 5175, separate git)
+Run with: `make admin-up` | Stop with: `make admin-down`
+
+- [x] Backend: verifyAdmin middleware + /api/v1/admin/* route group
+- [x] Backend: adminService — login, listUsers, getUserDetail, updateUserPlan, resetUserUsage, getPlatformStats
+- [x] Frontend: Login page (env-based credentials → JWT)
+- [x] Frontend: Dashboard (platform stats — total users, plan breakdown, usage totals)
+- [x] Frontend: Users table with search, pagination, plan management, usage reset
+- [x] Docker Compose profile (make admin-up / admin-down / admin-logs)
+- [x] crelyzor-start skill updated to include crelyzor-admin as 4th repo
+
+**Phase 2 (future):**
+- [ ] Audit log — record every plan change
+- [ ] User suspend / soft-delete from admin
+- [ ] System health dashboard
+- [ ] Team member access (AdminUser table)
+- [ ] Production deploy
+
+---
+
 ## Teams — Future Scope
 
 Not scoped. Do not build.

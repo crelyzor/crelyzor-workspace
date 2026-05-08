@@ -1,0 +1,21 @@
+# Crelyzor CODEOWNERS
+# Maintainers listed here are auto-requested as reviewers on PRs.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global fallback — all files
+* @hrshkshri
+
+# Backend
+/crelyzor-backend/ @hrshkshri
+
+# Dashboard frontend
+/crelyzor-frontend/ @hrshkshri
+
+# Public site
+/crelyzor-public/ @hrshkshri
+
+# Infrastructure — extra scrutiny on deploy config
+/.github/ @hrshkshri
+/nginx/ @hrshkshri
+/docker-compose*.yml @hrshkshri
+/deploy.sh @hrshkshri

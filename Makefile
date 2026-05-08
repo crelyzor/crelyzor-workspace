@@ -1,4 +1,4 @@
-.PHONY: local-up local-up-build local-down local-down-v local-restart local-ps local-logs local-logs-backend local-logs-frontend local-logs-public local-reinstall migrate studio
+.PHONY: local-up local-up-build local-down local-down-v local-restart local-ps local-logs local-logs-backend local-logs-frontend local-logs-public local-logs-admin local-reinstall migrate studio admin-up admin-down admin-logs
 
 # ── Local ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,20 @@ local-logs-frontend:
 
 local-logs-public:
 	docker compose -f docker-compose.local.yml --env-file .env.local logs -f public
+
+local-logs-admin:
+	docker compose -f docker-compose.local.yml --env-file .env.local --profile admin logs -f admin
+
+# ── Admin ─────────────────────────────────────────────────────────────────────
+
+admin-up:
+	docker compose -f docker-compose.local.yml --env-file .env.local --profile admin up -d
+
+admin-down:
+	docker compose -f docker-compose.local.yml --env-file .env.local --profile admin down
+
+admin-logs:
+	docker compose -f docker-compose.local.yml --env-file .env.local --profile admin logs -f admin
 
 # ── Database ──────────────────────────────────────────────────────────────────
 
