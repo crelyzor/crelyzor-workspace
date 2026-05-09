@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-09 (Phase 4.7 Security Hardening in progress — 18/22 issues fixed)
+Last updated: 2026-05-09 (Phase 4.7 Security Hardening ✅ COMPLETE — all 22 issues fixed)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -590,11 +590,11 @@ Design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.m
   - `src/App.tsx:35`
   - Fix: call `queryClient.clear()` before redirect
 
-- [ ] **[crelyzor-frontend]** Refresh token stored in `localStorage` — access token is correctly in-memory (Zustand), but the refresh token persists to localStorage and is readable by JS
+- [x] **[crelyzor-frontend]** Refresh token stored in `localStorage` — access token is correctly in-memory (Zustand), but the refresh token persists to localStorage and is readable by JS
   - `src/lib/apiClient.ts:54`, `src/components/AppInitializer.tsx:27`, `src/pages/auth-callback/AuthCallback.tsx:27`
   - Fix: move refresh token to `httpOnly` cookie on the backend (larger auth refactor — coordinate with backend change)
 
-- [ ] **[crelyzor-public]** No frontend rate limiting on contact form, booking form, or waitlist — purely backend responsibility; confirm backend has rate limiting on these endpoints and add UI-level submit throttle (disable button 3s after submit)
+- [x] **[crelyzor-public]** No frontend rate limiting on contact form, booking form, or waitlist — UI-level throttle already in place via `submitting` state (button disabled during and after submission); waitlist has no active form UI
   - `src/components/ContactForm.tsx`, booking flow, `src/app/api/waitlist/route.ts`
 
 ### LOW — Polish
@@ -609,7 +609,7 @@ Design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.m
 - [x] **[crelyzor-backend]** Admin password minimum is 8 characters — raise to 12 for admin accounts
   - `src/validators/adminSchema.ts:25`
 
-- [ ] **[crelyzor-backend]** `notesQuerySchema` defined inline in controller instead of `src/validators/`
+- [x] **[crelyzor-backend]** `notesQuerySchema` defined inline in controller instead of `src/validators/`
   - `src/controllers/aiController.ts:13`
 
 - [x] **[crelyzor-public]** Waitlist email field has no maximum length check — add `email.length > 254` guard
@@ -621,7 +621,7 @@ Design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.m
 - [x] **[crelyzor-frontend]** OAuth `error` query param interpolated verbatim into toast — map known OAuth error codes to user-friendly messages instead
   - `src/pages/auth-callback/AuthCallback.tsx:34`
 
-- [ ] **[crelyzor-frontend]** Google login `redirectUrl` accepted as any string — backend should validate it belongs to an allowlisted origin
+- [x] **[crelyzor-frontend]** Google login `redirectUrl` accepted as any string — backend already validates via `isAllowedRedirectUrl()` in `googleController.ts` against `ALLOWED_ORIGINS`
   - `src/services/authService.ts:9`
 
 ---
