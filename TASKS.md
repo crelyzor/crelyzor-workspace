@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-04-22 (Phase 4.4 complete ✅ — Polish & First-Run Experience shipped)
+Last updated: 2026-05-09 (Phase 4.6 complete ✅ — Phase 4.7 Security Hardening added)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -516,16 +516,123 @@ Design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.m
 - [x] Remove worker from staging Docker Compose
 - [x] Update env vars on VMs (REDIS_URL=redis://redis:6379, remove UPSTASH_*)
 - [x] Deploy to staging + prod
+4
+---
+
+## Phase 4.7 — Security Hardening ← current
+
+> Full security audit completed 2026-05-09 across all 4 repos.
+> Issues ordered by severity. Fix critical + high before any public launch.
+
+### CRITICAL — Fix immediately
+
+- [ ] **[crelyzor-public]** Stored XSS via `dangerouslySetInnerHTML` in JSON-LD blocks — user-supplied `displayName`, `bio`, `links` are injected raw via `JSON.stringify` which does not escape HTML. A crafted name like `</script><script>alert(1)</script>` executes JS on every visitor's browser.
+  - `src/app/[username]/page.tsx:103`
+  - `src/app/[username]/[slug]/page.tsx:101`
+  - Fix: escape `<`, `>`, `&` as `<`, `>`, `&` in a `safeJsonLd()` helper
+
+### HIGH — Fix before production traffic
+
+- [ ] **[crelyzor-backend]** Recall webhook accepts unauthenticated requests when `RECALL_WEBHOOK_SECRET` is unset — the entire HMAC block is inside `if (webhookSecret)`, so a missing env var means any caller can trigger meeting status changes and recording jobs
+  - `src/controllers/recallWebhookController.ts:22`
+  - Fix: in production, return 503 if secret is unset — never fall through
+
+- [ ] **[crelyzor-backend]** `ADMIN_JWT_SECRET` not validated at startup — user JWT secrets throw and kill the process if missing, but `ADMIN_JWT_SECRET` is only checked at request time (returns 500). A misconfigured deploy silently starts with admin auth broken.
+  - `src/index.ts`
+  - Fix: add startup check alongside existing JWT_ACCESS_SECRET validation — `process.exit(1)` if unset
+
+- [ ] **[crelyzor-admin]** Admin JWT stored in `localStorage` — readable by any JS on the page (third-party scripts, extensions, future XSS). For the highest-privilege token in the system this is unacceptable.
+  - `src/lib/apiClient.ts:9`, `src/pages/LoginPage.tsx:21`, `src/components/AdminRoute.tsx:4`, `src/App.tsx:35`, `src/pages/AcceptInvitePage.tsx:37`
+  - Fix: switch to `httpOnly; Secure; SameSite=Strict` cookie — backend sets cookie on login, frontend adds `withCredentials: true`, `AdminRoute` verifies via `GET /admin/auth/me` instead of checking localStorage
+
+- [ ] **[crelyzor-admin]** No Content Security Policy — without a CSP, any injected script runs unrestricted. Critical for an admin portal.
+  - `nginx.conf`
+  - Fix: add `Content-Security-Policy`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` headers
+
+- [ ] **[crelyzor-public]** Booking reschedule leaks any guest's email — `?reschedule=<bookingId>` fetches and renders `guestEmail` with no ownership check against the host/event type in the URL. Any booking UUID can be probed to expose guest emails.
+  - `src/app/schedule/[username]/[slug]/page.tsx:46`
+  - Fix: backend must validate that booking belongs to the `username`/`slug` pair before returning guest data
+
+- [ ] **[crelyzor-public]** SSRF — OG image route fetches user-supplied `avatarUrl` server-side with no allowlist — a user can set their avatarUrl to an internal cloud metadata endpoint and the edge worker will fetch it
+  - `src/app/api/og/[username]/route.tsx:32`
+  - Fix: validate `avatarUrl` against an allowlist of known-safe hostnames (`storage.googleapis.com`, `lh3.googleusercontent.com`) before fetching
+
+- [ ] **[crelyzor-public]** SSRF — `next.config.ts` allows Next.js Image Optimization to proxy images from any HTTP/HTTPS host (`hostname: '**'`) — enables open image proxy and internal IP fetching
+  - `next.config.ts:9`
+  - Fix: restrict to `storage.googleapis.com` and any actual CDN hostname used
+
+### MEDIUM — Fix before scale
+
+- [ ] **[crelyzor-backend]** No rate limit on `POST /admin/auth/login` — brute-force is unrestricted. All user auth endpoints have rate limits; admin login has none.
+  - `src/routes/adminRoutes.ts:20`
+  - Fix: add `rateLimit({ windowMs: 15 * 60 * 1000, max: 5, skipSuccessfulRequests: true })`
+
+- [ ] **[crelyzor-backend]** `getNotes` query missing `author: userId` scope — meeting ownership is checked but the notes `findMany` doesn't include `author: userId`, creating a defence-in-depth gap
+  - `src/controllers/aiController.ts:158`
+  - Fix: add `author: userId` to both `findMany` and `count` where clauses
+
+- [ ] **[crelyzor-backend]** `ALLOWED_ORIGINS` not validated at startup in production — if unset or empty, the server starts silently; should hard-fail in production
+  - `src/utils/security/corsOptions.ts`, `src/index.ts`
+  - Fix: `if (NODE_ENV === 'production' && !ALLOWED_ORIGINS) { logger.error(...); process.exit(1); }`
+
+- [ ] **[crelyzor-backend]** Recall webhook signature check silently skipped in dev when secret IS configured but signature header is absent — should at least warn loudly
+  - `src/controllers/recallWebhookController.ts:65`
+
+- [ ] **[crelyzor-admin]** Raw backend error messages shown verbatim to users — `AcceptInvitePage` and `TeamPage` surface `err.response.data.message` directly; could expose internal field names or Prisma errors
+  - `src/pages/AcceptInvitePage.tsx:42`, `src/pages/TeamPage.tsx:26,93`
+  - Fix: replace with a safe static fallback string; only pass through known-safe messages
+
+- [ ] **[crelyzor-admin]** No session idle timeout — admin tab left open keeps token valid until the 24h JWT expiry with no warning or auto-logout
+  - `src/App.tsx`
+  - Fix: 30-minute idle timer using `mousemove` + `keydown` events, warn at 5 minutes, redirect on expiry
+
+- [ ] **[crelyzor-admin]** Logout does not explicitly clear React Query cache — safe now (full page reload) but fragile if logout is ever refactored to SPA navigation
+  - `src/App.tsx:35`
+  - Fix: call `queryClient.clear()` before redirect
+
+- [ ] **[crelyzor-frontend]** Refresh token stored in `localStorage` — access token is correctly in-memory (Zustand), but the refresh token persists to localStorage and is readable by JS
+  - `src/lib/apiClient.ts:54`, `src/components/AppInitializer.tsx:27`, `src/pages/auth-callback/AuthCallback.tsx:27`
+  - Fix: move refresh token to `httpOnly` cookie on the backend (larger auth refactor — coordinate with backend change)
+
+- [ ] **[crelyzor-public]** No frontend rate limiting on contact form, booking form, or waitlist — purely backend responsibility; confirm backend has rate limiting on these endpoints and add UI-level submit throttle (disable button 3s after submit)
+  - `src/components/ContactForm.tsx`, booking flow, `src/app/api/waitlist/route.ts`
+
+### LOW — Polish
+
+- [ ] **[crelyzor-backend]** No rate limit on `POST /admin/auth/accept-invite` — token entropy makes guessing infeasible but rate limiting is cheap defence-in-depth
+  - `src/routes/adminRoutes.ts:22`
+
+- [ ] **[crelyzor-backend]** Admin JWT has no revocation — stolen token valid 24h with no way to invalidate without rotating the secret
+  - `src/services/adminService.ts:31`
+  - Consider: short expiry (1–2h) + server-side session table for admin
+
+- [ ] **[crelyzor-backend]** Admin password minimum is 8 characters — raise to 12 for admin accounts
+  - `src/validators/adminSchema.ts:25`
+
+- [ ] **[crelyzor-backend]** `notesQuerySchema` defined inline in controller instead of `src/validators/`
+  - `src/controllers/aiController.ts:13`
+
+- [ ] **[crelyzor-public]** Waitlist email field has no maximum length check — add `email.length > 254` guard
+  - `src/app/api/waitlist/route.ts`
+
+- [ ] **[crelyzor-frontend]** Raw `error.message` shown in non-PROD toast — staging environments with real user data would expose internal error strings
+  - `src/lib/queryClient.ts:26`
+
+- [ ] **[crelyzor-frontend]** OAuth `error` query param interpolated verbatim into toast — map known OAuth error codes to user-friendly messages instead
+  - `src/pages/auth-callback/AuthCallback.tsx:34`
+
+- [ ] **[crelyzor-frontend]** Google login `redirectUrl` accepted as any string — backend should validate it belongs to an allowlisted origin
+  - `src/services/authService.ts:9`
 
 ---
 
-## Phase 4.7 — Razorpay ⛔ BLOCKED
+## Phase 5 — Razorpay ⛔ BLOCKED
 
 Account blocked. Do not start. Uncomment env vars and build when account is live.
 
 ---
 
-## Phase 5 — Big Brain ⛔ BLOCKED
+## Phase 6 — Big Brain ⛔ BLOCKED
 
 Explicitly blocked. Do not start. Requires separate vector DB infrastructure that is not yet in place.
 Requires Phase 4.1 + 4.2 complete first — Big Brain features are paid-only.
