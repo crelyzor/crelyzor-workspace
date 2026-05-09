@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-09 (Phase 4.7 Security Hardening ✅ COMPLETE — all 22 issues fixed)
+Last updated: 2026-05-09 (Phase 7 Teams — spec written, tasks planned across all repos)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -670,6 +670,98 @@ Run with: `make admin-up` | Stop with: `make admin-down`
 
 ---
 
-## Teams — Future Scope
+## Phase 7 — Teams
 
-Not scoped. Do not build.
+> Full design spec: `docs/superpowers/specs/2026-05-09-teams-design.md`
+> Per-repo breakdowns: each repo's `TASKS.md`
+
+**The model:** Pro users can create up to 3 teams (configurable via SystemConfig). The team owner pays for all consumption — transcription, storage, AI credits — for all members across all their teams. Members and admins consume the owner's Pro quota. Members join free.
+
+**Workspace switching:** Top-left dropdown (where user name is today) switches between Personal and each team. Full context switch — all surfaces (meetings, cards, tasks, scheduling) scope to selection. Zero overlap.
+
+**Roles:** Owner (full control, billing) / Admin (manage, no billing) / Member (own content only).
+
+**Cards:** Team gets a public card at `crelyzor.app/t/:slug`. Members get auto-created team cards on join.
+
+**Scheduling:** Each member sets their own availability within the team. External visitors book a specific member via `/schedule/t/:slug/:username`. Team members can book each other internally from the dashboard.
+
+**Config:** All limits live in a `SystemConfig` table — editable from admin portal. Nothing hardcoded.
+
+### P0 — Backend: Schema (do first — everything depends on this)
+
+- [ ] `SystemConfig` model — key/value store for all limits and feature flags
+- [ ] `Team` model — id (UUID), name, slug (unique), ownerId, logoUrl, createdAt, deletedAt
+- [ ] `TeamMember` model — id, teamId, userId, role (OWNER | ADMIN | MEMBER), joinedAt, leftAt (nullable)
+- [ ] Add `teamId UUID?` to: Meeting, Card, Task, EventType, Booking (null = personal context)
+- [ ] Migration: `pnpm db:migrate && pnpm db:generate`
+
+### P1 — Backend: Team CRUD + Member Management
+
+- [ ] `POST /teams` — create team (Pro gate, SystemConfig max-teams check, auto-create team Card)
+- [ ] `GET /teams` — list teams the user belongs to
+- [ ] `PATCH /teams/:teamId` — update name/logo (Owner/Admin)
+- [ ] `DELETE /teams/:teamId` — soft delete (Owner only)
+- [ ] `GET /teams/:teamId/members` — list members with role + usage
+- [ ] `POST /teams/:teamId/members/invite` — invite by userId or email
+- [ ] `PATCH /teams/:teamId/members/:userId` — change role (Owner only)
+- [ ] `DELETE /teams/:teamId/members/:userId` — remove member (Owner/Admin)
+- [ ] `POST /teams/invites/:token/accept` — accept email invite
+- [ ] `DELETE /teams/:teamId/leave` — leave team (blocked if Owner)
+
+### P2 — Backend: Team-scoped Content + Middleware
+
+- [ ] `verifyTeamMember` middleware — verifies user is active member (`leftAt IS NULL`)
+- [ ] `verifyTeamRole('ADMIN' | 'OWNER')` middleware — role check on top of membership
+- [ ] All meeting/card/task/scheduling endpoints respect `teamId` context header
+- [ ] Meeting visibility: Members see own meetings only; Owner/Admin see all team meetings
+- [ ] `GET /teams/:teamId/usage` — per-member consumption breakdown (Owner/Admin only)
+
+### P3 — Backend: Team Scheduling (public endpoints)
+
+- [ ] `GET /public/scheduling/team/:slug/profile` — team profile + active member list
+- [ ] `GET /public/scheduling/team/:slug/:username` — specific member's scheduling profile (team context)
+- [ ] Slot engine respects team-scoped EventTypes
+
+### P4 — Backend: Admin Portal Config API
+
+- [ ] `GET /admin/config` — list all SystemConfig entries
+- [ ] `PATCH /admin/config/:key` — update a config value
+- [ ] `GET /admin/teams` — list all teams with owner + member count
+
+### P5 — Frontend: Workspace Switcher + Team Store
+
+- [ ] `teamStore` (Zustand) — `activeTeamId`, `teams[]`, `setActiveTeam()`
+- [ ] Top-left workspace switcher dropdown — Personal + team list + "Create team"
+- [ ] All API calls in team context include `X-Team-Id` header
+- [ ] `useTeams()` query hook, `teamService.ts`
+
+### P6 — Frontend: Team Creation + Settings
+
+- [ ] Team creation modal (name, slug, logo upload)
+- [ ] `/teams/:teamId/settings` — General (name/logo) + Members + Usage tabs
+- [ ] Invite modal — search existing users OR enter email
+- [ ] Pending invites list in settings
+- [ ] Per-member usage breakdown table
+
+### P7 — Frontend: Team-aware Content Pages
+
+- [ ] All pages (Meetings, Cards, Tasks, Calendar) scope to activeTeamId when in team context
+- [ ] Meeting visibility enforced — Members can't see other members' meetings
+- [ ] Team context indicator in header/sidebar
+- [ ] Internal booking: pick team member → see availability → book (from meetings/scheduling page)
+
+### P8 — Public: Team Public Card Page
+
+- [ ] `/t/:slug` — SSR team public page (name, logo, description, member roster)
+- [ ] OG meta + structured data
+- [ ] 404 when team not found or deleted
+
+### P9 — Public: Team Member Booking Page
+
+- [ ] `/schedule/t/:slug/:username` — book specific team member (team-branded)
+- [ ] Same UX as personal booking; member's team EventTypes shown
+
+### P10 — Admin Portal: SystemConfig + Teams Pages
+
+- [ ] System Config page — list all config keys, inline edit values
+- [ ] Teams page — list all teams, owner, member count, creation date, soft-delete
