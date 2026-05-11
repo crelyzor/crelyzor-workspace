@@ -626,6 +626,42 @@ Design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.m
 
 ---
 
+## Phase 4.8 — Embeddable Booking Widget ✅ Complete
+
+> Cal.com-style iframe embed for Crelyzor scheduling pages.
+> Anyone can drop a `<script>` tag on their site and get a fully functional booking widget.
+> All 5 changes are frontend-only in `crelyzor-public` — no backend changes needed.
+> Design analysis: conversation 2026-05-11.
+
+### How it works
+Host site loads `crelyzor.app/embed.js` → script creates an `<iframe>` pointing to `/schedule/:username/:slug?embed=1` → iframe strips chrome and fires `postMessage` events (resize, booking-confirmed) back to the parent page.
+
+### P0 — Allow iframing (unblock the embed)
+
+- [x] **[crelyzor-public]** `next.config.ts` — add custom headers for `/schedule/**` routes: `X-Frame-Options: ALLOWALL` + `Content-Security-Policy: frame-ancestors *` (Next.js sets `SAMEORIGIN` by default, which blocks all cross-origin iframes)
+
+### P1 — Embed mode UI (strip chrome inside iframe)
+
+- [x] **[crelyzor-public]** `schedule/[username]/[slug]/page.tsx` — read `searchParams.embed` and pass `isEmbed: boolean` prop to `<BookingFlow />`
+- [x] **[crelyzor-public]** `schedule/[username]/[slug]/BookingFlow.tsx` — when `isEmbed`: hide outer nav/header, remove top padding, set `bg-transparent`
+- [x] **[crelyzor-public]** `schedule/[username]/[slug]/confirmed/ConfirmedClient.tsx` — read `?embed=1` from `useSearchParams`, strip chrome when present
+
+### P2 — postMessage bridge
+
+- [x] **[crelyzor-public]** `BookingFlow.tsx` — after `createBooking()` succeeds, fire `window.parent.postMessage({ type: 'CRELYZOR:booking-confirmed', data: booking }, '*')` when in embed mode
+- [x] **[crelyzor-public]** `BookingFlow.tsx` — fire `window.parent.postMessage({ type: 'CRELYZOR:resize', height: document.documentElement.scrollHeight }, '*')` on content height changes (use `ResizeObserver`)
+- [x] **[crelyzor-public]** Pass `?embed=1` through to the confirmed redirect URL so `confirmed` page also strips chrome: `/schedule/:u/:s/confirmed?bookingId=X&embed=1`
+
+### P3 — embed.js script
+
+- [x] **[crelyzor-public]** New file `public/embed.js` — vanilla JS, no dependencies, served statically at `crelyzor.app/embed.js`
+  - Exposes `window.Crelyzor('init', { link, container, onBooking })` API
+  - Creates `<iframe src="/schedule/${link}?embed=1">`, appends to `config.container`
+  - Listens for `CRELYZOR:resize` → sets `iframe.style.height`
+  - Listens for `CRELYZOR:booking-confirmed` → calls `config.onBooking?.(data)`
+
+---
+
 ## Phase 5 — Razorpay ⛔ BLOCKED
 
 Account blocked. Do not start. Uncomment env vars and build when account is live.
