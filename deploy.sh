@@ -53,7 +53,7 @@ sync_repo .
 sync_repo ./crelyzor-backend
 sync_repo ./crelyzor-frontend
 sync_repo ./crelyzor-public
-sync_repo ./crelyzor-admin
+[ -d "./crelyzor-admin" ] && sync_repo ./crelyzor-admin
 
 # ── 2. Pull env from Secret Manager ─────────────────────────────────────────
 echo "[2/5] Pulling env from Secret Manager..."
@@ -77,7 +77,7 @@ ADMIN_CHANGED=false
 [ "$(git -C ./crelyzor-backend  rev-parse HEAD)" != "$PREV_BACKEND"  ] && BACKEND_CHANGED=true
 [ "$(git -C ./crelyzor-frontend rev-parse HEAD)" != "$PREV_FRONTEND" ] && FRONTEND_CHANGED=true
 [ "$(git -C ./crelyzor-public   rev-parse HEAD)" != "$PREV_PUBLIC"   ] && PUBLIC_CHANGED=true
-[ "$(git -C ./crelyzor-admin    rev-parse HEAD)" != "$PREV_ADMIN"    ] && ADMIN_CHANGED=true
+[ -d "./crelyzor-admin" ] && [ "$(git -C ./crelyzor-admin rev-parse HEAD)" != "$PREV_ADMIN" ] && ADMIN_CHANGED=true
 
 COMPOSE_SERVICES=$(docker compose -f "$COMPOSE_FILE" config --services 2>/dev/null)
 
@@ -118,6 +118,18 @@ fi
 
 # ── 5. Start new containers and reload nginx ──────────────────────────────────
 echo "[5/5] Starting services..."
+
+# Guard: if admin is in this compose file but its SSL cert is missing, nginx
+# will fail to start and take down the entire site — abort early with a clear message.
+if echo "$COMPOSE_SERVICES" | grep -qx "admin"; then
+  if [ ! -f "/etc/letsencrypt/live/admin.crelyzor.app/fullchain.pem" ]; then
+    echo "ERROR: SSL cert for admin.crelyzor.app not found."
+    echo "       Run: certbot certonly --nginx -d admin.crelyzor.app"
+    echo "       Then re-run this deploy."
+    exit 1
+  fi
+fi
+
 docker compose -f "$COMPOSE_FILE" up -d
 
 # Wait for backend to accept connections before reloading nginx

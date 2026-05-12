@@ -148,7 +148,11 @@ admin-logs:
 - **5175 — crelyzor-admin** ← new
 
 ### Production / staging
-Admin portal is intentionally NOT included in `docker-compose.prod.yml` or `docker-compose.staging.yml` in v1. It runs locally only. Access production DB via `make studio` or a dedicated prod admin deploy — future decision.
+Admin portal is included in `docker-compose.prod.yml` and wired to `admin.crelyzor.app` via nginx. It is **not** in `docker-compose.staging.yml` — staging uses local-only access.
+
+**Prerequisites before first prod deploy:**
+1. Clone `crelyzor-admin` on the VM alongside the other repos
+2. Provision the SSL cert: `certbot certonly --nginx -d admin.crelyzor.app`
 
 ---
 
