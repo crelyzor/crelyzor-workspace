@@ -186,8 +186,6 @@ services:
         condition: service_started
       public:
         condition: service_started
-      admin:
-        condition: service_started
     networks:
       - internal
     deploy:
