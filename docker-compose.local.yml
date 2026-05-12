@@ -109,6 +109,22 @@ services:
       - /app/node_modules
 
 
+  # ── Admin Portal ──────────────────────────────────────────────────────────────
+  admin:
+    profiles: ["admin"]
+    build:
+      context: ./crelyzor-admin
+      target: deps
+    command: pnpm dev --host 0.0.0.0
+    restart: unless-stopped
+    env_file: ./crelyzor-admin/.env.local
+    ports:
+      - "5175:5175"
+    volumes:
+      - ./crelyzor-admin:/app
+      - /app/node_modules
+
+
 # ── Volumes ───────────────────────────────────────────────────────────────────
 volumes:
   postgres_data:
