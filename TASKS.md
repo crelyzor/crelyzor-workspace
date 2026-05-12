@@ -516,7 +516,6 @@ Design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.m
 - [x] Remove worker from staging Docker Compose
 - [x] Update env vars on VMs (REDIS_URL=redis://redis:6379, remove UPSTASH_*)
 - [x] Deploy to staging + prod
-4
 ---
 
 ## Phase 4.7 — Security Hardening ← current
