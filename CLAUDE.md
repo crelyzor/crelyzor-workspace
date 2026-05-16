@@ -106,11 +106,15 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 4 — Billing & Monetization** ← current
+**Phase 4.7 — Security Hardening** ← current
 
-Phases 1 → 3.4 complete ✅. Phase 5 (Big Brain) blocked ⛔.
+Phases 1 → 3.4 complete ✅. Phase 4.1–4.4, 4.6, 4.8 complete ✅. Phase 7 (Razorpay) blocked ⛔. Phase 8 (Big Brain) blocked ⛔.
 
-Phase 4 is the monetization layer — Stripe integration, usage tracking (transcription minutes, Recall hours, AI Credits), enforcement, and billing UI. Full design in `docs/pricing-and-costs.md`.
+**Upcoming phase order:**
+- **Phase 5** — Encryption at Rest (server-side envelope encryption via Google Cloud KMS; design: `docs/superpowers/specs/2026-05-16-encryption-at-rest-design.md`)
+- **Phase 6** — Teams (design: `docs/superpowers/specs/2026-05-09-teams-design.md`)
+- **Phase 7** — Razorpay ⛔ blocked (account-blocked)
+- **Phase 8** — Big Brain ⛔ blocked (requires Phase 5 + vector DB infra)
 
 Full breakdown: `TASKS.md` (root), per-repo `TASKS.md` files.
 Full roadmap: `docs/roadmap.md`
@@ -265,7 +269,7 @@ All soft deletes — never hard delete unless `HARD_DELETE_ENABLED=true`.
 - Do NOT use `any` in TypeScript — use proper types
 - Do NOT hardcode mock data in components — connect to real API
 - Do NOT edit `.env` files directly
-- Do NOT start Phase 4 (Big Brain) until Phase 3 is complete
+- Do NOT start Phase 8 (Big Brain) until Phase 5 (Encryption) ships and vector DB infra is in place
 - Do NOT reference `calendar-backend` / `calendar-frontend` / `cards-frontend` — actual dirs are `crelyzor-backend` / `crelyzor-frontend` / `crelyzor-public`
 - Do NOT define feature-specific union types (e.g. `TaskView`) as local types inside child components — export them from the service file (`smaService.ts`) so both parent and child import from the same source
 - Do NOT use `new Date()` for "start of today" comparisons — always set hours to `0,0,0,0` to avoid time-of-day drift within a render session

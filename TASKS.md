@@ -661,51 +661,100 @@ Host site loads `crelyzor.app/embed.js` → script creates an `<iframe>` pointin
 
 ---
 
-## Phase 5 — Razorpay ⛔ BLOCKED
+## Phase 5 — Encryption at Rest
 
-Account blocked. Do not start. Uncomment env vars and build when account is live.
+> Full design spec: `docs/superpowers/specs/2026-05-16-encryption-at-rest-design.md`
+
+**Goal:** every sensitive user-facing string and every recording object is encrypted at rest. Server holds keys (envelope encryption via Google Cloud KMS), AI features keep working unchanged. Not E2EE — Crelyzor can still decrypt to power AI; an explicit non-goal documented in the spec.
+
+**Key model:**
+- One KEK per environment in Google Cloud KMS — never leaves the HSM.
+- One DEK per user, AES-256, stored as `User.wrappedDek` (wrapped by KEK).
+- Unwrapped to plaintext only in backend memory, only for the duration of a single request (AsyncLocalStorage), discarded on request end.
+- AES-256-GCM via Node's built-in `crypto`. No third-party crypto libs.
+- Per-record ciphertext: `iv(12) ‖ ciphertext ‖ authTag(16)` in a single `Bytes` column.
+
+**In scope (encrypted columns):**
+
+| Model | Column(s) |
+|---|---|
+| `MeetingTranscript` | `fullText` |
+| `TranscriptSegment` | `text` |
+| `MeetingNote` | `content` |
+| `MeetingAISummary` | `summary`, `keyPoints[]` |
+| `MeetingAIContent` | `content` |
+| `AskAIConversation` | message contents |
+| `Task` | `title`, `description` |
+| `CardContact` | `name`, `email`, `phone`, `notes` |
+| `Booking` | `guestEmail`, `guestNotes` |
+
+**In scope (storage):**
+- GCS recordings bucket → bucket-level CMEK using the same KMS key (no app code changes; one `gsutil kms encryption -k ...` config).
+
+**Out of scope (stays plaintext):**
+- All IDs, FKs, timestamps, soft-delete flags
+- `Meeting.title`, `Tag.name`, indexed fields (`speaker`, `startTime`)
+- `Card.*` (public profile rendered to open web)
+- `EventType.*`, `UserSettings`, `Task.status`, `Task.dueDate`
+
+**Out of scope (explicitly not building):**
+- End-to-end encryption — evaluated and rejected (kills AI features, breaks Phase 8 Big Brain, lost-passphrase = permanent data loss).
+- Per-meeting "Private Mode" Hybrid opt-in — deferred until users actually ask for it.
+- Searchable encryption / blind indexes — defer.
+
+### P0 — Foundations (do first)
+
+- [ ] Provision Google Cloud KMS keyring + KEK per environment (dev / staging / prod)
+- [ ] IAM bind backend service account: `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the KEK only
+- [ ] Build `src/utils/security/crypto.ts` — `encrypt(text, userId)`, `decrypt(bytes, userId)`, internal `getDek(userId)` with AsyncLocalStorage cache
+- [ ] Unit tests: round-trip encrypt/decrypt, wrong-DEK fails, tampered ciphertext fails GCM auth check
+- [ ] Add `cryptoMiddleware` that unwraps DEK once per request and caches in AsyncLocalStorage
+
+### P1 — Schema changes
+
+- [ ] Migration 1 (`add_wrapped_dek_and_bytes_columns`): add `User.wrappedDek Bytes?` + `<column>_encrypted Bytes?` shadow column for every in-scope column. Both old + new live side-by-side during backfill.
+- [ ] Update Prisma schema accordingly. `pnpm db:migrate && pnpm db:generate`
+
+### P2 — Backfill
+
+- [ ] Script `src/scripts/backfill-encryption.ts` — generate DEKs for users missing one, then encrypt all in-scope rows. Idempotent, resumable, batched (1000/txn), dry-run mode.
+- [ ] Run dry-run against staging DB snapshot — assert decrypt-roundtrip matches plaintext for 1000-row random sample
+- [ ] Run against staging
+- [ ] Run against prod (off-hours)
+
+### P3 — Service-layer cutover
+
+- [ ] Patch all in-scope service writes: encrypt before insert. ~30–50 call sites total.
+- [ ] Patch all in-scope service reads: decrypt after fetch. Same call sites mostly.
+- [ ] Feature flag `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN` defaults `false`. When `true`, reads come from `_encrypted` column; when `false`, from plaintext column.
+- [ ] Writes dual-write to both columns during the rollout window (~7 days), gated by same flag.
+- [ ] Add logger denylist for encrypted fields — `logger.info({ transcript })`-style passes never log plaintext content.
+
+### P4 — GCS CMEK
+
+- [ ] Grant Cloud Storage service agent `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the KEK
+- [ ] `gsutil kms encryption -k <key-resource-name> gs://<recordings-bucket>` — all new uploads encrypted
+- [ ] Background `gsutil rewrite -k` for existing recording objects
+
+### P5 — Cutover + cleanup
+
+- [ ] Flip `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN` → `true` in prod
+- [ ] Monitor 7 days — KMS audit logs healthy, no decrypt failures, no plaintext leaks in app logs
+- [ ] Migration 2 (`drop_plaintext_columns`): drop old String columns, rename `_encrypted` → original name
+- [ ] Wire account-delete flow to destroy `wrappedDek` (crypto-shredding for GDPR)
+
+### P6 — Hardening (post-cutover)
+
+- [ ] Spot-check prod DB dump for any remaining plaintext content (`grep -c` on common transcript words against a redacted dump)
+- [ ] Document the KMS disaster-recovery runbook (key destruction protection, regional failover, IAM hygiene)
+- [ ] Cloud Logging alert on anomalous KMS unwrap volume
+- [ ] Pre-encryption backups: inventory all Cloud SQL backups + manual snapshots, then delete or re-import-and-re-encrypt every pre-encryption backup — otherwise crypto-shredding has a plaintext escape hatch
+
+**Effort estimate:** ~1.5 weeks for one focused engineer. Most of the time is in P2 (backfill correctness) and P3 (mechanical but wide find-and-replace + tests).
 
 ---
 
-## Phase 6 — Big Brain ⛔ BLOCKED
-
-Explicitly blocked. Do not start. Requires separate vector DB infrastructure that is not yet in place.
-Requires Phase 4.1 + 4.2 complete first — Big Brain features are paid-only.
-
-- [ ] Vector embeddings pipeline — embed transcripts, notes, tasks on creation/update
-- [ ] Global Ask AI — RAG query over all user data ("What do I know about Acme Corp?")
-- [ ] Cross-meeting insights — surface patterns across meetings
-- [ ] Proactive nudges — missed follow-ups, upcoming meeting prep
-- [ ] **Full two-way GCal sync** — GCal push webhooks → GCal edits/cancels reflect in Crelyzor (deferred from 1.3 — requires webhook infra + conflict resolution)
-- [x] Model upgrades — Nova-3 Multilingual + gpt-5.4-mini ✅ done in Phase 4
-
----
-
-## Admin Portal ✅ COMPLETE
-
-Founder ops dashboard — user management, plan upgrades, platform stats.
-Design: `docs/superpowers/specs/2026-05-08-admin-portal-design.md`
-Repo: `github.com/crelyzor/crelyzor-admin` (port 5175, separate git)
-Run with: `make admin-up` | Stop with: `make admin-down`
-
-- [x] Backend: verifyAdmin middleware + /api/v1/admin/* route group
-- [x] Backend: adminService — login, listUsers, getUserDetail, updateUserPlan, resetUserUsage, getPlatformStats
-- [x] Frontend: Login page (env-based credentials → JWT)
-- [x] Frontend: Dashboard (platform stats — total users, plan breakdown, usage totals)
-- [x] Frontend: Users table with search, pagination, plan management, usage reset
-- [x] Docker Compose profile (make admin-up / admin-down / admin-logs)
-- [x] crelyzor-start skill updated to include crelyzor-admin as 4th repo
-
-**Phase 2 (future):**
-- [ ] Audit log — record every plan change
-- [ ] User suspend / soft-delete from admin
-- [ ] System health dashboard
-- [ ] Team member access (AdminUser table)
-- [ ] Production deploy
-
----
-
-## Phase 7 — Teams
+## Phase 6 — Teams
 
 > Full design spec: `docs/superpowers/specs/2026-05-09-teams-design.md`
 > Per-repo breakdowns: each repo's `TASKS.md`
@@ -800,3 +849,47 @@ Run with: `make admin-up` | Stop with: `make admin-down`
 
 - [ ] System Config page — list all config keys, inline edit values
 - [ ] Teams page — list all teams, owner, member count, creation date, soft-delete
+
+---
+
+## Phase 7 — Razorpay ⛔ BLOCKED
+
+Account blocked. Do not start. Uncomment env vars and build when account is live.
+
+---
+
+## Phase 8 — Big Brain ⛔ BLOCKED
+
+Explicitly blocked. Do not start. Requires separate vector DB infrastructure that is not yet in place.
+Requires Phase 4.1 + 4.2 complete first — Big Brain features are paid-only.
+
+- [ ] Vector embeddings pipeline — embed transcripts, notes, tasks on creation/update
+- [ ] Global Ask AI — RAG query over all user data ("What do I know about Acme Corp?")
+- [ ] Cross-meeting insights — surface patterns across meetings
+- [ ] Proactive nudges — missed follow-ups, upcoming meeting prep
+- [ ] **Full two-way GCal sync** — GCal push webhooks → GCal edits/cancels reflect in Crelyzor (deferred from 1.3 — requires webhook infra + conflict resolution)
+- [x] Model upgrades — Nova-3 Multilingual + gpt-5.4-mini ✅ done in Phase 4
+
+---
+
+## Admin Portal ✅ COMPLETE
+
+Founder ops dashboard — user management, plan upgrades, platform stats.
+Design: `docs/superpowers/specs/2026-05-08-admin-portal-design.md`
+Repo: `github.com/crelyzor/crelyzor-admin` (port 5175, separate git)
+Run with: `make admin-up` | Stop with: `make admin-down`
+
+- [x] Backend: verifyAdmin middleware + /api/v1/admin/* route group
+- [x] Backend: adminService — login, listUsers, getUserDetail, updateUserPlan, resetUserUsage, getPlatformStats
+- [x] Frontend: Login page (env-based credentials → JWT)
+- [x] Frontend: Dashboard (platform stats — total users, plan breakdown, usage totals)
+- [x] Frontend: Users table with search, pagination, plan management, usage reset
+- [x] Docker Compose profile (make admin-up / admin-down / admin-logs)
+- [x] crelyzor-start skill updated to include crelyzor-admin as 4th repo
+
+**Phase 2 (future):**
+- [ ] Audit log — record every plan change
+- [ ] User suspend / soft-delete from admin
+- [ ] System health dashboard
+- [ ] Team member access (AdminUser table)
+- [ ] Production deploy
