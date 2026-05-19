@@ -34,7 +34,7 @@ This Code of Conduct applies within all community spaces — GitHub issues, PRs,
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the maintainers at **harsh@crelyzor.com**. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the maintainers at **conduct@crelyzor.com**. All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 
