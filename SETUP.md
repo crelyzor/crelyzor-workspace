@@ -96,14 +96,14 @@ gcloud auth login
 gcloud auth application-default login
 
 # 3. Set the project
-gcloud config set project project-9c7bf307-30bb-41bd-87a
+gcloud config set project [GCP_PROJECT_ID]
 
 # 4. Fix quota project
-gcloud auth application-default set-quota-project project-9c7bf307-30bb-41bd-87a
+gcloud auth application-default set-quota-project [GCP_PROJECT_ID]
 
 # 5. Impersonate the service account (required for signed URLs)
 gcloud auth application-default login \
-  --impersonate-service-account=crelyzor-workspace@project-9c7bf307-30bb-41bd-87a.iam.gserviceaccount.com
+  --impersonate-service-account=[SERVICE_ACCOUNT]@[GCP_PROJECT_ID].iam.gserviceaccount.com
 ```
 
 This stores credentials at `~/.config/gcloud/` on your machine. Docker mounts them automatically — nothing in the repo.
