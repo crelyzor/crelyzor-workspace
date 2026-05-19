@@ -661,6 +661,44 @@ Host site loads `crelyzor.app/embed.js` → script creates an `<iframe>` pointin
 
 ---
 
+## Phase 4.9 — In-App Notifications
+
+> Real-time in-app notification system. Same triggers as existing Resend emails — bookings, meeting AI complete, task due soon — persisted to DB and pushed live to the frontend via SSE. Bell icon in the header, a notification panel, and real-time delivery using Redis pub/sub (same infrastructure as Ask AI streaming).
+
+### Architecture
+
+- `Notification` model per user, `NotificationType` enum
+- `notificationService` — create, list, mark read, mark all read, delete, unread count
+- Redis pub/sub (`notify:${userId}`) + SSE endpoint for real-time delivery
+- `UserSettings` extended with in-app preference toggles (master + per-type)
+- Wired alongside existing email triggers — fail-open, never blocks the primary flow
+
+### Notification types
+
+`BOOKING_RECEIVED` · `BOOKING_CONFIRMED` · `BOOKING_CANCELLED` · `BOOKING_REMINDER` · `MEETING_AI_COMPLETE` · `TASK_DUE_SOON`
+
+### Backend (`crelyzor-backend`)
+
+- [ ] **P0 — Schema:** `Notification` model + `NotificationType` enum + index on `[userId, isRead, createdAt]` + `inAppNotificationsEnabled`, `inAppBookingEnabled`, `inAppMeetingReadyEnabled`, `inAppTaskDueEnabled` on `UserSettings` + `pnpm db:migrate && pnpm db:generate`
+- [ ] **P1 — Service + Endpoints:** `notificationService.ts` (create, list, markRead, markAllRead, delete, unreadCount) + routes + controller + Zod validator. `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`, `DELETE /notifications/:id`, `GET /notifications/stream`
+- [ ] **P2 — SSE Real-time:** `GET /notifications/stream` subscribes to Redis `notify:${userId}` via `redisClient.duplicate()`. 30s keep-alive ping. Unsubscribe + cleanup on `res.on('close')`. `createNotification` publishes to Redis after DB insert.
+- [ ] **P3 — Wire Triggers:** `bookingManagementService.ts` → `BOOKING_RECEIVED` (host), `BOOKING_CANCELLED` (host). `bookingService.ts` reminder job → `BOOKING_REMINDER`. `jobProcessor.ts` → `MEETING_AI_COMPLETE`. New daily 8am cron → `TASK_DUE_SOON` for tasks due today.
+- [ ] **P4 — Settings:** expose `inApp*` fields in `GET/PATCH /settings/user` response + update
+
+### Frontend (`crelyzor-frontend`)
+
+- [ ] **P0 — Service + Query Layer:** `notificationService.ts` API calls + `queryKeys.notifications.*` + hooks: `useNotifications()`, `useUnreadCount()`, `useMarkRead()`, `useMarkAllRead()`, `useDeleteNotification()`
+- [ ] **P1 — Notification Bell:** `<NotificationBell />` in app header — bell icon with unread badge (count < 100, "99+" when over). Fallback: `useUnreadCount` refetches every 60s.
+- [ ] **P2 — Notification Panel:** `<NotificationPanel />` popover — skeleton while loading, empty state ("You're all caught up"), notification rows (type icon + title + relative time + unread dot). Click → mark read + navigate to entity. "Mark all as read" + "Clear all" buttons. Grouped: Today / Earlier.
+- [ ] **P3 — SSE Hook:** `useNotificationStream()` — `EventSource` to `/api/v1/notifications/stream`. On event: invalidate `queryKeys.notifications.*` + show subtle Sonner toast. Auto-reconnect with exponential backoff (3s → 6s → 12s → max 60s). Cleanup on unmount.
+- [ ] **P4 — Settings:** Expand Settings > Notifications tab — "In-App" column alongside existing "Email" toggles. Master toggle + per-type (Bookings, Meeting AI ready, Task due soon).
+
+### Public (`crelyzor-public`)
+
+No changes — notifications are authenticated dashboard-only.
+
+---
+
 ## Phase 5 — Encryption at Rest
 
 > Full design spec: `docs/superpowers/specs/2026-05-16-encryption-at-rest-design.md`
