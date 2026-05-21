@@ -661,17 +661,57 @@ Host site loads `crelyzor.app/embed.js` → script creates an `<iframe>` pointin
 
 ---
 
-## Phase 4.9 — In-App Notifications
+## Phase 4.9 — In-App Notifications + WebSocket Foundation
 
-> Real-time in-app notification system. Same triggers as existing Resend emails — bookings, meeting AI complete, task due soon — persisted to DB and pushed live to the frontend via SSE. Bell icon in the header, a notification panel, and real-time delivery using Redis pub/sub (same infrastructure as Ask AI streaming).
+> Real-time in-app notification system built on a WebSocket foundation designed to scale to Phase 6 Teams (presence, workspace events) and beyond. SSE was the original plan but is replaced by WebSocket: Phase 6 Teams definitively needs bidirectional real-time, so building the infrastructure now avoids a guaranteed migration later. One WS connection per tab carries all real-time events — notifications today, team presence and Ask AI streaming in future phases.
 
 ### Architecture
 
-- `Notification` model per user, `NotificationType` enum
-- `notificationService` — create, list, mark read, mark all read, delete, unread count
-- Redis pub/sub (`notify:${userId}`) + SSE endpoint for real-time delivery
-- `UserSettings` extended with in-app preference toggles (master + per-type)
-- Wired alongside existing email triggers — fail-open, never blocks the primary flow
+```
+Browser Tab
+    │
+    │  ws://<host>/ws?token=<jwt>        ← native WebSocket, no Socket.io
+    ▼
+Express HTTP server (same port, no new process)
+    │  HTTP upgrade → WebSocket
+    ▼
+WebSocketServer (ws library)  ←  src/websocket/wsServer.ts
+    │
+    ├── wsAuth.ts           verify JWT from ?token= query param on upgrade
+    ├── connectionRegistry.ts   Map<userId, Set<WebSocket>>  (multiple tabs)
+    ├── heartbeat.ts        30s ping/pong, terminate dead connections
+    └── notificationSubscriber.ts
+            │  redisClient.duplicate() → dedicated sub connection per instance
+            │  SUB notify:${userId}  when first tab connects
+            │  UNSUB notify:${userId} when last tab disconnects
+            ▼
+        Redis pub/sub  ←── notificationService.create() publishes after DB insert
+```
+
+**Typed message envelope** — all WS traffic uses a discriminated union so adding new event types in future phases requires zero infrastructure changes:
+
+```typescript
+// Server → Client
+type WsServerMessage =
+  | { type: 'CONNECTED'; unreadCount: number }
+  | { type: 'NOTIFICATION'; data: Notification }
+  | { type: 'PING' }
+  // Phase 6 additions (no infrastructure changes needed):
+  // | { type: 'TEAM_MEMBER_JOINED'; teamId: string; member: TeamMember }
+  // | { type: 'MEMBER_PRESENCE_UPDATED'; teamId: string; userId: string; status: 'online' | 'away' }
+  // Ask AI migration (drop SSE, reuse this connection):
+  // | { type: 'ASK_AI_CHUNK'; meetingId: string; chunk: string }
+  // | { type: 'ASK_AI_DONE'; meetingId: string }
+
+// Client → Server
+type WsClientMessage =
+  | { type: 'PONG' }
+  | { type: 'PING' }
+```
+
+**Horizontal scaling:** Redis pub/sub handles fan-out across multiple backend instances. Each instance maintains its own `ConnectionRegistry` and a single Redis subscriber that fans out to all local sockets for that user.
+
+**`index.ts` integration:** `app.listen()` returns an `http.Server`. We pass that server instance directly to `createWsServer(server)` — no new port, no new process.
 
 ### Notification types
 
@@ -680,22 +720,51 @@ Host site loads `crelyzor.app/embed.js` → script creates an `<iframe>` pointin
 ### Backend (`crelyzor-backend`)
 
 - [ ] **P0 — Schema:** `Notification` model + `NotificationType` enum + index on `[userId, isRead, createdAt]` + `inAppNotificationsEnabled`, `inAppBookingEnabled`, `inAppMeetingReadyEnabled`, `inAppTaskDueEnabled` on `UserSettings` + `pnpm db:migrate && pnpm db:generate`
-- [ ] **P1 — Service + Endpoints:** `notificationService.ts` (create, list, markRead, markAllRead, delete, unreadCount) + routes + controller + Zod validator. `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`, `DELETE /notifications/:id`, `GET /notifications/stream`
-- [ ] **P2 — SSE Real-time:** `GET /notifications/stream` subscribes to Redis `notify:${userId}` via `redisClient.duplicate()`. 30s keep-alive ping. Unsubscribe + cleanup on `res.on('close')`. `createNotification` publishes to Redis after DB insert.
-- [ ] **P3 — Wire Triggers:** `bookingManagementService.ts` → `BOOKING_RECEIVED` (host), `BOOKING_CANCELLED` (host). `bookingService.ts` reminder job → `BOOKING_REMINDER`. `jobProcessor.ts` → `MEETING_AI_COMPLETE`. New daily 8am cron → `TASK_DUE_SOON` for tasks due today.
-- [ ] **P4 — Settings:** expose `inApp*` fields in `GET/PATCH /settings/user` response + update
+
+- [ ] **P1 — WebSocket Foundation** ← replaces the SSE plan; install `ws` + `@types/ws`
+  - `src/websocket/types.ts` — `WsServerMessage` + `WsClientMessage` discriminated unions
+  - `src/websocket/connectionRegistry.ts` — `Map<userId, Set<WebSocket>>`, `add()`, `remove()`, `broadcast(userId, msg)`, `size()`
+  - `src/websocket/wsAuth.ts` — extract `?token=` from upgrade request URL, call `tokenService.verifyAccessToken()`, validate session via `sessionService.validateSession()`, return `TokenPayload` or close with 4001
+  - `src/websocket/heartbeat.ts` — 30s `setInterval`, send `{ type: 'PING' }`, mark `ws.isAlive = false`, terminate if no PONG received before next tick
+  - `src/websocket/notificationSubscriber.ts` — `Map<userId, IORedis>` subscriber map; `subscribeUser(userId)` calls `redisClient.duplicate()`, `sub.subscribe('notify:${userId}')`, on message parses JSON and calls `registry.broadcast()`; `unsubscribeUser(userId)` when registry removes last connection for that user
+  - `src/websocket/wsServer.ts` — `createWsServer(httpServer)`: creates `WebSocketServer({ server, path: '/ws' })`, on `connection`: run `wsAuth` (close 4001 if fail), add to registry, subscribe Redis channel, send `CONNECTED` with unread count, wire heartbeat, on `close` remove from registry + conditionally unsubscribe Redis; export `closeWsServer()`
+  - `src/index.ts` — capture `const server = app.listen(...)`, call `createWsServer(server)`, add `closeWsServer()` to both SIGTERM and SIGINT shutdown handlers
+
+- [ ] **P2 — Notification Service + REST Endpoints:** `src/services/notificationService.ts` (create with Redis publish, list paginated, markRead, markAllRead, delete, unreadCount) + `src/validators/notificationSchema.ts` + `src/controllers/notificationController.ts` + `src/routes/notificationRoutes.ts` registered under `/api/v1/notifications`. Endpoints: `GET /notifications` (paginated, filter by isRead), `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`, `DELETE /notifications/:id`
+
+- [ ] **P3 — Wire Triggers** — call `notificationService.create()` fail-open (try/catch, log on error, never throw) alongside existing email sends:
+  - `bookingManagementService.ts` → `BOOKING_RECEIVED` to host on new booking, `BOOKING_CANCELLED` to host on cancellation
+  - `bookingService.ts` reminder job → `BOOKING_REMINDER` to host + guest
+  - `jobProcessor.ts` AI complete handler → `MEETING_AI_COMPLETE` after `aiService.processTranscriptWithAI()` succeeds
+  - New daily 8am cron job (`TASK_DUE_SOON`) → query tasks where `dueDate = today AND isCompleted = false` per user, create one notification per user if any exist
+
+- [ ] **P4 — Settings:** add `inApp*` fields to `settingsService.ts` `getUserSettings()` + `updateUserSettings()` + `settingsController.ts` response shape + `src/validators/settingsSchema.ts`
 
 ### Frontend (`crelyzor-frontend`)
 
-- [ ] **P0 — Service + Query Layer:** `notificationService.ts` API calls + `queryKeys.notifications.*` + hooks: `useNotifications()`, `useUnreadCount()`, `useMarkRead()`, `useMarkAllRead()`, `useDeleteNotification()`
-- [ ] **P1 — Notification Bell:** `<NotificationBell />` in app header — bell icon with unread badge (count < 100, "99+" when over). Fallback: `useUnreadCount` refetches every 60s.
-- [ ] **P2 — Notification Panel:** `<NotificationPanel />` popover — skeleton while loading, empty state ("You're all caught up"), notification rows (type icon + title + relative time + unread dot). Click → mark read + navigate to entity. "Mark all as read" + "Clear all" buttons. Grouped: Today / Earlier.
-- [ ] **P3 — SSE Hook:** `useNotificationStream()` — `EventSource` to `/api/v1/notifications/stream`. On event: invalidate `queryKeys.notifications.*` + show subtle Sonner toast. Auto-reconnect with exponential backoff (3s → 6s → 12s → max 60s). Cleanup on unmount.
-- [ ] **P4 — Settings:** Expand Settings > Notifications tab — "In-App" column alongside existing "Email" toggles. Master toggle + per-type (Bookings, Meeting AI ready, Task due soon).
+- [ ] **P0 — WebSocket Client Hook**
+  - `src/hooks/useWebSocket.ts` — singleton pattern (one connection per app lifetime, not per component); reads JWT from `authStore`; connects to `ws://<API_HOST>/ws?token=<jwt>`; typed `WsServerMessage` handler registry (`Map<string, Set<handler>>`); exponential backoff reconnect (3s → 6s → 12s → 24s → max 60s, reset on successful open); cleanup on unmount; disconnect on logout
+  - `src/hooks/useNotificationStream.ts` — wraps `useWebSocket`, registers handler for `NOTIFICATION` message type; on event: `queryClient.invalidateQueries(queryKeys.notifications.all())` + show Sonner toast with notification title; mount this in `AppInitializer` so it runs for the entire authenticated session
+
+- [ ] **P1 — Notification Service + Query Layer:** `src/services/notificationService.ts` (REST API calls for all 5 endpoints) + add `notifications` namespace to `src/lib/queryKeys.ts` + hooks: `useNotifications(filter?)`, `useUnreadCount()`, `useMarkRead()`, `useMarkAllRead()`, `useDeleteNotification()`
+
+- [ ] **P2 — Notification Bell:** `<NotificationBell />` in app header — `Bell` icon (Lucide), red badge with unread count capped at "99+", badge hidden when count is 0, opens `<NotificationPanel />` on click, uses `useUnreadCount()` (60s polling fallback) + WS for instant update
+
+- [ ] **P3 — Notification Panel:** `<NotificationPanel />` popover — skeleton while loading; empty state "You're all caught up" with muted bell icon; notification rows (type icon + title + body + relative time + unread dot); click row → `markRead` + navigate to entity (`/meetings/:id`, `/scheduling/bookings`, `/tasks`); "Mark all as read" button (hidden when all read); "Clear all" button; rows grouped into Today / Earlier sections
+
+- [ ] **P4 — Settings:** expand Settings > Notifications tab — add "In-App" column alongside existing "Email" column; master `inAppNotificationsEnabled` toggle disables all per-type toggles below it; per-type: Bookings, Meeting AI ready, Task due soon
 
 ### Public (`crelyzor-public`)
 
 No changes — notifications are authenticated dashboard-only.
+
+### Future phases — zero infrastructure changes needed
+
+| Phase | Addition |
+|---|---|
+| Phase 6 Teams | Add `TEAM_MEMBER_JOINED`, `MEMBER_PRESENCE_UPDATED` to `WsServerMessage`; publish to `notify:${userId}` from team service |
+| Ask AI migration | Add `ASK_AI_CHUNK` / `ASK_AI_DONE` types; migrate `aiService.askAI()` to use `registry.broadcast()` instead of SSE; update frontend hook |
+| Live collaborative notes | Add `NOTE_UPDATED` type; publish from `meetingNoteService` |
 
 ---
 
