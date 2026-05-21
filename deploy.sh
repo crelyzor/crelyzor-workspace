@@ -120,7 +120,7 @@ echo "[5/5] Starting services..."
 # Guard: if admin is in this compose file but its SSL cert is missing, nginx
 # will fail to start and take down the entire site — abort early with a clear message.
 if echo "$COMPOSE_SERVICES" | grep -qx "admin"; then
-  if [ ! -f "/etc/letsencrypt/live/admin.crelyzor.app/fullchain.pem" ]; then
+  if ! sudo test -f "/etc/letsencrypt/live/admin.crelyzor.app/fullchain.pem"; then
     echo "ERROR: SSL cert for admin.crelyzor.app not found."
     echo "       Run: certbot certonly --nginx -d admin.crelyzor.app"
     echo "       Then re-run this deploy."
