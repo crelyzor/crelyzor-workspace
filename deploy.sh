@@ -97,10 +97,8 @@ if [ -n "$VALID_BUILD" ]; then
   echo "        Building:$VALID_BUILD"
   docker compose -f "$COMPOSE_FILE" build $VALID_BUILD
   docker image prune -f
-elif ! $WORKSPACE_CHANGED; then
-  echo ""
-  echo "✓ Nothing changed — skipping deploy."
-  exit 0
+else
+  echo "        No image changes — restarting containers only."
 fi
 
 # ── 4. Run migrations before swapping containers ─────────────────────────────
