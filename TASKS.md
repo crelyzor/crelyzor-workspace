@@ -792,6 +792,28 @@ No changes — notifications are authenticated dashboard-only.
 
 **KMS provider:** toggled by `KMS_PROVIDER=local|gcp`. `LocalKmsProvider` uses `LOCAL_KMS_KEY` from `.env` — same code path as GCP, no bypass, no plaintext passthrough. Dev behaves exactly like prod.
 
+**Decisions made (2026-05-22):**
+
+| # | Decision | What | Why |
+|---|----------|------|-----|
+| 1 | KMS provider for dev | `KMS_PROVIDER=local` — `LocalKmsProvider` wraps/unwraps the DEK using `LOCAL_KMS_KEY` (32-byte hex in `.env`). Same AES-256-GCM code path as GCP, no plaintext bypass. | Avoids requiring GCP credentials just to start the dev server. Prod always uses `KMS_PROVIDER=gcp`. |
+| 2 | Crypto algorithm | AES-256-GCM via Node.js built-in `crypto` module. No third-party crypto libs. | Industry standard authenticated encryption — confidentiality + integrity in one pass. Built-in means zero supply-chain risk. |
+| 3 | Migration strategy | **Single-step — no dual-write.** In-scope columns change from `String` to `Bytes?` in one migration. Existing rows set to `NULL` (4-5 users — acceptable to nuke). Backfill generates DEKs and re-encrypts any surviving rows. | Dual-write only pays off at 1,000+ users who need zero-downtime rollout windows. At 4-5 users, nuke-and-restart is free and removes two extra phases of complexity. |
+| 4 | No feature flags | No `_encrypted` shadow columns. No `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN` env flag. All writes go directly to the `Bytes` column; all reads decrypt from the same column. | Feature flags add complexity, test surface, and maintenance burden. Current scale makes them pure overhead with no benefit. |
+| 5 | Task.title plaintext, Task.description encrypted | `Task.title` stays `String` — needed for full-text search and future Big Brain indexing. `Task.description` becomes `Bytes?`. | Title is always user-typed, always shown in lists, always searched. Description is AI-generated with richer PII (participant names, topics, details). |
+| 6 | Blind index implementation | `HMAC-SHA256(normalize(value), HMAC_BLIND_INDEX_KEY)` stored in `*_bidx Bytes` column. Separate `HMAC_BLIND_INDEX_KEY` (32-byte hex). Normalise = lowercase + trim before hashing. | Industry standard for exact-match search on encrypted fields. Normalisation ensures "Jane@Acme.com" and "jane@acme.com" produce the same blind index and match correctly. |
+| 7 | No backups infrastructure yet | No automated backup system. If DB restore needed: SSH into VM, restore from filesystem snapshot manually. | Pre-PMF at 4-5 users. Invest in backup infra when user count justifies it. Revisit at Phase 6 / first paying customer. |
+| 8 | OAuthAccount tokens in scope | `OAuthAccount.accessToken` and `refreshToken` are encrypted. Looked up only by `userId + provider` — no blind index needed. | Highest-value encryption target: compromising these gives full Google account access. Zero query-pattern impact from encrypting since they're never searched or matched by value. |
+
+**Known breakages naive encryption would cause (and how they're resolved):**
+
+| # | Breakage | File | What breaks | Resolution |
+|---|----------|------|-------------|------------|
+| 1 | Meeting↔card auto-linking | `meetingService.ts:216` — `email: { in: participantEmails }` on `CardContact.email` | Encrypted `Bytes` never equals a plaintext email string — auto-linking silently breaks | Compute blind index of each participant email, query `CardContact.email_bidx: { in: [...blindIndexes] }` instead |
+| 2 | Global search on contact email | `searchService.ts:95` — `ILIKE '%query%'` on `CardContact.email` | ILIKE on `Bytes` column = zero matches always | Drop `email` from the ILIKE OR clause; when query looks like an email (contains `@`), add exact blind-index match |
+| 3 | Card contact search by email | `cardService.ts:634, 729` — `ILIKE` on `CardContact.email` | Same as above | Same fix: blind-index exact match |
+| 4 | Public write with no req.user | `cardService.ts:524` — `submitContact()` — guest submits contact to a card owner | No `req.user` → no `userId` to call `getDek()` | Pass `card.userId` (the card owner's ID) explicitly: `getDek(card.userId)` |
+
 **In scope (encrypted columns):**
 
 | Model | Column(s) | Blind index? |
@@ -802,10 +824,11 @@ No changes — notifications are authenticated dashboard-only.
 | `MeetingAISummary` | `summary`, `keyPoints` (each element encrypted individually, stored as `Bytes[]`) | No |
 | `MeetingAIContent` | `content` | No |
 | `AskAIMessage` | `content` | No |
-| `Task` | `description` only — `title` stays plaintext for Big Brain search | No |
+| `Task` | `description` only — `title` stays `String` for search + Big Brain | No |
 | `CardContact` | `name`, `email`, `phone`, `company`, `note` | `email_bidx`, `phone_bidx` |
 | `Booking` | `guestName`, `guestEmail`, `guestNote` | `guestEmail_bidx` |
 | `MeetingParticipant` | `guestEmail` | `guestEmail_bidx` |
+| `OAuthAccount` | `accessToken`, `refreshToken` | No — looked up by `userId + provider` only |
 
 **In scope (storage):**
 - GCS recordings bucket → CMEK via the same KMS key. No app code changes.
@@ -813,7 +836,8 @@ No changes — notifications are authenticated dashboard-only.
 **Out of scope (stays plaintext):**
 - All IDs, FKs, timestamps, soft-delete flags
 - `Meeting.title`, `Task.title`, `Tag.name`, indexed fields (`speaker`, `startTime`)
-- `Card.*` (public profile rendered to open web)
+- `Card.*` (public profile rendered to open web — must be readable without a user session)
+- `CardContact.name`, `CardContact.company` — ILIKE search in global search + card search; lower PII sensitivity than email
 - `EventType.*`, `UserSettings`, `Task.status`, `Task.dueDate`
 - Blind index columns (`*_bidx`) — HMAC output, not reversible to plaintext
 
@@ -836,60 +860,59 @@ No changes — notifications are authenticated dashboard-only.
   - `decrypt(ciphertext, userId): Promise<string>` — reads version byte, fetches correct DEK version
   - `blindIndex(value): Buffer` — `HMAC-SHA256(normalize(value), HMAC_BLIND_INDEX_KEY)`
   - `initDekForNewUser(userId, tx?): Promise<void>` — called at registration
-- [ ] Add env vars: `KMS_PROVIDER`, `LOCAL_KMS_KEY`, `HMAC_BLIND_INDEX_KEY`, `GCP_KMS_*`, `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN`
+- [ ] Add env vars: `KMS_PROVIDER`, `LOCAL_KMS_KEY`, `HMAC_BLIND_INDEX_KEY`, `GCP_KMS_*`
 - [ ] Unit tests (vitest): round-trip encrypt/decrypt, version byte correct, random IV (two encrypts differ), tampered ciphertext throws, blind index normalises case/whitespace, LocalKmsProvider wrap/unwrap round-trip
 
-### P1 — Schema migration 1 (additive only — no data loss)
+### P1 — Schema migration (single-step)
+
+No shadow columns. In-scope `String` columns become `Bytes?` directly. Existing rows set to `NULL` by the migration — acceptable given 4-5 users.
 
 - [ ] Add to `User`: `wrappedDek Bytes?`, `dekVersion Int @default(1)`
 - [ ] Add `UserDekHistory` model: `id`, `userId`, `version`, `wrappedDek`, `createdAt`, `@@unique([userId, version])`
-- [ ] Add shadow `_encrypted Bytes?` columns alongside all plaintext originals (listed in scope table above)
-- [ ] Add blind index columns: `email_bidx`, `phone_bidx` on `CardContact`; `guestEmail_bidx` on `Booking` and `MeetingParticipant`
+- [ ] Change in-scope `String` columns to `Bytes?`: `MeetingTranscript.fullText`, `TranscriptSegment.text`, `MeetingNote.content`, `MeetingAISummary.summary`, `MeetingAIContent.content`, `AskAIMessage.content`, `Task.description`, `CardContact.name/email/phone/company/note`, `Booking.guestName/guestEmail/guestNote`, `MeetingParticipant.guestEmail`, `OAuthAccount.accessToken/refreshToken`
+- [ ] Change `MeetingAISummary.keyPoints` from `String[]` to `Bytes[]`
+- [ ] Add blind index columns: `email_bidx Bytes?`, `phone_bidx Bytes?` on `CardContact`; `guestEmail_bidx Bytes?` on `Booking` and `MeetingParticipant`
 - [ ] Replace `@@index([email])` with `@@index([email_bidx])` on `CardContact`; same swap on `Booking.guestEmail`, `MeetingParticipant.guestEmail`
-- [ ] `pnpm db:migrate` (migration name: `add_encryption_columns`) + `pnpm db:generate`
+- [ ] `pnpm db:migrate` (migration name: `add_encryption_at_rest`) + `pnpm db:generate`
 
 ### P2 — Registration hook
 
 - [ ] Call `initDekForNewUser(userId, tx)` inside the `isNewUser` block in `src/controllers/googleController.ts` — must run before the transaction commits
 
-### P3 — Service-layer dual-write (encrypt on write, decrypt on read behind flag)
+### P3 — Service-layer encryption (direct — no dual-write)
 
-All writes go to both the plaintext column and `_encrypted`. Reads come from `_encrypted` only when `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN=true`. This allows rollback by flipping the flag.
+All writes encrypt directly to the `Bytes` column. All reads decrypt. No feature flags, no shadow columns.
 
 - [ ] `src/services/transcription/transcriptionService.ts` — encrypt `fullText` + `TranscriptSegment.text` on write; decrypt on read
 - [ ] `src/services/ai/aiService.ts` — encrypt `MeetingAISummary.summary` + each `keyPoints` element on write; decrypt before passing to AI
 - [ ] `src/services/ai/askAIConversationService.ts` — encrypt `AskAIMessage.content` on write; decrypt on read (add `userId` param to `getMessages`)
 - [ ] `src/services/smaEditService.ts` — encrypt `MeetingNote.content` and `MeetingAIContent.content` on manual overrides
 - [ ] `src/controllers/taskController.ts` — encrypt `Task.description` on write; decrypt on read
-- [ ] `src/services/cardService.ts` — encrypt `CardContact` fields + write `email_bidx`, `phone_bidx`; decrypt on read; swap email/phone lookup queries to use `*_bidx`
-- [ ] `src/services/scheduling/bookingService.ts` — encrypt `Booking` PII + write `guestEmail_bidx`; decrypt on read; swap guestEmail lookup to use `guestEmail_bidx`
-- [ ] `src/services/meetings/meetingService.ts` — encrypt `MeetingParticipant.guestEmail` + write `guestEmail_bidx`; decrypt on read
-- [ ] Add Pino logger denylist: strip `fullText`, `content`, `guestEmail`, `guestName`, `guestNote`, `email`, `phone` from structured log objects before they reach the logger
+- [ ] `src/services/cardService.ts` — encrypt `CardContact` fields + write `email_bidx`, `phone_bidx`; decrypt on read; swap email/phone lookup queries to use `*_bidx`; fix `submitContact()` to call `getDek(card.userId)` since there is no `req.user` on that public route (Breakage #4)
+- [ ] `src/services/scheduling/bookingService.ts` — encrypt `Booking` PII + write `guestEmail_bidx`; decrypt on read; swap `guestEmail` lookup to use `guestEmail_bidx`
+- [ ] `src/services/meetings/meetingService.ts` — encrypt `MeetingParticipant.guestEmail` + write `guestEmail_bidx`; swap auto-linking query at line 216 from `email: { in: participantEmails }` to `email_bidx: { in: participantEmails.map(blindIndex) }` (Breakage #1)
+- [ ] `src/services/auth/oauthService.ts` (or wherever `OAuthAccount` is written/read) — encrypt `accessToken` + `refreshToken` on write; decrypt on read
+- [ ] `src/services/searchService.ts` — drop `cardContact.email` ILIKE from OR clause; add blind-index exact match when query contains `@` (Breakages #2 + #3)
+- [ ] Add Pino logger denylist: strip `fullText`, `content`, `guestEmail`, `guestName`, `guestNote`, `email`, `phone`, `accessToken`, `refreshToken` from structured log objects before they reach the logger
 
-### P4 — Backfill existing data
+### P4 — Backfill
 
-- [ ] Build `src/scripts/backfill-encryption.ts` — idempotent, resumable, batched (500 rows/tx), dry-run mode (`--dry-run` flag)
-  - Phase 1: generate DEKs for users without `wrappedDek`
-  - Phase 2: encrypt all in-scope rows, write `_encrypted` + `*_bidx` columns
-- [ ] Dry-run on dev DB, then run for real
-- [ ] Verify: spot-check 5 random rows — decrypt `_encrypted` column manually, compare to plaintext column
+Since P1 sets existing rows to `NULL`, the primary goal is generating DEKs for any users who existed pre-migration. If any rows somehow have non-NULL legacy plaintext, encrypt them too.
 
-### P5 — Cutover + GCS CMEK
+- [ ] Build `src/scripts/backfill-encryption.ts`:
+  - Step 1: generate `wrappedDek` for any `User` where `wrappedDek IS NULL`
+  - Step 2: scan all in-scope models — if a row has a non-NULL legacy value that isn't valid ciphertext, encrypt it
+- [ ] Dry-run on dev DB (`--dry-run` flag), then run for real
+- [ ] Verify: spot-check 5 random rows across key models — `decrypt(row.fullText, userId)` returns readable text
 
-- [ ] Flip `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN=true` in staging; run smoke tests (booking lookup by email, Ask AI, transcript view)
-- [ ] After 7 days stable in staging → flip in production
-- [ ] GCS CMEK: grant Cloud Storage service agent `roles/cloudkms.cryptoKeyEncrypterDecrypter`; `gsutil kms encryption -k <key-resource>` on recordings bucket; `gsutil -m rewrite -k` on existing objects
-- [ ] Wire account-delete to destroy `User.wrappedDek` + all `UserDekHistory` rows (crypto-shredding)
-- [ ] Cloud Logging alert on anomalous KMS unwrap volume
+### P5 — GCS CMEK + crypto-shredding
 
-### P6 — Schema migration 2 (drop plaintext columns — run after 7 days stable prod)
-
-- [ ] For each encrypted column: rename `field_encrypted` → `field`, drop original plaintext column
-- [ ] Remove `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN` flag from all service code and env schema
-- [ ] `pnpm db:migrate` (migration name: `drop_plaintext_columns`)
+- [ ] GCS CMEK: grant Cloud Storage service agent `roles/cloudkms.cryptoKeyEncrypterDecrypter`; run `gsutil kms encryption -k <key-resource>` on recordings bucket; `gsutil -m rewrite -k` on existing objects
+- [ ] Wire account-delete to destroy `User.wrappedDek` + all `UserDekHistory` rows (crypto-shredding — makes all encrypted rows permanently unreadable without needing to delete them)
+- [ ] Cloud Logging alert on anomalous KMS unwrap volume (>10× daily average → page oncall)
 - [ ] Document KMS disaster-recovery: key destruction protection, IAM hygiene checklist
 
-**Effort estimate:** ~2 weeks. Most complexity in P3 (service-layer patches — ~10 files) and P4 (backfill correctness + verification).
+**Effort estimate:** ~2 weeks. Most complexity in P3 (service-layer patches — ~11 files). P1 is clean given the small user count.
 
 ---
 
