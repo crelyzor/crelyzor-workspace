@@ -271,6 +271,9 @@ All soft deletes — never hard delete unless `HARD_DELETE_ENABLED=true`.
 - Do NOT hardcode mock data in components — connect to real API
 - Do NOT edit `.env` files directly
 - Do NOT start Phase 8 (Big Brain) until Phase 5 (Encryption) ships and vector DB infra is in place
+- Do NOT encrypt `Task.title` — it stays plaintext for full-text search and Big Brain indexing. Only `Task.description` is encrypted.
+- Do NOT use dual-write or feature flags for the encryption rollout — single-step migration only (decided 2026-05-22, current user count too small to need rollout windows)
+- Do NOT log plaintext values of encrypted fields (`fullText`, `content`, `guestEmail`, etc.) — strip them from Pino log objects before they reach the logger
 - Do NOT reference `calendar-backend` / `calendar-frontend` / `cards-frontend` — actual dirs are `crelyzor-backend` / `crelyzor-frontend` / `crelyzor-public`
 - Do NOT define feature-specific union types (e.g. `TaskView`) as local types inside child components — export them from the service file (`smaService.ts`) so both parent and child import from the same source
 - Do NOT use `new Date()` for "start of today" comparisons — always set hours to `0,0,0,0` to avoid time-of-day drift within a render session
