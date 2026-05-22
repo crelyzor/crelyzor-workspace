@@ -106,13 +106,12 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 4.9 — In-App Notifications** ← current
+**Phase 5 — Encryption at Rest** ← current
 
-Phases 1 → 3.4 complete ✅. Phase 4.1–4.8 complete ✅. Phase 7 (Razorpay) blocked ⛔. Phase 8 (Big Brain) blocked ⛔.
+Phases 1 → 3.4 complete ✅. Phase 4.1–4.9 complete ✅. Phase 7 (Razorpay) blocked ⛔. Phase 8 (Big Brain) blocked ⛔.
 
 **Upcoming phase order:**
-- **Phase 4.9** — In-App Notifications ← current
-- **Phase 5** — Encryption at Rest (server-side envelope encryption via Google Cloud KMS; design: `docs/internal/superpowers/specs/2026-05-16-encryption-at-rest-design.md`)
+- **Phase 5** — Encryption at Rest (server-side envelope encryption via Google Cloud KMS; design: `docs/internal/superpowers/specs/2026-05-16-encryption-at-rest-design.md`) ← current
 - **Phase 6** — Teams (design: `docs/internal/superpowers/specs/2026-05-09-teams-design.md`)
 - **Phase 7** — Razorpay ⛔ deferred
 - **Phase 8** — Big Brain ⛔ blocked (requires Phase 5 + vector DB infra)
