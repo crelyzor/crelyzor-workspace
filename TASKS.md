@@ -770,7 +770,7 @@ No changes — notifications are authenticated dashboard-only.
 | Phase | Addition |
 |---|---|
 | Phase 6 Teams | Add `TEAM_MEMBER_JOINED`, `MEMBER_PRESENCE_UPDATED` to `WsServerMessage`; publish to `notify:${userId}` from team service |
-| Ask AI migration | Add `ASK_AI_CHUNK` / `ASK_AI_DONE` types; migrate `aiService.askAI()` to use `registry.broadcast()` instead of SSE; update frontend hook |
+| Ask AI migration | Handled in Phase 8 P6 — migrate SSE → WebSocket alongside agent launch |
 | Live collaborative notes | Add `NOTE_UPDATED` type; publish from `meetingNoteService` |
 
 ---
@@ -974,17 +974,202 @@ Account blocked. Do not start. Uncomment env vars and build when account is live
 
 ---
 
-## Phase 8 — Big Brain ⛔ BLOCKED
+## Phase 8 — Big Brain Agent ⛔ BLOCKED
 
-Explicitly blocked. Do not start. Requires separate vector DB infrastructure that is not yet in place.
-Requires Phase 4.1 + 4.2 complete first — Big Brain features are paid-only.
+**Blocked until:** Phase 5 (Encryption at Rest) ships + pgvector extension enabled on Postgres instance.
 
-- [ ] Vector embeddings pipeline — embed transcripts, notes, tasks on creation/update
-- [ ] Global Ask AI — RAG query over all user data ("What do I know about Acme Corp?")
-- [ ] Cross-meeting insights — surface patterns across meetings
-- [ ] Proactive nudges — missed follow-ups, upcoming meeting prep
-- [ ] **Full two-way GCal sync** — GCal push webhooks → GCal edits/cancels reflect in Crelyzor (deferred from 1.3 — requires webhook infra + conflict resolution)
-- [x] Model upgrades — Nova-3 Multilingual + gpt-5.4-mini ✅ done in Phase 4
+**The vision:** A fully autonomous AI agent that knows everything about the user across Crelyzor and connected external platforms. It doesn't just answer questions — it takes actions. It can schedule a meeting, create a task, reply to a booking request, fetch your unread Slack messages, draft a Gmail reply, and tell you what to focus on today — all from a single chat interface or triggered automatically.
+
+---
+
+### What this is NOT
+
+Not a chatbot that wraps GPT. Not another RAG Q&A. This is an **agentic loop** — the LLM reasons, picks a tool, executes it, sees the result, reasons again, and repeats until the job is done. The user gives intent; the agent figures out the steps.
+
+---
+
+### Architecture
+
+```
+User message / scheduled trigger
+        ↓
+   Agent Core (LLM with tool use)
+        ↓  reasons: "I need to check their calendar first"
+        ↓  calls tool: get_upcoming_meetings({ days: 7 })
+        ↓  gets result back
+        ↓  reasons: "3pm slot is free, create the booking"
+        ↓  calls tool: create_booking({ ... })
+        ↓  gets confirmation
+        ↓
+  Final response streamed to user
+```
+
+**Key model:** Gemini 2.5 Flash (already integrated) with function calling / tool use. Falls back to structured OpenAI function calling if needed.
+
+**Memory layers:**
+- Short-term: conversation history (already exists via AskAIConversation)
+- Semantic: vector embeddings of all user data in pgvector — transcripts, notes, tasks, contacts, bookings
+- Structured: live Crelyzor DB + external platform APIs via tool calls
+
+---
+
+### Crelyzor-native tools (agent can call these)
+
+| Tool | What it does |
+|---|---|
+| `get_meetings(filter)` | List meetings by date range, participant, tag |
+| `get_meeting_detail(id)` | Full transcript + summary + tasks for one meeting |
+| `create_task(title, due, priority)` | Create a task |
+| `update_task(id, fields)` | Update status, due date, assignee |
+| `get_tasks(filter)` | List tasks by status, due date, source |
+| `create_booking(eventTypeId, slot, guestEmail)` | Schedule a booking on behalf of user |
+| `cancel_booking(id, reason)` | Cancel an existing booking |
+| `get_availability(date_range)` | Check free slots across event types |
+| `get_contacts(query)` | Search card contacts by name / company / email |
+| `get_contact_history(contactId)` | All meetings + tasks linked to a contact |
+| `search_memory(query)` | Semantic RAG search over all user data |
+| `send_notification(message)` | Push an in-app notification to the user |
+
+---
+
+### External platform integrations (Phase 8 adds these)
+
+Each integration requires OAuth connection per user (stored as encrypted tokens). Agent can read AND write.
+
+| Platform | Read | Write |
+|---|---|---|
+| **Gmail** | Unread emails, thread content, search | Draft reply, send email, label/archive |
+| **Google Calendar** | Events, free/busy, attendees | Create event, update, cancel, add Meet link |
+| **Slack** | Channel messages, DMs, mentions, search | Send message, reply in thread, set status |
+| **Linear** | Issues, projects, assigned to user | Create issue, update status, add comment |
+| **Notion** | Pages, databases, linked content | Create page, append block, update property |
+
+OAuth tokens stored in new `UserIntegration` model — encrypted at rest (Phase 5 prerequisite).
+
+---
+
+### Proactive agent modes (runs on schedule, no user prompt needed)
+
+| Mode | Trigger | What it does |
+|---|---|---|
+| **Morning briefing** | 8am daily | Summarizes: today's meetings, overdue tasks, unread Slack mentions, priority emails |
+| **Meeting prep** | 30min before any scheduled meeting | Pulls: past meetings with these people, open action items, last decisions made, their company context from contacts |
+| **Follow-up nudge** | 24h after meeting ends | Checks if AI-extracted tasks are still open, drafts follow-up email if requested |
+| **Weekly digest** | Monday 8am | What you did last week, what's coming, what's overdue |
+| **Booking manager** | On new booking received | Optionally sends a pre-call prep email to guest, creates prep task for host |
+
+---
+
+### P0 — Vector store foundation (prerequisite for everything)
+
+- [ ] Enable `pgvector` extension on Postgres: `CREATE EXTENSION IF NOT EXISTS vector`
+- [ ] Add `embedding vector(1536)` column to: `MeetingTranscript`, `MeetingNote`, `MeetingAISummary`, `Task`, `CardContact` (Prisma `Unsupported("vector(1536)")`)
+- [ ] `embeddingService.ts` — `embedText(text): Promise<number[]>` via OpenAI `text-embedding-3-small`
+- [ ] Embedding pipeline: after AI processing completes on a meeting, embed transcript + summary + notes + tasks and store vectors
+- [ ] `searchMemory(userId, query, topK): Promise<Chunk[]>` — pgvector cosine similarity search across all tables, filtered by userId
+- [ ] Bull job: `EMBED_CONTENT` — triggered after transcription completes, embeds all new/updated content for a meeting
+- [ ] Backfill: embed all existing user content on Phase 8 launch
+
+### P1 — Agent core
+
+- [ ] `agentService.ts` — the agent loop:
+  - Accepts `{ userId, message, conversationId? }`
+  - Builds system prompt with: user profile, today's date, available tools list
+  - Calls Gemini with function calling enabled (tool definitions passed as `tools` array)
+  - On tool call response: execute the tool, append result to messages, loop
+  - Max 10 tool call iterations per turn (prevent runaway loops)
+  - Streams responses via the **existing WebSocket connection** (not SSE) — reuses the notification WS, no new connection needed
+- [ ] WS message types added to the existing WS server (Phase 4.9):
+
+  ```
+  Client → Server:
+    { type: 'AGENT_MESSAGE', conversationId, text }
+    { type: 'AGENT_CANCEL', conversationId }          ← cancels mid-run loop
+
+  Server → Client:
+    { type: 'AGENT_CHUNK', conversationId, text }          ← streaming text token
+    { type: 'AGENT_TOOL_CALL', conversationId, tool, input }    ← "Checking calendar..."
+    { type: 'AGENT_TOOL_RESULT', conversationId, tool, summary } ← "Found 3 events"
+    { type: 'AGENT_DONE', conversationId }
+    { type: 'AGENT_ERROR', conversationId, message }
+  ```
+
+  Why WS over SSE: bidirectional mid-stream (user can cancel, agent can ask clarifying questions), reuses authenticated connection already open, one connection carries notifications + agent events together.
+
+- [ ] Tool registry: `src/agent/tools/` — one file per tool, each exports `{ definition, execute }`. Definition is the JSON schema Gemini expects. Execute calls service layer directly (never HTTP).
+- [ ] `GET /agent/conversations` — list conversation history (REST, not WS)
+- [ ] `AskAIConversation` already exists — reuse it for agent conversations (new `isAgentConversation: Boolean` flag)
+
+### P2 — Crelyzor tool implementations
+
+- [ ] Implement all tools listed in the Crelyzor-native tools table above
+- [ ] Each tool: Zod input schema + TypeScript execute function that calls internal services (never goes to HTTP — calls service layer directly)
+- [ ] Tool results are truncated / summarised if too large (transcripts → summary only unless agent explicitly asks for full text)
+- [ ] Error handling: tool failures return `{ error: string }` — agent sees the error and can retry or tell the user
+
+### P3 — External platform integrations
+
+- [ ] `UserIntegration` Prisma model: `{ userId, platform, accessToken (Bytes — encrypted), refreshToken (Bytes), expiresAt, scopes, createdAt }`
+- [ ] OAuth connection flow per platform: `GET /integrations/:platform/connect` → OAuth → `GET /integrations/:platform/callback` → store tokens
+- [ ] Token refresh middleware: before each tool call, check expiry and refresh if needed
+- [ ] Gmail tools: `gmail_get_unread`, `gmail_search`, `gmail_send`, `gmail_reply` — via Google Gmail API v1
+- [ ] Google Calendar tools: already partially built (Phase 1.3) — extend with write tools (`gcal_create_event`, `gcal_update_event`, `gcal_cancel_event`)
+- [ ] Slack tools: `slack_get_mentions`, `slack_search`, `slack_send_message`, `slack_reply` — via Slack Web API (Bot Token OAuth)
+- [ ] Linear tools: `linear_get_issues`, `linear_create_issue`, `linear_update_issue` — via Linear GraphQL API
+- [ ] Notion tools: `notion_search`, `notion_create_page`, `notion_append_block` — via Notion API v1
+- [ ] Settings > Integrations section extended: show connected platforms, connect/disconnect per platform, scopes granted
+
+### P4 — Proactive agent (scheduled, no user prompt)
+
+- [ ] Bull jobs for each proactive mode (morning briefing, meeting prep, follow-up nudge, weekly digest, booking manager) — see table above
+- [ ] Each proactive job: runs the agent loop with a system-constructed prompt (no user message), sends result as in-app notification + optional email
+- [ ] User can toggle each proactive mode on/off in Settings > AI Agent section (new sub-section)
+- [ ] `UserAgentPreferences` — new model or extend `UserSettings`: `morningBriefingEnabled`, `meetingPrepEnabled`, `followUpNudgeEnabled`, `weeklyDigestEnabled`, `bookingManagerEnabled`
+
+### P5 — Frontend: Agent chat interface
+
+- [ ] `/agent` route — full-page chat interface, different from per-meeting Ask AI
+- [ ] Conversation sidebar: list past agent conversations, new conversation button
+- [ ] Message composer: text input + optional voice input (Web Speech API → transcript → send as text)
+- [ ] Streaming response rendering via existing `useNotificationSocket` hook — extend it to handle `AGENT_CHUNK`, `AGENT_TOOL_CALL`, `AGENT_TOOL_RESULT`, `AGENT_DONE`, `AGENT_ERROR` message types. No new WS connection — agent events ride the same authenticated connection as notifications.
+- [ ] Tool call visibility: show what the agent did between messages (collapsible "Agent used 4 tools" row)
+- [ ] Connected platforms panel in sidebar: green dot = connected, grey = not connected, click = connect/disconnect
+- [ ] Proactive notifications from agent appear as regular in-app notifications (Phase 4.9 already built)
+
+### P6 — Migrate Ask AI from SSE → WebSocket
+
+Ask AI currently streams via SSE (one HTTP request per question → one response stream). With the agent WS channel live, Ask AI moves to the same connection — consistent transport, cancellable mid-stream, and one less SSE infrastructure path to maintain.
+
+**Backend changes:**
+- [ ] Add WS message types to existing WS server:
+  ```
+  Client → Server:
+    { type: 'ASK_AI_MESSAGE', meetingId, conversationId, text }
+    { type: 'ASK_AI_CANCEL', conversationId }
+
+  Server → Client:
+    { type: 'ASK_AI_CHUNK', conversationId, text }
+    { type: 'ASK_AI_DONE', conversationId }
+    { type: 'ASK_AI_ERROR', conversationId, message }
+  ```
+- [ ] `aiService.askAI()` — replace `res.write(SSE chunk)` with `registry.broadcast(userId, { type: 'ASK_AI_CHUNK', ... })` using the existing WS client registry from Phase 4.9
+- [ ] Keep `POST /sma/meetings/:meetingId/ask` route but change it to: validate + authenticate, then kick off the stream via WS and return `202 { conversationId }` immediately (fire-and-forget HTTP trigger)
+- [ ] Remove SSE headers (`Content-Type: text/event-stream`, `Connection: keep-alive`) from the ask endpoint
+
+**Frontend changes:**
+- [ ] Extend `useNotificationSocket` hook to handle `ASK_AI_CHUNK`, `ASK_AI_DONE`, `ASK_AI_ERROR` — append chunks to a per-conversationId buffer in a ref or Zustand slice
+- [ ] `useAskAI(meetingId)` hook — sends `ASK_AI_MESSAGE` over WS instead of opening a `fetch` ReadableStream; listens to the WS buffer for chunks
+- [ ] Remove the `ReadableStream` / `getReader()` logic from the existing Ask AI hook
+- [ ] Cancel button in Ask AI chat panel now sends `ASK_AI_CANCEL` over WS instead of `controller.abort()`
+- [ ] All 3 meeting detail layouts (VoiceNoteDetail, RecordedDetail, ScheduledDetail) pick up the change automatically — they use the hook, not raw fetch
+
+**Why this is in Phase 8 and not sooner:** Ask AI SSE works fine today. The migration is low-risk but requires the WS registry infrastructure from Phase 4.9 to be solid in prod first, and it makes most sense to do alongside the agent launch so both use the same transport from day one.
+
+---
+
+**Effort estimate:** 4–6 weeks total. P0 + P1 are the foundation. P2 is mechanical find-replace. P3 is one week per new platform integration. P4 + P5 build on everything. P6 (Ask AI migration) is ~1 day once the WS message types are defined.
+
+**Model choice at build time:** Re-evaluate Gemini 2.5 Flash vs Claude 3.5 Sonnet vs GPT-4o for the agent loop. Tool use quality varies significantly across models and the field moves fast. Pick whichever has the best function-calling benchmark at the time Phase 8 starts.
 
 ---
 

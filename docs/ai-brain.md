@@ -187,13 +187,32 @@ DELETE /sma/meetings/:meetingId/ask/history → clears all messages
 | Key points extraction | ✅ Built |
 | Task extraction (AI_EXTRACTED) | ✅ Built |
 | Meeting notes | ✅ Built |
-| Ask AI — streaming SSE endpoint | ✅ Built |
+| Ask AI — streaming SSE endpoint (migrates to WS in Phase 8 P6) | ✅ Built |
 | Ask AI — frontend chat UI (all 3 layouts) | ✅ Built |
 | Ask AI — conversation persistence (PostgreSQL) | ✅ Built |
 | Ask AI — rolling context window (last 6 messages) | ✅ Built |
 | Ask AI — clear conversation | ✅ Built |
 | AI content generation (Report, Tweet, Blog, Email) | ✅ Built |
+| In-app notifications (WebSocket) | ✅ Built (Phase 4.9) |
 | Pre-generated decisions/follow-ups | ❌ Not built |
-| Big Brain — embeddings pipeline | ❌ Not built (Phase 5) |
-| Big Brain — RAG query interface | ❌ Not built (Phase 5) |
+| Big Brain — embeddings pipeline (pgvector) | ❌ Not built (Phase 8) |
+| Big Brain — agentic loop with tool use | ❌ Not built (Phase 8) |
+| Big Brain — external integrations (Gmail, Slack, Linear, Notion) | ❌ Not built (Phase 8) |
+| Big Brain — proactive agent (morning briefing, meeting prep) | ❌ Not built (Phase 8) |
+| Big Brain — agent chat UI (WebSocket streaming) | ❌ Not built (Phase 8) |
 | Recall.ai integration | ✅ Built |
+
+## Agent Streaming — WebSocket (not SSE)
+
+Ask AI uses SSE (per-request stream). The Phase 8 Big Brain agent uses the **existing notification WebSocket** connection instead — no new connection needed. The same authenticated WS that delivers notification pushes also carries agent streaming events:
+
+```
+AGENT_CHUNK       — streaming text token from LLM
+AGENT_TOOL_CALL   — agent is calling a tool ("Checking calendar...")
+AGENT_TOOL_RESULT — tool returned ("Found 3 events this week")
+AGENT_DONE        — agent finished the turn
+AGENT_ERROR       — something failed
+AGENT_CANCEL      — client sends this to abort mid-run
+```
+
+This gives the agent bidirectional mid-stream communication: the user can cancel a running loop, and the agent can ask a clarifying question and wait for the user's reply in the same channel. SSE can't do either of those.
