@@ -709,7 +709,14 @@ type WsClientMessage =
   | { type: 'PING' }
 ```
 
-**Horizontal scaling:** Redis pub/sub handles fan-out across multiple backend instances. Each instance maintains its own `ConnectionRegistry` and a single Redis subscriber that fans out to all local sockets for that user.
+**Architectural constraints (non-negotiable):**
+- **Worker = publisher only.** The worker process (`jobProcessor`) never holds WebSocket connections and never touches the `ConnectionRegistry`. It only calls `redisClient.publish('notify:${userId}', payload)` after completing a job. This is enforced by the fact that the ConnectionRegistry lives in the API server's memory — a separate Node.js process cannot access it.
+- **API server = sole WebSocket owner.** All WebSocket connections live in the API server process. It is the only process that holds open sockets and fans out messages to clients.
+- This boundary means: worker triggers a notification → publishes to Redis → API server's subscriber picks it up → fans out to all open tabs for that user via ConnectionRegistry. Never short-circuit this path.
+
+**Horizontal scaling:** Redis pub/sub handles fan-out across multiple backend instances automatically. When a user has tab 1 on instance A and tab 2 on instance B, both instances subscribe to `notify:${userId}` on Redis — so both tabs receive the notification. No coordination between instances is needed.
+
+**Redis subscriber — one per instance, not one per user:** Each backend instance runs a single shared `IORedis` subscriber connection (not one per user). When a user's first tab connects, call `sharedSub.subscribe('notify:${userId}')` on the shared connection. When their last tab disconnects, call `sharedSub.unsubscribe('notify:${userId}')`. The single `sharedSub.on('message', (channel, message) => {...})` handler parses the userId from the channel name and routes to `registry.broadcast()`. This keeps Redis connections at O(instances) not O(users).
 
 **`index.ts` integration:** `app.listen()` returns an `http.Server`. We pass that server instance directly to `createWsServer(server)` — no new port, no new process.
 
@@ -726,7 +733,7 @@ type WsClientMessage =
   - `src/websocket/connectionRegistry.ts` — `Map<userId, Set<WebSocket>>`, `add()`, `remove()`, `broadcast(userId, msg)`, `size()`
   - `src/websocket/wsAuth.ts` — extract `?token=` from upgrade request URL, call `tokenService.verifyAccessToken()`, validate session via `sessionService.validateSession()`, return `TokenPayload` or close with 4001
   - `src/websocket/heartbeat.ts` — 30s `setInterval`, send `{ type: 'PING' }`, mark `ws.isAlive = false`, terminate if no PONG received before next tick
-  - `src/websocket/notificationSubscriber.ts` — `Map<userId, IORedis>` subscriber map; `subscribeUser(userId)` calls `redisClient.duplicate()`, `sub.subscribe('notify:${userId}')`, on message parses JSON and calls `registry.broadcast()`; `unsubscribeUser(userId)` when registry removes last connection for that user
+  - `src/websocket/notificationSubscriber.ts` — ONE shared `IORedis` subscriber instance (created once via `redisClient.duplicate()`), never recreated; `subscribeUser(userId)` calls `sharedSub.subscribe('notify:${userId}')` only when `registry.size(userId) === 1` (first tab for that user); `unsubscribeUser(userId)` calls `sharedSub.unsubscribe('notify:${userId}')` only when `registry.size(userId) === 0` (last tab closed); single `sharedSub.on('message', (channel, msg) => { const userId = channel.replace('notify:', ''); registry.broadcast(userId, JSON.parse(msg)); })` handler routes all messages — O(instances) Redis connections, not O(users)
   - `src/websocket/wsServer.ts` — `createWsServer(httpServer)`: creates `WebSocketServer({ server, path: '/ws' })`, on `connection`: run `wsAuth` (close 4001 if fail), add to registry, subscribe Redis channel, send `CONNECTED` with unread count, wire heartbeat, on `close` remove from registry + conditionally unsubscribe Redis; export `closeWsServer()`
   - `src/index.ts` — capture `const server = app.listen(...)`, call `createWsServer(server)`, add `closeWsServer()` to both SIGTERM and SIGINT shutdown handlers
 
