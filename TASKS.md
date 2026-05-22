@@ -451,7 +451,7 @@ Full breakdown: per-repo `TASKS.md` files.
 
 ---
 
-## Phase 4.5 — Docker & Deployment
+## Phase 4.5 — Docker & Deployment ✅ Complete
 
 > Full design doc: `docs/dev-notes/phase-4.5-docker-deployment.md`
 
@@ -484,18 +484,18 @@ Full breakdown: per-repo `TASKS.md` files.
   - deploy blocked if any typecheck fails
 
 ### P5 — VM Setup
-- [ ] Provision VM (EC2 t3.small or GCE e2-medium)
-- [ ] Docker + Certbot installed on VM
-- [ ] DNS A records pointing to server IP
-- [ ] SSL certs issued via Certbot (`certbot certonly --nginx -d crelyzor.com -d app.crelyzor.com -d api.crelyzor.com`)
-- [ ] GCS service account key on server
-- [ ] Add GitHub Secrets: `VM_HOST`, `VM_USER`, `VM_SSH_KEY`, `VM_WORKSPACE_PATH`
-- [ ] `crelyzor-backend/.env.prod` filled with real values on VM
+- [x] Provision VM (EC2 t3.small or GCE e2-medium)
+- [x] Docker + Certbot installed on VM
+- [x] DNS A records pointing to server IP
+- [x] SSL certs issued via Certbot (`certbot certonly --nginx -d crelyzor.com -d app.crelyzor.com -d api.crelyzor.com`)
+- [x] GCS service account key on server
+- [x] Add GitHub Secrets: `VM_HOST`, `VM_USER`, `VM_SSH_KEY`, `VM_WORKSPACE_PATH`
+- [x] `crelyzor-backend/.env.prod` filled with real values on VM
 
 ### P6 — Go Live
-- [ ] DB migrations run on prod (`docker compose -f docker-compose.prod.yml exec backend pnpm db:migrate`)
-- [ ] Google OAuth callback URL updated in Google Console
-- [ ] End-to-end test: sign in → create meeting → upload recording
+- [x] DB migrations run on prod (`docker compose -f docker-compose.prod.yml exec backend pnpm db:migrate`)
+- [x] Google OAuth callback URL updated in Google Console
+- [x] End-to-end test: sign in → create meeting → upload recording
 
 ---
 
@@ -518,7 +518,7 @@ Design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.m
 - [x] Deploy to staging + prod
 ---
 
-## Phase 4.7 — Security Hardening ← current
+## Phase 4.7 — Security Hardening ✅ Complete
 
 > Full security audit completed 2026-05-09 across all 4 repos.
 > Issues ordered by severity. Fix critical + high before any public launch.
@@ -726,9 +726,9 @@ type WsClientMessage =
 
 ### Backend (`crelyzor-backend`)
 
-- [ ] **P0 — Schema:** `Notification` model + `NotificationType` enum + index on `[userId, isRead, createdAt]` + `inAppNotificationsEnabled`, `inAppBookingEnabled`, `inAppMeetingReadyEnabled`, `inAppTaskDueEnabled` on `UserSettings` + `pnpm db:migrate && pnpm db:generate`
+- [x] **P0 — Schema:** `Notification` model + `NotificationType` enum + index on `[userId, isRead, createdAt]` + `inAppNotificationsEnabled`, `inAppBookingEnabled`, `inAppMeetingReadyEnabled`, `inAppTaskDueEnabled` on `UserSettings` + `pnpm db:migrate && pnpm db:generate`
 
-- [ ] **P1 — WebSocket Foundation** ← replaces the SSE plan; install `ws` + `@types/ws`
+- [x] **P1 — WebSocket Foundation** ← replaces the SSE plan; install `ws` + `@types/ws`
   - `src/websocket/types.ts` — `WsServerMessage` + `WsClientMessage` discriminated unions
   - `src/websocket/connectionRegistry.ts` — `Map<userId, Set<WebSocket>>`, `add()`, `remove()`, `broadcast(userId, msg)`, `size()`
   - `src/websocket/wsAuth.ts` — extract `?token=` from upgrade request URL, call `tokenService.verifyAccessToken()`, validate session via `sessionService.validateSession()`, return `TokenPayload` or close with 4001
@@ -737,29 +737,29 @@ type WsClientMessage =
   - `src/websocket/wsServer.ts` — `createWsServer(httpServer)`: creates `WebSocketServer({ server, path: '/ws' })`, on `connection`: run `wsAuth` (close 4001 if fail), add to registry, subscribe Redis channel, send `CONNECTED` with unread count, wire heartbeat, on `close` remove from registry + conditionally unsubscribe Redis; export `closeWsServer()`
   - `src/index.ts` — capture `const server = app.listen(...)`, call `createWsServer(server)`, add `closeWsServer()` to both SIGTERM and SIGINT shutdown handlers
 
-- [ ] **P2 — Notification Service + REST Endpoints:** `src/services/notificationService.ts` (create with Redis publish, list paginated, markRead, markAllRead, delete, unreadCount) + `src/validators/notificationSchema.ts` + `src/controllers/notificationController.ts` + `src/routes/notificationRoutes.ts` registered under `/api/v1/notifications`. Endpoints: `GET /notifications` (paginated, filter by isRead), `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`, `DELETE /notifications/:id`
+- [x] **P2 — Notification Service + REST Endpoints:** `src/services/notificationService.ts` (create with Redis publish, list paginated, markRead, markAllRead, delete, unreadCount) + `src/validators/notificationSchema.ts` + `src/controllers/notificationController.ts` + `src/routes/notificationRoutes.ts` registered under `/api/v1/notifications`. Endpoints: `GET /notifications` (paginated, filter by isRead), `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`, `DELETE /notifications/:id`
 
-- [ ] **P3 — Wire Triggers** — call `notificationService.create()` fail-open (try/catch, log on error, never throw) alongside existing email sends:
+- [x] **P3 — Wire Triggers** — call `notificationService.create()` fail-open (try/catch, log on error, never throw) alongside existing email sends:
   - `bookingManagementService.ts` → `BOOKING_RECEIVED` to host on new booking, `BOOKING_CANCELLED` to host on cancellation
   - `bookingService.ts` reminder job → `BOOKING_REMINDER` to host + guest
   - `jobProcessor.ts` AI complete handler → `MEETING_AI_COMPLETE` after `aiService.processTranscriptWithAI()` succeeds
   - New daily 8am cron job (`TASK_DUE_SOON`) → query tasks where `dueDate = today AND isCompleted = false` per user, create one notification per user if any exist
 
-- [ ] **P4 — Settings:** add `inApp*` fields to `settingsService.ts` `getUserSettings()` + `updateUserSettings()` + `settingsController.ts` response shape + `src/validators/settingsSchema.ts`
+- [x] **P4 — Settings:** add `inApp*` fields to `settingsService.ts` `getUserSettings()` + `updateUserSettings()` + `settingsController.ts` response shape + `src/validators/settingsSchema.ts`
 
 ### Frontend (`crelyzor-frontend`)
 
-- [ ] **P0 — WebSocket Client Hook**
+- [x] **P0 — WebSocket Client Hook**
   - `src/hooks/useWebSocket.ts` — singleton pattern (one connection per app lifetime, not per component); reads JWT from `authStore`; connects to `ws://<API_HOST>/ws?token=<jwt>`; typed `WsServerMessage` handler registry (`Map<string, Set<handler>>`); exponential backoff reconnect (3s → 6s → 12s → 24s → max 60s, reset on successful open); cleanup on unmount; disconnect on logout
   - `src/hooks/useNotificationStream.ts` — wraps `useWebSocket`, registers handler for `NOTIFICATION` message type; on event: `queryClient.invalidateQueries(queryKeys.notifications.all())` + show Sonner toast with notification title; mount this in `AppInitializer` so it runs for the entire authenticated session
 
-- [ ] **P1 — Notification Service + Query Layer:** `src/services/notificationService.ts` (REST API calls for all 5 endpoints) + add `notifications` namespace to `src/lib/queryKeys.ts` + hooks: `useNotifications(filter?)`, `useUnreadCount()`, `useMarkRead()`, `useMarkAllRead()`, `useDeleteNotification()`
+- [x] **P1 — Notification Service + Query Layer:** `src/services/notificationService.ts` (REST API calls for all 5 endpoints) + add `notifications` namespace to `src/lib/queryKeys.ts` + hooks: `useNotifications(filter?)`, `useUnreadCount()`, `useMarkRead()`, `useMarkAllRead()`, `useDeleteNotification()`
 
-- [ ] **P2 — Notification Bell:** `<NotificationBell />` in app header — `Bell` icon (Lucide), red badge with unread count capped at "99+", badge hidden when count is 0, opens `<NotificationPanel />` on click, uses `useUnreadCount()` (60s polling fallback) + WS for instant update
+- [x] **P2 — Notification Bell:** `<NotificationBell />` in app header — `Bell` icon (Lucide), red badge with unread count capped at "99+", badge hidden when count is 0, opens `<NotificationPanel />` on click, uses `useUnreadCount()` (60s polling fallback) + WS for instant update
 
-- [ ] **P3 — Notification Panel:** `<NotificationPanel />` popover — skeleton while loading; empty state "You're all caught up" with muted bell icon; notification rows (type icon + title + body + relative time + unread dot); click row → `markRead` + navigate to entity (`/meetings/:id`, `/scheduling/bookings`, `/tasks`); "Mark all as read" button (hidden when all read); "Clear all" button; rows grouped into Today / Earlier sections
+- [x] **P3 — Notification Panel:** `<NotificationPanel />` popover — skeleton while loading; empty state "You're all caught up" with muted bell icon; notification rows (type icon + title + body + relative time + unread dot); click row → `markRead` + navigate to entity (`/meetings/:id`, `/scheduling/bookings`, `/tasks`); "Mark all as read" button (hidden when all read); "Clear all" button; rows grouped into Today / Earlier sections
 
-- [ ] **P4 — Settings:** expand Settings > Notifications tab — add "In-App" column alongside existing "Email" column; master `inAppNotificationsEnabled` toggle disables all per-type toggles below it; per-type: Bookings, Meeting AI ready, Task due soon
+- [x] **P4 — Settings:** expand Settings > Notifications tab — add "In-App" column alongside existing "Email" column; master `inAppNotificationsEnabled` toggle disables all per-type toggles below it; per-type: Bookings, Meeting AI ready, Task due soon
 
 ### Public (`crelyzor-public`)
 
