@@ -777,96 +777,119 @@ No changes — notifications are authenticated dashboard-only.
 
 ## Phase 5 — Encryption at Rest
 
-**Goal:** every sensitive user-facing string and every recording object is encrypted at rest. Server holds keys (envelope encryption via Google Cloud KMS), AI features keep working unchanged. Not E2EE — Crelyzor can still decrypt to power AI; an explicit non-goal.
+**Goal:** every sensitive user-facing string and every recording object is encrypted at rest. Server holds keys (envelope encryption via Google Cloud KMS), AI features and all existing searches keep working unchanged. Not E2EE — Crelyzor can still decrypt to power AI; an explicit non-goal.
+
+**Implementation plan:** `docs/superpowers/plans/2026-05-22-encryption-at-rest.md`
 
 **Key model:**
-- One KEK per environment in Google Cloud KMS — never leaves the HSM.
-- One DEK per user, AES-256, stored as `User.wrappedDek Bytes` (wrapped by KEK).
-- Unwrapped to plaintext only in backend memory, only for the duration of a single request (AsyncLocalStorage), discarded on request end.
+- One KEK per environment in Google Cloud KMS — never leaves the HSM. Same GCP region as app server (latency requirement).
+- One DEK per user, AES-256-GCM, stored as `User.wrappedDek Bytes` (wrapped by KEK). Also tracks `User.dekVersion Int` for rotation.
+- DEK history kept in `UserDekHistory` — enables rotation without re-encrypting all records at once.
+- DEK cached in an **in-process LRU cache** (200 entries, 60s TTL) — works identically in HTTP handlers AND Bull workers.
 - AES-256-GCM via Node's built-in `crypto`. No third-party crypto libs.
-- Per-record ciphertext: `iv(12) ‖ ciphertext ‖ authTag(16)` in a single `Bytes` column.
+- Per-record ciphertext: `version(1) ‖ iv(12 random) ‖ ciphertext ‖ authTag(16)` — version byte enables DEK rotation without re-encrypting old records.
+- Blind indexes (HMAC-SHA256) for all searchable PII fields — exact-match queries preserved.
 
-**Local dev / CI fallback:** When `GCP_KMS_KEY_NAME` is not set, `crypto.ts` falls back to a local 32-byte hex key from `DEV_MASTER_KEY` in `.env`. Same AES-256-GCM code path — no KMS call. Prod always has `GCP_KMS_KEY_NAME` set; the fallback never activates there.
+**KMS provider:** toggled by `KMS_PROVIDER=local|gcp`. `LocalKmsProvider` uses `LOCAL_KMS_KEY` from `.env` — same code path as GCP, no bypass, no plaintext passthrough. Dev behaves exactly like prod.
 
 **In scope (encrypted columns):**
 
-| Model | Column(s) | Notes |
+| Model | Column(s) | Blind index? |
 |---|---|---|
-| `MeetingTranscript` | `fullText` | |
-| `TranscriptSegment` | `text` | |
-| `MeetingNote` | `content` | |
-| `MeetingAISummary` | `summary`, `keyPoints` | `keyPoints` is `String[]` → `JSON.stringify` → encrypt as single blob → `Bytes` |
-| `MeetingAIContent` | `content` | |
-| `AskAIMessage` | `content` | Encrypts per-message row; `userId` resolved via parent `AskAIConversation` join |
-| `Task` | `description` | `title` stays plaintext for search (Big Brain) |
-| `CardContact` | `name`, `email`, `phone`, `notes` | |
-| `Booking` | `guestEmail`, `guestNotes` | |
+| `MeetingTranscript` | `fullText` | No |
+| `TranscriptSegment` | `text` | No |
+| `MeetingNote` | `content` | No |
+| `MeetingAISummary` | `summary`, `keyPoints` (each element encrypted individually, stored as `Bytes[]`) | No |
+| `MeetingAIContent` | `content` | No |
+| `AskAIMessage` | `content` | No |
+| `Task` | `description` only — `title` stays plaintext for Big Brain search | No |
+| `CardContact` | `name`, `email`, `phone`, `company`, `note` | `email_bidx`, `phone_bidx` |
+| `Booking` | `guestName`, `guestEmail`, `guestNote` | `guestEmail_bidx` |
+| `MeetingParticipant` | `guestEmail` | `guestEmail_bidx` |
 
 **In scope (storage):**
-- GCS recordings bucket → bucket-level CMEK using the same KMS key (no app code changes; one `gsutil kms encryption -k ...` config).
+- GCS recordings bucket → CMEK via the same KMS key. No app code changes.
 
 **Out of scope (stays plaintext):**
 - All IDs, FKs, timestamps, soft-delete flags
 - `Meeting.title`, `Task.title`, `Tag.name`, indexed fields (`speaker`, `startTime`)
 - `Card.*` (public profile rendered to open web)
 - `EventType.*`, `UserSettings`, `Task.status`, `Task.dueDate`
+- Blind index columns (`*_bidx`) — HMAC output, not reversible to plaintext
 
 **Out of scope (explicitly not building):**
-- End-to-end encryption — kills AI features and Big Brain; lost-passphrase = permanent data loss.
+- End-to-end encryption — kills AI features and Big Brain.
+- Full-text search on encrypted columns — Phase 8 (Big Brain embeddings) handles semantic search.
 - Per-meeting "Private Mode" — deferred until users ask for it.
-- Searchable encryption / blind indexes — defer.
-- Dual-write / feature flag rollout — not needed at current user scale (see P2).
-- Automated backup hygiene — no Cloud SQL automated backups running; no action needed.
 
-**Worker / background job DEK access:** Bull job processor and cron jobs call `getDek(userId)` explicitly at the start of each job and seed AsyncLocalStorage manually — same function as HTTP middleware uses, just not request-scoped. No middleware magic required.
+**Worker / background job DEK access:** Bull workers call `getDek(userId)` — hits the shared LRU cache first, falls back to KMS on miss. No AsyncLocalStorage, no manual seeding. Same function as HTTP handlers. No special worker code required.
 
-### P0 — Foundations (do first)
+**Crypto-shredding:** destroying `User.wrappedDek` + all `UserDekHistory` rows makes every ciphertext for that user permanently unrecoverable — even in old DB backups. GDPR delete solved as a free side effect.
 
-- [ ] Provision Google Cloud KMS keyring + KEK for prod. (Dev uses `DEV_MASTER_KEY` fallback — no KMS needed locally.)
-- [ ] IAM bind backend service account: `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the KEK only
-- [ ] Build `src/utils/security/crypto.ts`:
-  - `encrypt(plaintext: string, dek: Buffer): Buffer` — AES-256-GCM, returns `iv(12) ‖ ciphertext ‖ authTag(16)`
-  - `decrypt(ciphertext: Buffer, dek: Buffer): string`
-  - `wrapDek(dek: Buffer): Promise<Buffer>` — KMS wrap (or local AES wrap when `DEV_MASTER_KEY` fallback active)
-  - `unwrapDek(wrappedDek: Buffer): Promise<Buffer>` — KMS unwrap (or local AES unwrap)
-  - `getDek(userId: string): Promise<Buffer>` — reads `User.wrappedDek`, unwraps, caches in AsyncLocalStorage for request lifetime; generates + persists a new DEK if user has none
-- [ ] Unit tests: round-trip encrypt/decrypt, wrong-DEK fails, tampered ciphertext fails GCM auth check, fallback mode works without GCP
-- [ ] `cryptoMiddleware.ts` — calls `getDek(req.user.id)` and seeds AsyncLocalStorage; mounted after `verifyJWT` on all protected routers
+### P0 — cryptoService foundations
 
-### P1 — Schema + user wipe
+- [ ] Install `@google-cloud/kms` and `vitest`
+- [ ] Build `src/utils/security/dekCache.ts` — LRU wrapper around `node-cache` (already installed), keyed by `userId:version`
+- [ ] Build `src/utils/security/kmsProviders.ts` — `GcpKmsProvider` (lazy-loads `@google-cloud/kms`) + `LocalKmsProvider` (AES-256-GCM using `LOCAL_KMS_KEY`)
+- [ ] Build `src/utils/security/crypto.ts` — public API:
+  - `encrypt(plaintext, userId): Promise<Buffer>` — format: `version(1) | iv(12 random) | ct | tag(16)`
+  - `decrypt(ciphertext, userId): Promise<string>` — reads version byte, fetches correct DEK version
+  - `blindIndex(value): Buffer` — `HMAC-SHA256(normalize(value), HMAC_BLIND_INDEX_KEY)`
+  - `initDekForNewUser(userId, tx?): Promise<void>` — called at registration
+- [ ] Add env vars: `KMS_PROVIDER`, `LOCAL_KMS_KEY`, `HMAC_BLIND_INDEX_KEY`, `GCP_KMS_*`, `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN`
+- [ ] Unit tests (vitest): round-trip encrypt/decrypt, version byte correct, random IV (two encrypts differ), tampered ciphertext throws, blind index normalises case/whitespace, LocalKmsProvider wrap/unwrap round-trip
 
-- [ ] Wipe all 4–5 existing prod users and their data (they are internal test accounts — fresh start is cleaner than backfill)
-- [ ] Single migration (`add_encryption_columns`):
-  - Add `wrappedDek Bytes?` to `User`
-  - Change in-scope `String` / `String[]` columns to `Bytes` (direct rename — no shadow columns, no dual-write)
-  - Affected models: `MeetingTranscript.fullText`, `TranscriptSegment.text`, `MeetingNote.content`, `MeetingAISummary.summary` + `keyPoints`, `MeetingAIContent.content`, `AskAIMessage.content`, `Task.description`, `CardContact.name/email/phone/notes`, `Booking.guestEmail/guestNotes`
-- [ ] `pnpm db:migrate && pnpm db:generate`
+### P1 — Schema migration 1 (additive only — no data loss)
 
-### P2 — Service-layer cutover (all writes encrypt, all reads decrypt)
+- [ ] Add to `User`: `wrappedDek Bytes?`, `dekVersion Int @default(1)`
+- [ ] Add `UserDekHistory` model: `id`, `userId`, `version`, `wrappedDek`, `createdAt`, `@@unique([userId, version])`
+- [ ] Add shadow `_encrypted Bytes?` columns alongside all plaintext originals (listed in scope table above)
+- [ ] Add blind index columns: `email_bidx`, `phone_bidx` on `CardContact`; `guestEmail_bidx` on `Booking` and `MeetingParticipant`
+- [ ] Replace `@@index([email])` with `@@index([email_bidx])` on `CardContact`; same swap on `Booking.guestEmail`, `MeetingParticipant.guestEmail`
+- [ ] `pnpm db:migrate` (migration name: `add_encryption_columns`) + `pnpm db:generate`
 
-No backfill needed — existing data wiped in P1. All call sites write encrypted from day one.
+### P2 — Registration hook
 
-- [ ] Patch all in-scope service writes: `encrypt(plaintext, dek)` before Prisma insert/update
-- [ ] Patch all in-scope service reads: `decrypt(bytes, dek)` after Prisma fetch; handle `null` gracefully (new users have no rows yet)
-- [ ] `AskAIMessage`: service must resolve `userId` via `AskAIConversation` before encrypting/decrypting — ensure the conversation join is always included
-- [ ] `MeetingAISummary.keyPoints`: write path is `JSON.stringify(arr)` → `encrypt` → `Bytes`; read path is `decrypt` → `JSON.parse` → `string[]`
-- [ ] Bull job processor: any job that writes encrypted fields (e.g. AI pipeline writing `MeetingAISummary`, `TranscriptSegment`) must call `getDek(userId)` at job start and seed AsyncLocalStorage before any DB writes
-- [ ] Add logger denylist for encrypted field names — strip `fullText`, `content`, `guestEmail`, etc. from any structured log objects before they reach Pino
+- [ ] Call `initDekForNewUser(userId, tx)` inside the `isNewUser` block in `src/controllers/googleController.ts` — must run before the transaction commits
 
-### P3 — GCS CMEK
+### P3 — Service-layer dual-write (encrypt on write, decrypt on read behind flag)
 
-- [ ] Grant Cloud Storage service agent `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the KEK
-- [ ] `gsutil kms encryption -k <key-resource-name> gs://<recordings-bucket>` — all new uploads encrypted at rest
-- [ ] No existing objects to rewrite (wiped in P1 along with users)
+All writes go to both the plaintext column and `_encrypted`. Reads come from `_encrypted` only when `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN=true`. This allows rollback by flipping the flag.
 
-### P4 — Cutover verification + account-delete crypto-shredding
+- [ ] `src/services/transcription/transcriptionService.ts` — encrypt `fullText` + `TranscriptSegment.text` on write; decrypt on read
+- [ ] `src/services/ai/aiService.ts` — encrypt `MeetingAISummary.summary` + each `keyPoints` element on write; decrypt before passing to AI
+- [ ] `src/services/ai/askAIConversationService.ts` — encrypt `AskAIMessage.content` on write; decrypt on read (add `userId` param to `getMessages`)
+- [ ] `src/services/smaEditService.ts` — encrypt `MeetingNote.content` and `MeetingAIContent.content` on manual overrides
+- [ ] `src/controllers/taskController.ts` — encrypt `Task.description` on write; decrypt on read
+- [ ] `src/services/cardService.ts` — encrypt `CardContact` fields + write `email_bidx`, `phone_bidx`; decrypt on read; swap email/phone lookup queries to use `*_bidx`
+- [ ] `src/services/scheduling/bookingService.ts` — encrypt `Booking` PII + write `guestEmail_bidx`; decrypt on read; swap guestEmail lookup to use `guestEmail_bidx`
+- [ ] `src/services/meetings/meetingService.ts` — encrypt `MeetingParticipant.guestEmail` + write `guestEmail_bidx`; decrypt on read
+- [ ] Add Pino logger denylist: strip `fullText`, `content`, `guestEmail`, `guestName`, `guestNote`, `email`, `phone` from structured log objects before they reach the logger
 
-- [ ] Spot-check prod DB after first real user signs up: confirm all in-scope columns are `Bytes` (non-human-readable) and all reads return correct plaintext
-- [ ] Wire account-delete flow to destroy `User.wrappedDek` (crypto-shredding — deleted user's data in DB/backups becomes unrecoverable without the key)
-- [ ] Cloud Logging alert on anomalous KMS unwrap volume (catch runaway loops or credential theft)
-- [ ] Document KMS disaster-recovery: key destruction protection, what happens if KEK is accidentally deleted, IAM hygiene checklist
+### P4 — Backfill existing data
 
-**Effort estimate:** ~4–5 days. Complexity is entirely in P2 (finding and patching all call sites). No backfill, no dual-write, no flag — just find-replace + tests.
+- [ ] Build `src/scripts/backfill-encryption.ts` — idempotent, resumable, batched (500 rows/tx), dry-run mode (`--dry-run` flag)
+  - Phase 1: generate DEKs for users without `wrappedDek`
+  - Phase 2: encrypt all in-scope rows, write `_encrypted` + `*_bidx` columns
+- [ ] Dry-run on dev DB, then run for real
+- [ ] Verify: spot-check 5 random rows — decrypt `_encrypted` column manually, compare to plaintext column
+
+### P5 — Cutover + GCS CMEK
+
+- [ ] Flip `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN=true` in staging; run smoke tests (booking lookup by email, Ask AI, transcript view)
+- [ ] After 7 days stable in staging → flip in production
+- [ ] GCS CMEK: grant Cloud Storage service agent `roles/cloudkms.cryptoKeyEncrypterDecrypter`; `gsutil kms encryption -k <key-resource>` on recordings bucket; `gsutil -m rewrite -k` on existing objects
+- [ ] Wire account-delete to destroy `User.wrappedDek` + all `UserDekHistory` rows (crypto-shredding)
+- [ ] Cloud Logging alert on anomalous KMS unwrap volume
+
+### P6 — Schema migration 2 (drop plaintext columns — run after 7 days stable prod)
+
+- [ ] For each encrypted column: rename `field_encrypted` → `field`, drop original plaintext column
+- [ ] Remove `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN` flag from all service code and env schema
+- [ ] `pnpm db:migrate` (migration name: `drop_plaintext_columns`)
+- [ ] Document KMS disaster-recovery: key destruction protection, IAM hygiene checklist
+
+**Effort estimate:** ~2 weeks. Most complexity in P3 (service-layer patches — ~10 files) and P4 (backfill correctness + verification).
 
 ---
 
