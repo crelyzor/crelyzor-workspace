@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-09 (Phase 7 Teams — spec written, tasks planned across all repos)
+Last updated: 2026-05-23 (Phase 6 Teams — spec revised with per-team DEK + full UX, tasks restructured across all repos)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -918,99 +918,157 @@ Since P1 sets existing rows to `NULL`, the primary goal is generating DEKs for a
 
 ## Phase 6 — Teams
 
-> Full design spec: `docs/superpowers/specs/2026-05-09-teams-design.md`
+> Full design spec: `docs/internal/superpowers/specs/2026-05-09-teams-design.md`
 > Per-repo breakdowns: each repo's `TASKS.md`
 
-**The model:** Pro users can create up to 3 teams (configurable via SystemConfig). The team owner pays for all consumption — transcription, storage, AI credits — for all members across all their teams. Members and admins consume the owner's Pro quota. Members join free.
+**The model:** Pro+ users (PRO or BUSINESS plan) can create teams (≤3 for Pro, ≤10 for Business — both configurable via SystemConfig). The team owner pays for all consumption — transcription, storage, AI tokens — across all their teams. Members and admins consume the owner's quota. Members can join on any plan including Free.
 
-**Workspace switching:** Top-left dropdown (where user name is today) switches between Personal and each team. Full context switch — all surfaces (meetings, cards, tasks, scheduling) scope to selection. Zero overlap.
+**Encryption:** Per-team DEK (additive to Phase 5's per-user DEK). Team-scoped content encrypts under the team DEK; member removal and ownership transfer require zero re-encryption. Team deletion = crypto-shred via cascade.
+
+**Workspace switching:** Top-left replaces `UserMenu` with a workspace switcher. Soft switch (no hard reload) — Zustand store + broad query invalidation + 250ms cross-fade.
 
 **Roles:** Owner (full control, billing) / Admin (manage, no billing) / Member (own content only).
 
 **Cards:** Team gets a public card at `crelyzor.app/t/:slug`. Members get auto-created team cards on join.
 
-**Scheduling:** Each member sets their own availability within the team. External visitors book a specific member via `/schedule/t/:slug/:username`. Team members can book each other internally from the dashboard.
+**Scheduling:** Each member sets their own availability within the team. External visitors book a specific member via `/schedule/t/:slug/:username`. Team members book each other internally from the dashboard (4-step modal).
 
 **Config:** All limits live in a `SystemConfig` table — editable from admin portal. Nothing hardcoded.
 
+**Pro gate (interim):** Until Razorpay unblocks, admins flip `user.plan` manually via the admin portal.
+
 ### P0 — Backend: Schema (do first — everything depends on this)
 
-- [ ] `SystemConfig` model — key/value store for all limits and feature flags
-- [ ] `Team` model — id (UUID), name, slug (unique), ownerId, logoUrl, createdAt, deletedAt
-- [ ] `TeamMember` model — id, teamId, userId, role (OWNER | ADMIN | MEMBER), joinedAt, leftAt (nullable)
-- [ ] Add `teamId UUID?` to: Meeting, Card, Task, EventType, Booking (null = personal context)
-- [ ] Migration: `pnpm db:migrate && pnpm db:generate`
+- [ ] `SystemConfig` model — key/value store + `updatedAt`, `updatedBy`. Seed defaults: `max_teams_per_pro_user=3`, `max_teams_per_business_user=10`, `max_members_per_team=50`, `team_invite_expiry_days=7`.
+- [ ] `Team` model — id (UUID), name, slug (unique), description (String? max 500), ownerId, logoUrl, **wrappedDek (Bytes)**, **dekVersion (Int @default 1)**, isDeleted, deletedAt, createdAt, updatedAt.
+- [ ] `TeamMember` model — id, teamId, userId, role (OWNER | ADMIN | MEMBER), joinedAt, isDeleted, deletedAt. (No `leftAt` — soft-delete semantics handle "left" via `isDeleted`.)
+- [ ] `TeamInvite` model — id, teamId, email, userId?, role, token (unique), invitedById, expiresAt, acceptedAt?, declinedAt?, cancelledAt?, isDeleted, deletedAt.
+- [ ] `TeamDekHistory` model — mirrors `UserDekHistory`. Hard cascade on Team delete (crypto-shred). No isDeleted/deletedAt.
+- [ ] Add `teamId UUID?` + index `@@index([teamId, isDeleted])` to: `Meeting`, `Card`, `Task`, `EventType`, `Booking`, `UserUsage`.
+- [ ] Migration: `pnpm db:migrate && pnpm db:generate`.
 
 ### P1 — Backend: Team CRUD + Member Management
 
-- [ ] `POST /teams` — create team (Pro gate, SystemConfig max-teams check, auto-create team Card)
-- [ ] `GET /teams` — list teams the user belongs to
-- [ ] `PATCH /teams/:teamId` — update name/logo (Owner/Admin)
-- [ ] `DELETE /teams/:teamId` — soft delete (Owner only)
-- [ ] `GET /teams/:teamId/members` — list members with role + usage
-- [ ] `POST /teams/:teamId/members/invite` — invite by userId or email
-- [ ] `PATCH /teams/:teamId/members/:userId` — change role (Owner only)
-- [ ] `DELETE /teams/:teamId/members/:userId` — remove member (Owner/Admin)
-- [ ] `POST /teams/invites/:token/accept` — accept email invite
-- [ ] `DELETE /teams/:teamId/leave` — leave team (blocked if Owner)
+- [ ] `POST /teams` — create team. Plan gate (`user.plan IN ('PRO','BUSINESS')`). SystemConfig max-teams check by plan. Transaction: create Team + generate team DEK (Cloud KMS) + create OWNER TeamMember + auto-create team Card with `userId = ownerId`.
+- [ ] `GET /teams` — list teams the user is active in. Include role.
+- [ ] `PATCH /teams/:teamId` — update name (Admin), slug (Owner only), logo (Admin), description (Admin).
+- [ ] `DELETE /teams/:teamId` — soft delete (Owner only). Sets all member rows `isDeleted: true` in transaction. Schedules hard delete + crypto-shred after retention window.
+- [ ] `POST /teams/:teamId/transfer-ownership` — Owner only. Requires typing team name to confirm. Transaction: flip `Team.ownerId`, swap roles (old Owner → ADMIN, new Owner → OWNER), reassign team Cards' `userId`.
 
-### P2 — Backend: Team-scoped Content + Middleware
+### P2 — Backend: Team Member + Invite Management
 
-- [ ] `verifyTeamMember` middleware — verifies user is active member (`leftAt IS NULL`)
-- [ ] `verifyTeamRole('ADMIN' | 'OWNER')` middleware — role check on top of membership
-- [ ] All meeting/card/task/scheduling endpoints respect `teamId` context header
-- [ ] Meeting visibility: Members see own meetings only; Owner/Admin see all team meetings
-- [ ] `GET /teams/:teamId/usage` — per-member consumption breakdown (Owner/Admin only)
+- [ ] `GET /teams/:teamId/members` — active members + role + last-active (from WS presence) + per-member usage summary.
+- [ ] `POST /teams/:teamId/members/invite` — body: `{ mode: 'user'|'email', userId?, emails?[], role, message? }`. Admin/Owner only. Member count check. Returns invites created.
+- [ ] `GET /teams/:teamId/invites` — list pending invites. Admin/Owner.
+- [ ] `POST /teams/:teamId/invites/:inviteId/resend` — Admin/Owner.
+- [ ] `DELETE /teams/:teamId/invites/:inviteId` — Admin/Owner (cancels invite).
+- [ ] `GET /invites/:token` — public, validate token + return team info (no auth).
+- [ ] `POST /invites/:token/accept` — accept email invite (requires JWT; if no account, signup flow runs first then calls this).
+- [ ] `POST /invites/:token/decline` — decline.
+- [ ] `POST /teams/:teamId/invites/accept` — accept in-app invite (existing user).
+- [ ] `POST /teams/:teamId/invites/decline` — decline in-app.
+- [ ] `PATCH /teams/:teamId/members/:userId` — change role. Owner only. Cannot change own role.
+- [ ] `DELETE /teams/:teamId/members/:userId` — remove member. Admin/Owner. Cannot remove Owner. Soft-deletes their team Card.
+- [ ] `DELETE /teams/:teamId/leave` — leave team. Blocked if caller is Owner.
 
-### P3 — Backend: Team Scheduling (public endpoints)
+### P3 — Backend: Encryption — per-team DEK
 
-- [ ] `GET /public/scheduling/team/:slug/profile` — team profile + active member list
-- [ ] `GET /public/scheduling/team/:slug/:username` — specific member's scheduling profile (team context)
-- [ ] Slot engine respects team-scoped EventTypes
+- [ ] Extend `cryptoService.getDek()` to accept `Principal = { type: 'user'|'team', id }`. Backward-compatible overload.
+- [ ] DEK cache key becomes `${type}:${id}` — same LRU capacity, shared across user + team.
+- [ ] Encrypt/decrypt helpers pick principal from `row.teamId` (set → team, null → user).
+- [ ] Bull job payloads carry `{ userId, teamId? }`. Workers call correct `getDek()`.
+- [ ] Crypto unit tests cover team principal path + cache eviction across principals.
 
-### P4 — Backend: Admin Portal Config API
+### P4 — Backend: Context Middleware + Quota Resolver
 
-- [ ] `GET /admin/config` — list all SystemConfig entries
-- [ ] `PATCH /admin/config/:key` — update a config value
-- [ ] `GET /admin/teams` — list all teams with owner + member count
+- [ ] `resolveTeamContext` middleware — reads `X-Team-Id` header, runs `verifyTeamMember` inline, populates `req.teamContext = { teamId, role } | null`.
+- [ ] `verifyTeamRole('ADMIN' | 'OWNER')` factory — runs after `resolveTeamContext`, throws 403 if role insufficient.
+- [ ] `getQuotaOwner({ userId, teamId })` — returns userId of the principal whose pool gets debited (team.ownerId or self).
+- [ ] Wire `getQuotaOwner` into every metering call site (transcription start, OpenAI calls, GCS write, Recall webhook minute attribution).
+- [ ] `UserUsage` writes carry `teamId` for attribution.
 
-### P5 — Frontend: Workspace Switcher + Team Store
+### P5 — Backend: Team-scoped Content (split per service)
 
-- [ ] `teamStore` (Zustand) — `activeTeamId`, `teams[]`, `setActiveTeam()`
-- [ ] Top-left workspace switcher dropdown — Personal + team list + "Create team"
-- [ ] All API calls in team context include `X-Team-Id` header
-- [ ] `useTeams()` query hook, `teamService.ts`
+- [ ] **P5.1** Meetings service — list/get/create/update/delete + attachments + participants + recordings respect `req.teamContext`. Member visibility: filter by `participants.userId = req.user.id` when role=MEMBER.
+- [ ] **P5.2** Cards service — list/get/create/update/delete + contacts respect team context.
+- [ ] **P5.3** Tasks service — list/get/create/update/complete respect team context. Reassign blocked for MEMBER.
+- [ ] **P5.4** Scheduling — event types CRUD, availability, bookings (private endpoints) respect team context.
+- [ ] **P5.5** Tags service — universal tags (meeting/card/task/contact) scope to team context.
+- [ ] **P5.6** SMA + AI — Ask AI sessions, content generation cache (`MeetingAIContent`) scope by `meeting.teamId`.
+- [ ] **P5.7** Recall webhooks — match meeting → use `meeting.teamId` for quota attribution.
+- [ ] **P5.8** Usage endpoint `GET /teams/:teamId/usage?period=...` — per-member breakdown. Owner/Admin only.
 
-### P6 — Frontend: Team Creation + Settings
+### P6 — Backend: Public Team Endpoints
 
-- [ ] Team creation modal (name, slug, logo upload)
-- [ ] `/teams/:teamId/settings` — General (name/logo) + Members + Usage tabs
-- [ ] Invite modal — search existing users OR enter email
-- [ ] Pending invites list in settings
-- [ ] Per-member usage breakdown table
+- [ ] `GET /public/teams/:slug` — no auth. Team profile + active member roster (name, username, avatar, role) for the `/t/:slug` page.
+- [ ] `GET /public/scheduling/team/:slug/profile` — team scheduling profile.
+- [ ] `GET /public/scheduling/team/:slug/:username` — specific member's team-scoped event types.
+- [ ] Slot engine respects team-scoped EventTypes (`eventType.teamId = team.id`).
 
-### P7 — Frontend: Team-aware Content Pages
+### P7 — Backend: WebSocket Events
 
-- [ ] All pages (Meetings, Cards, Tasks, Calendar) scope to activeTeamId when in team context
-- [ ] Meeting visibility enforced — Members can't see other members' meetings
-- [ ] Team context indicator in header/sidebar
-- [ ] Internal booking: pick team member → see availability → book (from meetings/scheduling page)
+- [ ] Extend `WsServerMessage` with: `TEAM_INVITE_RECEIVED`, `TEAM_MEMBER_JOINED`, `TEAM_MEMBER_LEFT`, `TEAM_MEMBER_ROLE_CHANGED`, `TEAM_MEETING_BOOKED`.
+- [ ] Publish each on the relevant service mutation.
 
-### P8 — Public: Team Public Card Page
+### P8 — Backend: Admin API
 
-- [ ] `/t/:slug` — SSR team public page (name, logo, description, member roster)
-- [ ] OG meta + structured data
-- [ ] 404 when team not found or deleted
+- [ ] `GET /admin/config` — list all SystemConfig entries grouped by category.
+- [ ] `PATCH /admin/config/:key` — update value. Records `updatedBy`.
+- [ ] `GET /admin/teams?include_deleted=false&search=` — list all teams with owner email + member count + status. Pagination.
+- [ ] `GET /admin/teams/:teamId` — full team detail incl. members + activity log.
+- [ ] `DELETE /admin/teams/:teamId` — soft-delete (admin override).
+- [ ] `PATCH /admin/users/:userId/plan` — set `user.plan` to FREE/PRO/BUSINESS. Records audit row.
 
-### P9 — Public: Team Member Booking Page
+### P9 — Frontend: Workspace Switcher + Team Store
 
-- [ ] `/schedule/t/:slug/:username` — book specific team member (team-branded)
-- [ ] Same UX as personal booking; member's team EventTypes shown
+- [ ] `teamStore` (Zustand, sessionStorage-persisted) — `activeTeamId`, `setActiveTeam()`.
+- [ ] `apiClient` injects `X-Team-Id` header when `activeTeamId` set.
+- [ ] `teamService.ts` + `useTeamQueries.ts` + `queryKeys.teams.*` additions.
+- [ ] Workspace switcher component replaces `UserMenu` trigger. Dropdown panel: pending invites surface + workspaces list + Create team + account actions.
+- [ ] On switch: `queryClient.invalidateQueries()` + `<motion.div key={activeTeamId}>` cross-fade wrapper around route outlet.
+- [ ] Command palette: "Switch workspace" section. `Cmd+1..9` keybinds.
 
-### P10 — Admin Portal: SystemConfig + Teams Pages
+### P10 — Frontend: Team Creation + Plan Gate
 
-- [ ] System Config page — list all config keys, inline edit values
-- [ ] Teams page — list all teams, owner, member count, creation date, soft-delete
+- [ ] `<CreateTeamModal />` — name + slug (debounced availability check) + description (collapsed) + logo dropzone. Single-page, no wizard.
+- [ ] `<UpgradeToProModal />` — shown when Free user clicks Create team or Pro user hits team limit.
+
+### P11 — Frontend: Team Settings Page
+
+Route: `/teams/:teamId/settings`. Vertical tab nav (left) + content (right).
+
+- [ ] **General tab** — name/slug/description/logo. Save on dirty.
+- [ ] **Members tab** — table + Invite button + role dropdown (Owner only) + remove kebab.
+- [ ] **Invite member modal** — Search users / By email (chip input) tabs.
+- [ ] **Invites tab** — pending invites table + Resend + Cancel.
+- [ ] **Usage tab** — 4 summary cards + period selector + per-member breakdown + CSV export.
+- [ ] **Billing tab** — Owner-only message + link to personal billing.
+- [ ] **Danger zone** — Leave team (members) / Transfer ownership / Delete team (Owner).
+
+### P12 — Frontend: Team-aware Content + Internal Booking
+
+- [ ] All pages scope to `activeTeamId` via the injected header (no per-page code change needed beyond removing client-side `userId` filters).
+- [ ] Sidebar header swaps to team identity block when in team context.
+- [ ] `<BookTeamMemberModal />` — 4-step (pick member → pick slot → details with pre-filled subject → confirm). Trigger from Meetings page.
+- [ ] Card editor public URL preview: `crelyzor.app/t/[team-slug]/[card-slug]` when team context.
+
+### P13 — Frontend: In-app Invite Surfaces
+
+- [ ] Workspace switcher shows pending invites count + expandable section.
+- [ ] Notifications panel renders invite items with inline Accept/Decline.
+- [ ] WS handlers for `TEAM_INVITE_RECEIVED`, `TEAM_MEMBER_*` events → invalidate relevant queries.
+
+### P14 — Public (crelyzor-public)
+
+- [ ] `/invite/:token` — SSR; accept/decline flow; Google OAuth signup if needed; expired/invalid token states.
+- [ ] `/t/:slug` — SSR team public page (logo, name, description, members roster, OG meta).
+- [ ] `/schedule/t/:slug/:username` — team-branded booking page (team identity header + member booking flow).
+
+### P15 — Admin Portal
+
+- [ ] `/config` page — SystemConfig editor with grouped sections + autosave + audit trail.
+- [ ] `/teams` page — table + search + filter + drawer with full team detail.
+- [ ] User detail drawer — plan select (FREE/PRO/BUSINESS) → `PATCH /admin/users/:id/plan`.
 
 ---
 
