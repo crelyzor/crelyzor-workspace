@@ -852,67 +852,53 @@ No changes — notifications are authenticated dashboard-only.
 
 ### P0 — cryptoService foundations
 
-- [ ] Install `@google-cloud/kms` and `vitest`
-- [ ] Build `src/utils/security/dekCache.ts` — LRU wrapper around `node-cache` (already installed), keyed by `userId:version`
-- [ ] Build `src/utils/security/kmsProviders.ts` — `GcpKmsProvider` (lazy-loads `@google-cloud/kms`) + `LocalKmsProvider` (AES-256-GCM using `LOCAL_KMS_KEY`)
-- [ ] Build `src/utils/security/crypto.ts` — public API:
-  - `encrypt(plaintext, userId): Promise<Buffer>` — format: `version(1) | iv(12 random) | ct | tag(16)`
-  - `decrypt(ciphertext, userId): Promise<string>` — reads version byte, fetches correct DEK version
-  - `blindIndex(value): Buffer` — `HMAC-SHA256(normalize(value), HMAC_BLIND_INDEX_KEY)`
-  - `initDekForNewUser(userId, tx?): Promise<void>` — called at registration
-- [ ] Add env vars: `KMS_PROVIDER`, `LOCAL_KMS_KEY`, `HMAC_BLIND_INDEX_KEY`, `GCP_KMS_*`
-- [ ] Unit tests (vitest): round-trip encrypt/decrypt, version byte correct, random IV (two encrypts differ), tampered ciphertext throws, blind index normalises case/whitespace, LocalKmsProvider wrap/unwrap round-trip
+- [x] Install `@google-cloud/kms` and `vitest`
+- [x] Build `src/utils/security/dekCache.ts` — LRU wrapper around `node-cache`, keyed by `userId:version`
+- [x] Build `src/utils/security/kmsProviders.ts` — `GcpKmsProvider` + `LocalKmsProvider`, toggled by `KMS_PROVIDER`
+- [x] Build `src/utils/security/crypto.ts` — `encrypt`, `decrypt`, `blindIndex`, `initDekForNewUser`, `encryptWithKey`, `decryptWithKey`
+- [x] Add env vars: `KMS_PROVIDER`, `LOCAL_KMS_KEY`, `HMAC_BLIND_INDEX_KEY`, `GCP_KMS_KEY_NAME`
+- [x] Unit tests (vitest): round-trip, version byte, random IV, tampered ciphertext throws, blind index normalises, LocalKmsProvider wrap/unwrap, dekCache eviction
 
 ### P1 — Schema migration (single-step)
 
-No shadow columns. In-scope `String` columns become `Bytes?` directly. Existing rows set to `NULL` by the migration — acceptable given 4-5 users.
-
-- [ ] Add to `User`: `wrappedDek Bytes?`, `dekVersion Int @default(1)`
-- [ ] Add `UserDekHistory` model: `id`, `userId`, `version`, `wrappedDek`, `createdAt`, `@@unique([userId, version])`
-- [ ] Change in-scope `String` columns to `Bytes?`: `MeetingTranscript.fullText`, `TranscriptSegment.text`, `MeetingNote.content`, `MeetingAISummary.summary`, `MeetingAIContent.content`, `AskAIMessage.content`, `Task.description`, `CardContact.name/email/phone/company/note`, `Booking.guestName/guestEmail/guestNote`, `MeetingParticipant.guestEmail`, `OAuthAccount.accessToken/refreshToken`
-- [ ] Change `MeetingAISummary.keyPoints` from `String[]` to `Bytes[]`
-- [ ] Add blind index columns: `email_bidx Bytes?`, `phone_bidx Bytes?` on `CardContact`; `guestEmail_bidx Bytes?` on `Booking` and `MeetingParticipant`
-- [ ] Replace `@@index([email])` with `@@index([email_bidx])` on `CardContact`; same swap on `Booking.guestEmail`, `MeetingParticipant.guestEmail`
-- [ ] `pnpm db:migrate` (migration name: `add_encryption_at_rest`) + `pnpm db:generate`
+- [x] `User.wrappedDek Bytes?`, `User.dekVersion Int @default(1)`
+- [x] `UserDekHistory` model with `@@unique([userId, version])`
+- [x] All in-scope `String` columns → `Bytes?` (single-step, no shadow columns)
+- [x] `MeetingAISummary.keyPoints Bytes?` (encrypted JSON array)
+- [x] Blind index columns: `emailBidx`, `phoneBidx` on `CardContact`; `guestEmailBidx` on `Booking` + `MeetingParticipant`
+- [x] `pnpm db:migrate` + `pnpm db:generate`
 
 ### P2 — Registration hook
 
-- [ ] Call `initDekForNewUser(userId, tx)` inside the `isNewUser` block in `src/controllers/googleController.ts` — must run before the transaction commits
+- [x] `initDekForNewUser(userId, tx)` called inside the `isNewUser` block in `src/controllers/googleController.ts`
 
 ### P3 — Service-layer encryption (direct — no dual-write)
 
-All writes encrypt directly to the `Bytes` column. All reads decrypt. No feature flags, no shadow columns.
-
-- [ ] `src/services/transcription/transcriptionService.ts` — encrypt `fullText` + `TranscriptSegment.text` on write; decrypt on read
-- [ ] `src/services/ai/aiService.ts` — encrypt `MeetingAISummary.summary` + each `keyPoints` element on write; decrypt before passing to AI
-- [ ] `src/services/ai/askAIConversationService.ts` — encrypt `AskAIMessage.content` on write; decrypt on read (add `userId` param to `getMessages`)
-- [ ] `src/services/smaEditService.ts` — encrypt `MeetingNote.content` and `MeetingAIContent.content` on manual overrides
-- [ ] `src/controllers/taskController.ts` — encrypt `Task.description` on write; decrypt on read
-- [ ] `src/services/cardService.ts` — encrypt `CardContact` fields + write `email_bidx`, `phone_bidx`; decrypt on read; swap email/phone lookup queries to use `*_bidx`; fix `submitContact()` to call `getDek(card.userId)` since there is no `req.user` on that public route (Breakage #4)
-- [ ] `src/services/scheduling/bookingService.ts` — encrypt `Booking` PII + write `guestEmail_bidx`; decrypt on read; swap `guestEmail` lookup to use `guestEmail_bidx`
-- [ ] `src/services/meetings/meetingService.ts` — encrypt `MeetingParticipant.guestEmail` + write `guestEmail_bidx`; swap auto-linking query at line 216 from `email: { in: participantEmails }` to `email_bidx: { in: participantEmails.map(blindIndex) }` (Breakage #1)
-- [ ] `src/services/auth/oauthService.ts` (or wherever `OAuthAccount` is written/read) — encrypt `accessToken` + `refreshToken` on write; decrypt on read
-- [ ] `src/services/searchService.ts` — drop `cardContact.email` ILIKE from OR clause; add blind-index exact match when query contains `@` (Breakages #2 + #3)
-- [ ] Add Pino logger denylist: strip `fullText`, `content`, `guestEmail`, `guestName`, `guestNote`, `email`, `phone`, `accessToken`, `refreshToken` from structured log objects before they reach the logger
+- [x] `transcriptionService.ts` — encrypt `fullText` + `TranscriptSegment.text`
+- [x] `aiService.ts` — encrypt `MeetingAISummary.summary` + `keyPoints`
+- [x] `askAIConversationService.ts` — encrypt `AskAIMessage.content`
+- [x] `smaEditService.ts` — encrypt `MeetingNote.content`, `MeetingAIContent.content`, segment edits
+- [x] `tasksService` / `taskController` — encrypt `Task.description`
+- [x] `cardService.ts` — encrypt `CardContact` PII + blind-index search; `submitContact()` uses `getDek(card.userId)` (Breakage #4)
+- [x] `bookingService.ts` — encrypt `Booking` PII + `guestEmail_bidx`
+- [x] `meetingService.ts` — encrypt `MeetingParticipant.guestEmail`; auto-linking uses `blindIndex` (Breakage #1)
+- [x] `googleCalendarService.ts` / `googleService.ts` — encrypt `OAuthAccount.accessToken` + `refreshToken`
+- [x] `searchService.ts` — blind-index exact match for email queries (Breakages #2 + #3)
+- [x] `shareService.ts` + `exportService.ts` — decrypt transcript + summary for public/export reads
+- [x] Logger PII denylist: `redactPii()` in `logFormatter.ts` strips denylisted fields from structured log output
 
 ### P4 — Backfill
 
-Since P1 sets existing rows to `NULL`, the primary goal is generating DEKs for any users who existed pre-migration. If any rows somehow have non-NULL legacy plaintext, encrypt them too.
+- [x] `src/scripts/phase5Backfill.ts` — idempotent, batched, `--dry-run` flag, verification sample
+- [ ] Run dry-run against staging snapshot ← ops step
+- [ ] Run for real against staging, then prod (off-hours) ← ops step
 
-- [ ] Build `src/scripts/backfill-encryption.ts`:
-  - Step 1: generate `wrappedDek` for any `User` where `wrappedDek IS NULL`
-  - Step 2: scan all in-scope models — if a row has a non-NULL legacy value that isn't valid ciphertext, encrypt it
-- [ ] Dry-run on dev DB (`--dry-run` flag), then run for real
-- [ ] Verify: spot-check 5 random rows across key models — `decrypt(row.fullText, userId)` returns readable text
+### P5 — GCS CMEK + crypto-shredding + observability
 
-### P5 — GCS CMEK + crypto-shredding
-
-- [ ] GCS CMEK: grant Cloud Storage service agent `roles/cloudkms.cryptoKeyEncrypterDecrypter`; run `gsutil kms encryption -k <key-resource>` on recordings bucket; `gsutil -m rewrite -k` on existing objects
-- [ ] Wire account-delete to destroy `User.wrappedDek` + all `UserDekHistory` rows (crypto-shredding — makes all encrypted rows permanently unreadable without needing to delete them)
-- [ ] Cloud Logging alert on anomalous KMS unwrap volume (>10× daily average → page oncall)
-- [ ] Document KMS disaster-recovery: key destruction protection, IAM hygiene checklist
-
-**Effort estimate:** ~2 weeks. Most complexity in P3 (service-layer patches — ~11 files). P1 is clean given the small user count.
+- [ ] GCS CMEK: grant GCS service agent on KEK; `gsutil kms encryption`; `gsutil rewrite` on existing objects ← ops task (commands in `docs/dev-notes/encryption.md`)
+- [x] Crypto-shredding: `authService.deactivateAccount` destroys `UserDekHistory` + nulls `User.wrappedDek` in transaction, then `evictDek(userId)`
+- [ ] Cloud Logging alert on anomalous KMS unwrap volume ← ops task (GCP console)
+- [x] KMS DR runbook in `docs/dev-notes/encryption.md` (key destruction protection, IAM hygiene checklist, regional failover)
 
 ---
 
