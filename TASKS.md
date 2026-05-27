@@ -895,9 +895,9 @@ No changes — notifications are authenticated dashboard-only.
 
 ### P5 — GCS CMEK + crypto-shredding + observability
 
-- [ ] GCS CMEK: grant GCS service agent on KEK; `gsutil kms encryption`; `gsutil rewrite` on existing objects ← ops task (commands in `docs/dev-notes/encryption.md`)
+- [x] GCS CMEK: KMS keyrings + keys provisioned for dev/staging/prod; GCS service agent granted access; CMEK set on all three buckets; existing objects re-encrypted
 - [x] Crypto-shredding: `authService.deactivateAccount` destroys `UserDekHistory` + nulls `User.wrappedDek` in transaction, then `evictDek(userId)`
-- [ ] Cloud Logging alert on anomalous KMS unwrap volume ← ops task (GCP console)
+- [x] Cloud Monitoring alert created (policy `8638838345955756167`): KMS API requests > 100/hour
 - [x] KMS DR runbook in `docs/dev-notes/encryption.md` (key destruction protection, IAM hygiene checklist, regional failover)
 
 ---
