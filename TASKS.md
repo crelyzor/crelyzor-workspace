@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-09 (Phase 7 Teams — spec written, tasks planned across all repos)
+Last updated: 2026-05-23 (Phase 6 Teams — spec revised with per-team DEK + full UX, tasks restructured across all repos)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -451,7 +451,7 @@ Full breakdown: per-repo `TASKS.md` files.
 
 ---
 
-## Phase 4.5 — Docker & Deployment
+## Phase 4.5 — Docker & Deployment ✅ Complete
 
 > Full design doc: `docs/dev-notes/phase-4.5-docker-deployment.md`
 
@@ -484,18 +484,18 @@ Full breakdown: per-repo `TASKS.md` files.
   - deploy blocked if any typecheck fails
 
 ### P5 — VM Setup
-- [ ] Provision VM (EC2 t3.small or GCE e2-medium)
-- [ ] Docker + Certbot installed on VM
-- [ ] DNS A records pointing to server IP
-- [ ] SSL certs issued via Certbot (`certbot certonly --nginx -d crelyzor.com -d app.crelyzor.com -d api.crelyzor.com`)
-- [ ] GCS service account key on server
-- [ ] Add GitHub Secrets: `VM_HOST`, `VM_USER`, `VM_SSH_KEY`, `VM_WORKSPACE_PATH`
-- [ ] `crelyzor-backend/.env.prod` filled with real values on VM
+- [x] Provision VM (EC2 t3.small or GCE e2-medium)
+- [x] Docker + Certbot installed on VM
+- [x] DNS A records pointing to server IP
+- [x] SSL certs issued via Certbot (`certbot certonly --nginx -d crelyzor.com -d app.crelyzor.com -d api.crelyzor.com`)
+- [x] GCS service account key on server
+- [x] Add GitHub Secrets: `VM_HOST`, `VM_USER`, `VM_SSH_KEY`, `VM_WORKSPACE_PATH`
+- [x] `crelyzor-backend/.env.prod` filled with real values on VM
 
 ### P6 — Go Live
-- [ ] DB migrations run on prod (`docker compose -f docker-compose.prod.yml exec backend pnpm db:migrate`)
-- [ ] Google OAuth callback URL updated in Google Console
-- [ ] End-to-end test: sign in → create meeting → upload recording
+- [x] DB migrations run on prod (`docker compose -f docker-compose.prod.yml exec backend pnpm db:migrate`)
+- [x] Google OAuth callback URL updated in Google Console
+- [x] End-to-end test: sign in → create meeting → upload recording
 
 ---
 
@@ -518,7 +518,7 @@ Design: `docs/superpowers/specs/2026-04-26-phase-4.6-infra-optimization-design.m
 - [x] Deploy to staging + prod
 ---
 
-## Phase 4.7 — Security Hardening ← current
+## Phase 4.7 — Security Hardening ✅ Complete
 
 > Full security audit completed 2026-05-09 across all 4 repos.
 > Issues ordered by severity. Fix critical + high before any public launch.
@@ -661,17 +661,64 @@ Host site loads `crelyzor.app/embed.js` → script creates an `<iframe>` pointin
 
 ---
 
-## Phase 4.9 — In-App Notifications
+## Phase 4.9 — In-App Notifications + WebSocket Foundation
 
-> Real-time in-app notification system. Same triggers as existing Resend emails — bookings, meeting AI complete, task due soon — persisted to DB and pushed live to the frontend via SSE. Bell icon in the header, a notification panel, and real-time delivery using Redis pub/sub (same infrastructure as Ask AI streaming).
+> Real-time in-app notification system built on a WebSocket foundation designed to scale to Phase 6 Teams (presence, workspace events) and beyond. SSE was the original plan but is replaced by WebSocket: Phase 6 Teams definitively needs bidirectional real-time, so building the infrastructure now avoids a guaranteed migration later. One WS connection per tab carries all real-time events — notifications today, team presence and Ask AI streaming in future phases.
 
 ### Architecture
 
-- `Notification` model per user, `NotificationType` enum
-- `notificationService` — create, list, mark read, mark all read, delete, unread count
-- Redis pub/sub (`notify:${userId}`) + SSE endpoint for real-time delivery
-- `UserSettings` extended with in-app preference toggles (master + per-type)
-- Wired alongside existing email triggers — fail-open, never blocks the primary flow
+```
+Browser Tab
+    │
+    │  ws://<host>/ws?token=<jwt>        ← native WebSocket, no Socket.io
+    ▼
+Express HTTP server (same port, no new process)
+    │  HTTP upgrade → WebSocket
+    ▼
+WebSocketServer (ws library)  ←  src/websocket/wsServer.ts
+    │
+    ├── wsAuth.ts           verify JWT from ?token= query param on upgrade
+    ├── connectionRegistry.ts   Map<userId, Set<WebSocket>>  (multiple tabs)
+    ├── heartbeat.ts        30s ping/pong, terminate dead connections
+    └── notificationSubscriber.ts
+            │  redisClient.duplicate() → dedicated sub connection per instance
+            │  SUB notify:${userId}  when first tab connects
+            │  UNSUB notify:${userId} when last tab disconnects
+            ▼
+        Redis pub/sub  ←── notificationService.create() publishes after DB insert
+```
+
+**Typed message envelope** — all WS traffic uses a discriminated union so adding new event types in future phases requires zero infrastructure changes:
+
+```typescript
+// Server → Client
+type WsServerMessage =
+  | { type: 'CONNECTED'; unreadCount: number }
+  | { type: 'NOTIFICATION'; data: Notification }
+  | { type: 'PING' }
+  // Phase 6 additions (no infrastructure changes needed):
+  // | { type: 'TEAM_MEMBER_JOINED'; teamId: string; member: TeamMember }
+  // | { type: 'MEMBER_PRESENCE_UPDATED'; teamId: string; userId: string; status: 'online' | 'away' }
+  // Ask AI migration (drop SSE, reuse this connection):
+  // | { type: 'ASK_AI_CHUNK'; meetingId: string; chunk: string }
+  // | { type: 'ASK_AI_DONE'; meetingId: string }
+
+// Client → Server
+type WsClientMessage =
+  | { type: 'PONG' }
+  | { type: 'PING' }
+```
+
+**Architectural constraints (non-negotiable):**
+- **Worker = publisher only.** The worker process (`jobProcessor`) never holds WebSocket connections and never touches the `ConnectionRegistry`. It only calls `redisClient.publish('notify:${userId}', payload)` after completing a job. This is enforced by the fact that the ConnectionRegistry lives in the API server's memory — a separate Node.js process cannot access it.
+- **API server = sole WebSocket owner.** All WebSocket connections live in the API server process. It is the only process that holds open sockets and fans out messages to clients.
+- This boundary means: worker triggers a notification → publishes to Redis → API server's subscriber picks it up → fans out to all open tabs for that user via ConnectionRegistry. Never short-circuit this path.
+
+**Horizontal scaling:** Redis pub/sub handles fan-out across multiple backend instances automatically. When a user has tab 1 on instance A and tab 2 on instance B, both instances subscribe to `notify:${userId}` on Redis — so both tabs receive the notification. No coordination between instances is needed.
+
+**Redis subscriber — one per instance, not one per user:** Each backend instance runs a single shared `IORedis` subscriber connection (not one per user). When a user's first tab connects, call `sharedSub.subscribe('notify:${userId}')` on the shared connection. When their last tab disconnects, call `sharedSub.unsubscribe('notify:${userId}')`. The single `sharedSub.on('message', (channel, message) => {...})` handler parses the userId from the channel name and routes to `registry.broadcast()`. This keeps Redis connections at O(instances) not O(users).
+
+**`index.ts` integration:** `app.listen()` returns an `http.Server`. We pass that server instance directly to `createWsServer(server)` — no new port, no new process.
 
 ### Notification types
 
@@ -679,214 +726,335 @@ Host site loads `crelyzor.app/embed.js` → script creates an `<iframe>` pointin
 
 ### Backend (`crelyzor-backend`)
 
-- [ ] **P0 — Schema:** `Notification` model + `NotificationType` enum + index on `[userId, isRead, createdAt]` + `inAppNotificationsEnabled`, `inAppBookingEnabled`, `inAppMeetingReadyEnabled`, `inAppTaskDueEnabled` on `UserSettings` + `pnpm db:migrate && pnpm db:generate`
-- [ ] **P1 — Service + Endpoints:** `notificationService.ts` (create, list, markRead, markAllRead, delete, unreadCount) + routes + controller + Zod validator. `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`, `DELETE /notifications/:id`, `GET /notifications/stream`
-- [ ] **P2 — SSE Real-time:** `GET /notifications/stream` subscribes to Redis `notify:${userId}` via `redisClient.duplicate()`. 30s keep-alive ping. Unsubscribe + cleanup on `res.on('close')`. `createNotification` publishes to Redis after DB insert.
-- [ ] **P3 — Wire Triggers:** `bookingManagementService.ts` → `BOOKING_RECEIVED` (host), `BOOKING_CANCELLED` (host). `bookingService.ts` reminder job → `BOOKING_REMINDER`. `jobProcessor.ts` → `MEETING_AI_COMPLETE`. New daily 8am cron → `TASK_DUE_SOON` for tasks due today.
-- [ ] **P4 — Settings:** expose `inApp*` fields in `GET/PATCH /settings/user` response + update
+- [x] **P0 — Schema:** `Notification` model + `NotificationType` enum + index on `[userId, isRead, createdAt]` + `inAppNotificationsEnabled`, `inAppBookingEnabled`, `inAppMeetingReadyEnabled`, `inAppTaskDueEnabled` on `UserSettings` + `pnpm db:migrate && pnpm db:generate`
+
+- [x] **P1 — WebSocket Foundation** ← replaces the SSE plan; install `ws` + `@types/ws`
+  - `src/websocket/types.ts` — `WsServerMessage` + `WsClientMessage` discriminated unions
+  - `src/websocket/connectionRegistry.ts` — `Map<userId, Set<WebSocket>>`, `add()`, `remove()`, `broadcast(userId, msg)`, `size()`
+  - `src/websocket/wsAuth.ts` — extract `?token=` from upgrade request URL, call `tokenService.verifyAccessToken()`, validate session via `sessionService.validateSession()`, return `TokenPayload` or close with 4001
+  - `src/websocket/heartbeat.ts` — 30s `setInterval`, send `{ type: 'PING' }`, mark `ws.isAlive = false`, terminate if no PONG received before next tick
+  - `src/websocket/notificationSubscriber.ts` — ONE shared `IORedis` subscriber instance (created once via `redisClient.duplicate()`), never recreated; `subscribeUser(userId)` calls `sharedSub.subscribe('notify:${userId}')` only when `registry.size(userId) === 1` (first tab for that user); `unsubscribeUser(userId)` calls `sharedSub.unsubscribe('notify:${userId}')` only when `registry.size(userId) === 0` (last tab closed); single `sharedSub.on('message', (channel, msg) => { const userId = channel.replace('notify:', ''); registry.broadcast(userId, JSON.parse(msg)); })` handler routes all messages — O(instances) Redis connections, not O(users)
+  - `src/websocket/wsServer.ts` — `createWsServer(httpServer)`: creates `WebSocketServer({ server, path: '/ws' })`, on `connection`: run `wsAuth` (close 4001 if fail), add to registry, subscribe Redis channel, send `CONNECTED` with unread count, wire heartbeat, on `close` remove from registry + conditionally unsubscribe Redis; export `closeWsServer()`
+  - `src/index.ts` — capture `const server = app.listen(...)`, call `createWsServer(server)`, add `closeWsServer()` to both SIGTERM and SIGINT shutdown handlers
+
+- [x] **P2 — Notification Service + REST Endpoints:** `src/services/notificationService.ts` (create with Redis publish, list paginated, markRead, markAllRead, delete, unreadCount) + `src/validators/notificationSchema.ts` + `src/controllers/notificationController.ts` + `src/routes/notificationRoutes.ts` registered under `/api/v1/notifications`. Endpoints: `GET /notifications` (paginated, filter by isRead), `GET /notifications/unread-count`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`, `DELETE /notifications/:id`
+
+- [x] **P3 — Wire Triggers** — call `notificationService.create()` fail-open (try/catch, log on error, never throw) alongside existing email sends:
+  - `bookingManagementService.ts` → `BOOKING_RECEIVED` to host on new booking, `BOOKING_CANCELLED` to host on cancellation
+  - `bookingService.ts` reminder job → `BOOKING_REMINDER` to host + guest
+  - `jobProcessor.ts` AI complete handler → `MEETING_AI_COMPLETE` after `aiService.processTranscriptWithAI()` succeeds
+  - New daily 8am cron job (`TASK_DUE_SOON`) → query tasks where `dueDate = today AND isCompleted = false` per user, create one notification per user if any exist
+
+- [x] **P4 — Settings:** add `inApp*` fields to `settingsService.ts` `getUserSettings()` + `updateUserSettings()` + `settingsController.ts` response shape + `src/validators/settingsSchema.ts`
 
 ### Frontend (`crelyzor-frontend`)
 
-- [ ] **P0 — Service + Query Layer:** `notificationService.ts` API calls + `queryKeys.notifications.*` + hooks: `useNotifications()`, `useUnreadCount()`, `useMarkRead()`, `useMarkAllRead()`, `useDeleteNotification()`
-- [ ] **P1 — Notification Bell:** `<NotificationBell />` in app header — bell icon with unread badge (count < 100, "99+" when over). Fallback: `useUnreadCount` refetches every 60s.
-- [ ] **P2 — Notification Panel:** `<NotificationPanel />` popover — skeleton while loading, empty state ("You're all caught up"), notification rows (type icon + title + relative time + unread dot). Click → mark read + navigate to entity. "Mark all as read" + "Clear all" buttons. Grouped: Today / Earlier.
-- [ ] **P3 — SSE Hook:** `useNotificationStream()` — `EventSource` to `/api/v1/notifications/stream`. On event: invalidate `queryKeys.notifications.*` + show subtle Sonner toast. Auto-reconnect with exponential backoff (3s → 6s → 12s → max 60s). Cleanup on unmount.
-- [ ] **P4 — Settings:** Expand Settings > Notifications tab — "In-App" column alongside existing "Email" toggles. Master toggle + per-type (Bookings, Meeting AI ready, Task due soon).
+- [x] **P0 — WebSocket Client Hook**
+  - `src/hooks/useWebSocket.ts` — singleton pattern (one connection per app lifetime, not per component); reads JWT from `authStore`; connects to `ws://<API_HOST>/ws?token=<jwt>`; typed `WsServerMessage` handler registry (`Map<string, Set<handler>>`); exponential backoff reconnect (3s → 6s → 12s → 24s → max 60s, reset on successful open); cleanup on unmount; disconnect on logout
+  - `src/hooks/useNotificationStream.ts` — wraps `useWebSocket`, registers handler for `NOTIFICATION` message type; on event: `queryClient.invalidateQueries(queryKeys.notifications.all())` + show Sonner toast with notification title; mount this in `AppInitializer` so it runs for the entire authenticated session
+
+- [x] **P1 — Notification Service + Query Layer:** `src/services/notificationService.ts` (REST API calls for all 5 endpoints) + add `notifications` namespace to `src/lib/queryKeys.ts` + hooks: `useNotifications(filter?)`, `useUnreadCount()`, `useMarkRead()`, `useMarkAllRead()`, `useDeleteNotification()`
+
+- [x] **P2 — Notification Bell:** `<NotificationBell />` in app header — `Bell` icon (Lucide), red badge with unread count capped at "99+", badge hidden when count is 0, opens `<NotificationPanel />` on click, uses `useUnreadCount()` (60s polling fallback) + WS for instant update
+
+- [x] **P3 — Notification Panel:** `<NotificationPanel />` popover — skeleton while loading; empty state "You're all caught up" with muted bell icon; notification rows (type icon + title + body + relative time + unread dot); click row → `markRead` + navigate to entity (`/meetings/:id`, `/scheduling/bookings`, `/tasks`); "Mark all as read" button (hidden when all read); "Clear all" button; rows grouped into Today / Earlier sections
+
+- [x] **P4 — Settings:** expand Settings > Notifications tab — add "In-App" column alongside existing "Email" column; master `inAppNotificationsEnabled` toggle disables all per-type toggles below it; per-type: Bookings, Meeting AI ready, Task due soon
 
 ### Public (`crelyzor-public`)
 
 No changes — notifications are authenticated dashboard-only.
 
+### Future phases — zero infrastructure changes needed
+
+| Phase | Addition |
+|---|---|
+| Phase 6 Teams | Add `TEAM_MEMBER_JOINED`, `MEMBER_PRESENCE_UPDATED` to `WsServerMessage`; publish to `notify:${userId}` from team service |
+| Ask AI migration | Handled in Phase 8 P6 — migrate SSE → WebSocket alongside agent launch |
+| Live collaborative notes | Add `NOTE_UPDATED` type; publish from `meetingNoteService` |
+
 ---
 
 ## Phase 5 — Encryption at Rest
 
-> Full design spec: `docs/superpowers/specs/2026-05-16-encryption-at-rest-design.md`
+**Goal:** every sensitive user-facing string and every recording object is encrypted at rest. Server holds keys (envelope encryption via Google Cloud KMS), AI features and all existing searches keep working unchanged. Not E2EE — Crelyzor can still decrypt to power AI; an explicit non-goal.
 
-**Goal:** every sensitive user-facing string and every recording object is encrypted at rest. Server holds keys (envelope encryption via Google Cloud KMS), AI features keep working unchanged. Not E2EE — Crelyzor can still decrypt to power AI; an explicit non-goal documented in the spec.
+**Implementation plan:** `docs/superpowers/plans/2026-05-22-encryption-at-rest.md`
 
 **Key model:**
-- One KEK per environment in Google Cloud KMS — never leaves the HSM.
-- One DEK per user, AES-256, stored as `User.wrappedDek` (wrapped by KEK).
-- Unwrapped to plaintext only in backend memory, only for the duration of a single request (AsyncLocalStorage), discarded on request end.
+- One KEK per environment in Google Cloud KMS — never leaves the HSM. Same GCP region as app server (latency requirement).
+- One DEK per user, AES-256-GCM, stored as `User.wrappedDek Bytes` (wrapped by KEK). Also tracks `User.dekVersion Int` for rotation.
+- DEK history kept in `UserDekHistory` — enables rotation without re-encrypting all records at once.
+- DEK cached in an **in-process LRU cache** (200 entries, 60s TTL) — works identically in HTTP handlers AND Bull workers.
 - AES-256-GCM via Node's built-in `crypto`. No third-party crypto libs.
-- Per-record ciphertext: `iv(12) ‖ ciphertext ‖ authTag(16)` in a single `Bytes` column.
+- Per-record ciphertext: `version(1) ‖ iv(12 random) ‖ ciphertext ‖ authTag(16)` — version byte enables DEK rotation without re-encrypting old records.
+- Blind indexes (HMAC-SHA256) for all searchable PII fields — exact-match queries preserved.
+
+**KMS provider:** toggled by `KMS_PROVIDER=local|gcp`. `LocalKmsProvider` uses `LOCAL_KMS_KEY` from `.env` — same code path as GCP, no bypass, no plaintext passthrough. Dev behaves exactly like prod.
+
+**Decisions made (2026-05-22):**
+
+| # | Decision | What | Why |
+|---|----------|------|-----|
+| 1 | KMS provider for dev | `KMS_PROVIDER=local` — `LocalKmsProvider` wraps/unwraps the DEK using `LOCAL_KMS_KEY` (32-byte hex in `.env`). Same AES-256-GCM code path as GCP, no plaintext bypass. | Avoids requiring GCP credentials just to start the dev server. Prod always uses `KMS_PROVIDER=gcp`. |
+| 2 | Crypto algorithm | AES-256-GCM via Node.js built-in `crypto` module. No third-party crypto libs. | Industry standard authenticated encryption — confidentiality + integrity in one pass. Built-in means zero supply-chain risk. |
+| 3 | Migration strategy | **Single-step — no dual-write.** In-scope columns change from `String` to `Bytes?` in one migration. Existing rows set to `NULL` (4-5 users — acceptable to nuke). Backfill generates DEKs and re-encrypts any surviving rows. | Dual-write only pays off at 1,000+ users who need zero-downtime rollout windows. At 4-5 users, nuke-and-restart is free and removes two extra phases of complexity. |
+| 4 | No feature flags | No `_encrypted` shadow columns. No `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN` env flag. All writes go directly to the `Bytes` column; all reads decrypt from the same column. | Feature flags add complexity, test surface, and maintenance burden. Current scale makes them pure overhead with no benefit. |
+| 5 | Task.title plaintext, Task.description encrypted | `Task.title` stays `String` — needed for full-text search and future Big Brain indexing. `Task.description` becomes `Bytes?`. | Title is always user-typed, always shown in lists, always searched. Description is AI-generated with richer PII (participant names, topics, details). |
+| 6 | Blind index implementation | `HMAC-SHA256(normalize(value), HMAC_BLIND_INDEX_KEY)` stored in `*_bidx Bytes` column. Separate `HMAC_BLIND_INDEX_KEY` (32-byte hex). Normalise = lowercase + trim before hashing. | Industry standard for exact-match search on encrypted fields. Normalisation ensures "Jane@Acme.com" and "jane@acme.com" produce the same blind index and match correctly. |
+| 7 | No backups infrastructure yet | No automated backup system. If DB restore needed: SSH into VM, restore from filesystem snapshot manually. | Pre-PMF at 4-5 users. Invest in backup infra when user count justifies it. Revisit at Phase 6 / first paying customer. |
+| 8 | OAuthAccount tokens in scope | `OAuthAccount.accessToken` and `refreshToken` are encrypted. Looked up only by `userId + provider` — no blind index needed. | Highest-value encryption target: compromising these gives full Google account access. Zero query-pattern impact from encrypting since they're never searched or matched by value. |
+
+**Known breakages naive encryption would cause (and how they're resolved):**
+
+| # | Breakage | File | What breaks | Resolution |
+|---|----------|------|-------------|------------|
+| 1 | Meeting↔card auto-linking | `meetingService.ts:216` — `email: { in: participantEmails }` on `CardContact.email` | Encrypted `Bytes` never equals a plaintext email string — auto-linking silently breaks | Compute blind index of each participant email, query `CardContact.email_bidx: { in: [...blindIndexes] }` instead |
+| 2 | Global search on contact email | `searchService.ts:95` — `ILIKE '%query%'` on `CardContact.email` | ILIKE on `Bytes` column = zero matches always | Drop `email` from the ILIKE OR clause; when query looks like an email (contains `@`), add exact blind-index match |
+| 3 | Card contact search by email | `cardService.ts:634, 729` — `ILIKE` on `CardContact.email` | Same as above | Same fix: blind-index exact match |
+| 4 | Public write with no req.user | `cardService.ts:524` — `submitContact()` — guest submits contact to a card owner | No `req.user` → no `userId` to call `getDek()` | Pass `card.userId` (the card owner's ID) explicitly: `getDek(card.userId)` |
 
 **In scope (encrypted columns):**
 
-| Model | Column(s) |
-|---|---|
-| `MeetingTranscript` | `fullText` |
-| `TranscriptSegment` | `text` |
-| `MeetingNote` | `content` |
-| `MeetingAISummary` | `summary`, `keyPoints[]` |
-| `MeetingAIContent` | `content` |
-| `AskAIConversation` | message contents |
-| `Task` | `title`, `description` |
-| `CardContact` | `name`, `email`, `phone`, `notes` |
-| `Booking` | `guestEmail`, `guestNotes` |
+| Model | Column(s) | Blind index? |
+|---|---|---|
+| `MeetingTranscript` | `fullText` | No |
+| `TranscriptSegment` | `text` | No |
+| `MeetingNote` | `content` | No |
+| `MeetingAISummary` | `summary`, `keyPoints` (each element encrypted individually, stored as `Bytes[]`) | No |
+| `MeetingAIContent` | `content` | No |
+| `AskAIMessage` | `content` | No |
+| `Task` | `description` only — `title` stays `String` for search + Big Brain | No |
+| `CardContact` | `name`, `email`, `phone`, `company`, `note` | `email_bidx`, `phone_bidx` |
+| `Booking` | `guestName`, `guestEmail`, `guestNote` | `guestEmail_bidx` |
+| `MeetingParticipant` | `guestEmail` | `guestEmail_bidx` |
+| `OAuthAccount` | `accessToken`, `refreshToken` | No — looked up by `userId + provider` only |
 
 **In scope (storage):**
-- GCS recordings bucket → bucket-level CMEK using the same KMS key (no app code changes; one `gsutil kms encryption -k ...` config).
+- GCS recordings bucket → CMEK via the same KMS key. No app code changes.
 
 **Out of scope (stays plaintext):**
 - All IDs, FKs, timestamps, soft-delete flags
-- `Meeting.title`, `Tag.name`, indexed fields (`speaker`, `startTime`)
-- `Card.*` (public profile rendered to open web)
+- `Meeting.title`, `Task.title`, `Tag.name`, indexed fields (`speaker`, `startTime`)
+- `Card.*` (public profile rendered to open web — must be readable without a user session)
+- `CardContact.name`, `CardContact.company` — ILIKE search in global search + card search; lower PII sensitivity than email
 - `EventType.*`, `UserSettings`, `Task.status`, `Task.dueDate`
+- Blind index columns (`*_bidx`) — HMAC output, not reversible to plaintext
 
 **Out of scope (explicitly not building):**
-- End-to-end encryption — evaluated and rejected (kills AI features, breaks Phase 8 Big Brain, lost-passphrase = permanent data loss).
-- Per-meeting "Private Mode" Hybrid opt-in — deferred until users actually ask for it.
-- Searchable encryption / blind indexes — defer.
+- End-to-end encryption — kills AI features and Big Brain.
+- Full-text search on encrypted columns — Phase 8 (Big Brain embeddings) handles semantic search.
+- Per-meeting "Private Mode" — deferred until users ask for it.
 
-### P0 — Foundations (do first)
+**Worker / background job DEK access:** Bull workers call `getDek(userId)` — hits the shared LRU cache first, falls back to KMS on miss. No AsyncLocalStorage, no manual seeding. Same function as HTTP handlers. No special worker code required.
 
-- [ ] Provision Google Cloud KMS keyring + KEK per environment (dev / staging / prod)
-- [ ] IAM bind backend service account: `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the KEK only
-- [ ] Build `src/utils/security/crypto.ts` — `encrypt(text, userId)`, `decrypt(bytes, userId)`, internal `getDek(userId)` with AsyncLocalStorage cache
-- [ ] Unit tests: round-trip encrypt/decrypt, wrong-DEK fails, tampered ciphertext fails GCM auth check
-- [ ] Add `cryptoMiddleware` that unwraps DEK once per request and caches in AsyncLocalStorage
+**Crypto-shredding:** destroying `User.wrappedDek` + all `UserDekHistory` rows makes every ciphertext for that user permanently unrecoverable — even in old DB backups. GDPR delete solved as a free side effect.
 
-### P1 — Schema changes
+### P0 — cryptoService foundations
 
-- [ ] Migration 1 (`add_wrapped_dek_and_bytes_columns`): add `User.wrappedDek Bytes?` + `<column>_encrypted Bytes?` shadow column for every in-scope column. Both old + new live side-by-side during backfill.
-- [ ] Update Prisma schema accordingly. `pnpm db:migrate && pnpm db:generate`
+- [x] Install `@google-cloud/kms` and `vitest`
+- [x] Build `src/utils/security/dekCache.ts` — LRU wrapper around `node-cache`, keyed by `userId:version`
+- [x] Build `src/utils/security/kmsProviders.ts` — `GcpKmsProvider` + `LocalKmsProvider`, toggled by `KMS_PROVIDER`
+- [x] Build `src/utils/security/crypto.ts` — `encrypt`, `decrypt`, `blindIndex`, `initDekForNewUser`, `encryptWithKey`, `decryptWithKey`
+- [x] Add env vars: `KMS_PROVIDER`, `LOCAL_KMS_KEY`, `HMAC_BLIND_INDEX_KEY`, `GCP_KMS_KEY_NAME`
+- [x] Unit tests (vitest): round-trip, version byte, random IV, tampered ciphertext throws, blind index normalises, LocalKmsProvider wrap/unwrap, dekCache eviction
 
-### P2 — Backfill
+### P1 — Schema migration (single-step)
 
-- [ ] Script `src/scripts/backfill-encryption.ts` — generate DEKs for users missing one, then encrypt all in-scope rows. Idempotent, resumable, batched (1000/txn), dry-run mode.
-- [ ] Run dry-run against staging DB snapshot — assert decrypt-roundtrip matches plaintext for 1000-row random sample
-- [ ] Run against staging
-- [ ] Run against prod (off-hours)
+- [x] `User.wrappedDek Bytes?`, `User.dekVersion Int @default(1)`
+- [x] `UserDekHistory` model with `@@unique([userId, version])`
+- [x] All in-scope `String` columns → `Bytes?` (single-step, no shadow columns)
+- [x] `MeetingAISummary.keyPoints Bytes?` (encrypted JSON array)
+- [x] Blind index columns: `emailBidx`, `phoneBidx` on `CardContact`; `guestEmailBidx` on `Booking` + `MeetingParticipant`
+- [x] `pnpm db:migrate` + `pnpm db:generate`
 
-### P3 — Service-layer cutover
+### P2 — Registration hook
 
-- [ ] Patch all in-scope service writes: encrypt before insert. ~30–50 call sites total.
-- [ ] Patch all in-scope service reads: decrypt after fetch. Same call sites mostly.
-- [ ] Feature flag `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN` defaults `false`. When `true`, reads come from `_encrypted` column; when `false`, from plaintext column.
-- [ ] Writes dual-write to both columns during the rollout window (~7 days), gated by same flag.
-- [ ] Add logger denylist for encrypted fields — `logger.info({ transcript })`-style passes never log plaintext content.
+- [x] `initDekForNewUser(userId, tx)` called inside the `isNewUser` block in `src/controllers/googleController.ts`
 
-### P4 — GCS CMEK
+### P3 — Service-layer encryption (direct — no dual-write)
 
-- [ ] Grant Cloud Storage service agent `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the KEK
-- [ ] `gsutil kms encryption -k <key-resource-name> gs://<recordings-bucket>` — all new uploads encrypted
-- [ ] Background `gsutil rewrite -k` for existing recording objects
+- [x] `transcriptionService.ts` — encrypt `fullText` + `TranscriptSegment.text`
+- [x] `aiService.ts` — encrypt `MeetingAISummary.summary` + `keyPoints`
+- [x] `askAIConversationService.ts` — encrypt `AskAIMessage.content`
+- [x] `smaEditService.ts` — encrypt `MeetingNote.content`, `MeetingAIContent.content`, segment edits
+- [x] `tasksService` / `taskController` — encrypt `Task.description`
+- [x] `cardService.ts` — encrypt `CardContact` PII + blind-index search; `submitContact()` uses `getDek(card.userId)` (Breakage #4)
+- [x] `bookingService.ts` — encrypt `Booking` PII + `guestEmail_bidx`
+- [x] `meetingService.ts` — encrypt `MeetingParticipant.guestEmail`; auto-linking uses `blindIndex` (Breakage #1)
+- [x] `googleCalendarService.ts` / `googleService.ts` — encrypt `OAuthAccount.accessToken` + `refreshToken`
+- [x] `searchService.ts` — blind-index exact match for email queries (Breakages #2 + #3)
+- [x] `shareService.ts` + `exportService.ts` — decrypt transcript + summary for public/export reads
+- [x] Logger PII denylist: `redactPii()` in `logFormatter.ts` strips denylisted fields from structured log output
 
-### P5 — Cutover + cleanup
+### P4 — Backfill
 
-- [ ] Flip `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN` → `true` in prod
-- [ ] Monitor 7 days — KMS audit logs healthy, no decrypt failures, no plaintext leaks in app logs
-- [ ] Migration 2 (`drop_plaintext_columns`): drop old String columns, rename `_encrypted` → original name
-- [ ] Wire account-delete flow to destroy `wrappedDek` (crypto-shredding for GDPR)
+- [x] `src/scripts/phase5Backfill.ts` — idempotent, batched, `--dry-run` flag, verification sample
+- [x] Dry-run passed clean
+- [x] Real run passed: spot-checks green on local DB
 
-### P6 — Hardening (post-cutover)
+### P5 — GCS CMEK + crypto-shredding + observability
 
-- [ ] Spot-check prod DB dump for any remaining plaintext content (`grep -c` on common transcript words against a redacted dump)
-- [ ] Document the KMS disaster-recovery runbook (key destruction protection, regional failover, IAM hygiene)
-- [ ] Cloud Logging alert on anomalous KMS unwrap volume
-- [ ] Pre-encryption backups: inventory all Cloud SQL backups + manual snapshots, then delete or re-import-and-re-encrypt every pre-encryption backup — otherwise crypto-shredding has a plaintext escape hatch
-
-**Effort estimate:** ~1.5 weeks for one focused engineer. Most of the time is in P2 (backfill correctness) and P3 (mechanical but wide find-and-replace + tests).
+- [x] GCS CMEK: KMS keyrings + keys provisioned for dev/staging/prod; GCS service agent granted access; CMEK set on all three buckets; existing objects re-encrypted
+- [x] Crypto-shredding: `authService.deactivateAccount` destroys `UserDekHistory` + nulls `User.wrappedDek` in transaction, then `evictDek(userId)`
+- [x] Cloud Monitoring alert created (policy `8638838345955756167`): KMS API requests > 100/hour
+- [x] KMS DR runbook in `docs/dev-notes/encryption.md` (key destruction protection, IAM hygiene checklist, regional failover)
 
 ---
 
 ## Phase 6 — Teams
 
-> Full design spec: `docs/superpowers/specs/2026-05-09-teams-design.md`
+> Full design spec: `docs/internal/superpowers/specs/2026-05-09-teams-design.md`
 > Per-repo breakdowns: each repo's `TASKS.md`
 
-**The model:** Pro users can create up to 3 teams (configurable via SystemConfig). The team owner pays for all consumption — transcription, storage, AI credits — for all members across all their teams. Members and admins consume the owner's Pro quota. Members join free.
+**The model:** Pro+ users (PRO or BUSINESS plan) can create teams (≤3 for Pro, ≤10 for Business — both configurable via SystemConfig). The team owner pays for all consumption — transcription, storage, AI tokens — across all their teams. Members and admins consume the owner's quota. Members can join on any plan including Free.
 
-**Workspace switching:** Top-left dropdown (where user name is today) switches between Personal and each team. Full context switch — all surfaces (meetings, cards, tasks, scheduling) scope to selection. Zero overlap.
+**Encryption:** Per-team DEK (additive to Phase 5's per-user DEK). Team-scoped content encrypts under the team DEK; member removal and ownership transfer require zero re-encryption. Team deletion = crypto-shred via cascade.
+
+**Workspace switching:** Top-left replaces `UserMenu` with a workspace switcher. Soft switch (no hard reload) — Zustand store + broad query invalidation + 250ms cross-fade.
 
 **Roles:** Owner (full control, billing) / Admin (manage, no billing) / Member (own content only).
 
 **Cards:** Team gets a public card at `crelyzor.app/t/:slug`. Members get auto-created team cards on join.
 
-**Scheduling:** Each member sets their own availability within the team. External visitors book a specific member via `/schedule/t/:slug/:username`. Team members can book each other internally from the dashboard.
+**Scheduling:** Each member sets their own availability within the team. External visitors book a specific member via `/schedule/t/:slug/:username`. Team members book each other internally from the dashboard (4-step modal).
 
 **Config:** All limits live in a `SystemConfig` table — editable from admin portal. Nothing hardcoded.
 
+**Pro gate (interim):** Until Razorpay unblocks, admins flip `user.plan` manually via the admin portal.
+
 ### P0 — Backend: Schema (do first — everything depends on this)
 
-- [ ] `SystemConfig` model — key/value store for all limits and feature flags
-- [ ] `Team` model — id (UUID), name, slug (unique), ownerId, logoUrl, createdAt, deletedAt
-- [ ] `TeamMember` model — id, teamId, userId, role (OWNER | ADMIN | MEMBER), joinedAt, leftAt (nullable)
-- [ ] Add `teamId UUID?` to: Meeting, Card, Task, EventType, Booking (null = personal context)
-- [ ] Migration: `pnpm db:migrate && pnpm db:generate`
+- [ ] `SystemConfig` model — key/value store + `updatedAt`, `updatedBy`. Seed defaults: `max_teams_per_pro_user=3`, `max_teams_per_business_user=10`, `max_members_per_team=50`, `team_invite_expiry_days=7`.
+- [ ] `Team` model — id (UUID), name, slug (unique), description (String? max 500), ownerId, logoUrl, **wrappedDek (Bytes)**, **dekVersion (Int @default 1)**, isDeleted, deletedAt, createdAt, updatedAt.
+- [ ] `TeamMember` model — id, teamId, userId, role (OWNER | ADMIN | MEMBER), joinedAt, isDeleted, deletedAt. (No `leftAt` — soft-delete semantics handle "left" via `isDeleted`.)
+- [ ] `TeamInvite` model — id, teamId, email, userId?, role, token (unique), invitedById, expiresAt, acceptedAt?, declinedAt?, cancelledAt?, isDeleted, deletedAt.
+- [ ] `TeamDekHistory` model — mirrors `UserDekHistory`. Hard cascade on Team delete (crypto-shred). No isDeleted/deletedAt.
+- [ ] Add `teamId UUID?` + index `@@index([teamId, isDeleted])` to: `Meeting`, `Card`, `Task`, `EventType`, `Booking`, `UserUsage`.
+- [ ] Migration: `pnpm db:migrate && pnpm db:generate`.
 
 ### P1 — Backend: Team CRUD + Member Management
 
-- [ ] `POST /teams` — create team (Pro gate, SystemConfig max-teams check, auto-create team Card)
-- [ ] `GET /teams` — list teams the user belongs to
-- [ ] `PATCH /teams/:teamId` — update name/logo (Owner/Admin)
-- [ ] `DELETE /teams/:teamId` — soft delete (Owner only)
-- [ ] `GET /teams/:teamId/members` — list members with role + usage
-- [ ] `POST /teams/:teamId/members/invite` — invite by userId or email
-- [ ] `PATCH /teams/:teamId/members/:userId` — change role (Owner only)
-- [ ] `DELETE /teams/:teamId/members/:userId` — remove member (Owner/Admin)
-- [ ] `POST /teams/invites/:token/accept` — accept email invite
-- [ ] `DELETE /teams/:teamId/leave` — leave team (blocked if Owner)
+- [ ] `POST /teams` — create team. Plan gate (`user.plan IN ('PRO','BUSINESS')`). SystemConfig max-teams check by plan. Transaction: create Team + generate team DEK (Cloud KMS) + create OWNER TeamMember + auto-create team Card with `userId = ownerId`.
+- [ ] `GET /teams` — list teams the user is active in. Include role.
+- [ ] `PATCH /teams/:teamId` — update name (Admin), slug (Owner only), logo (Admin), description (Admin).
+- [ ] `DELETE /teams/:teamId` — soft delete (Owner only). Sets all member rows `isDeleted: true` in transaction. Schedules hard delete + crypto-shred after retention window.
+- [ ] `POST /teams/:teamId/transfer-ownership` — Owner only. Requires typing team name to confirm. Transaction: flip `Team.ownerId`, swap roles (old Owner → ADMIN, new Owner → OWNER), reassign team Cards' `userId`.
 
-### P2 — Backend: Team-scoped Content + Middleware
+### P2 — Backend: Team Member + Invite Management
 
-- [ ] `verifyTeamMember` middleware — verifies user is active member (`leftAt IS NULL`)
-- [ ] `verifyTeamRole('ADMIN' | 'OWNER')` middleware — role check on top of membership
-- [ ] All meeting/card/task/scheduling endpoints respect `teamId` context header
-- [ ] Meeting visibility: Members see own meetings only; Owner/Admin see all team meetings
-- [ ] `GET /teams/:teamId/usage` — per-member consumption breakdown (Owner/Admin only)
+- [ ] `GET /teams/:teamId/members` — active members + role + last-active (from WS presence) + per-member usage summary.
+- [ ] `POST /teams/:teamId/members/invite` — body: `{ mode: 'user'|'email', userId?, emails?[], role, message? }`. Admin/Owner only. Member count check. Returns invites created.
+- [ ] `GET /teams/:teamId/invites` — list pending invites. Admin/Owner.
+- [ ] `POST /teams/:teamId/invites/:inviteId/resend` — Admin/Owner.
+- [ ] `DELETE /teams/:teamId/invites/:inviteId` — Admin/Owner (cancels invite).
+- [ ] `GET /invites/:token` — public, validate token + return team info (no auth).
+- [ ] `POST /invites/:token/accept` — accept email invite (requires JWT; if no account, signup flow runs first then calls this).
+- [ ] `POST /invites/:token/decline` — decline.
+- [ ] `POST /teams/:teamId/invites/accept` — accept in-app invite (existing user).
+- [ ] `POST /teams/:teamId/invites/decline` — decline in-app.
+- [ ] `PATCH /teams/:teamId/members/:userId` — change role. Owner only. Cannot change own role.
+- [ ] `DELETE /teams/:teamId/members/:userId` — remove member. Admin/Owner. Cannot remove Owner. Soft-deletes their team Card.
+- [ ] `DELETE /teams/:teamId/leave` — leave team. Blocked if caller is Owner.
 
-### P3 — Backend: Team Scheduling (public endpoints)
+### P3 — Backend: Encryption — per-team DEK
 
-- [ ] `GET /public/scheduling/team/:slug/profile` — team profile + active member list
-- [ ] `GET /public/scheduling/team/:slug/:username` — specific member's scheduling profile (team context)
-- [ ] Slot engine respects team-scoped EventTypes
+- [ ] Extend `cryptoService.getDek()` to accept `Principal = { type: 'user'|'team', id }`. Backward-compatible overload.
+- [ ] DEK cache key becomes `${type}:${id}` — same LRU capacity, shared across user + team.
+- [ ] Encrypt/decrypt helpers pick principal from `row.teamId` (set → team, null → user).
+- [ ] Bull job payloads carry `{ userId, teamId? }`. Workers call correct `getDek()`.
+- [ ] Crypto unit tests cover team principal path + cache eviction across principals.
 
-### P4 — Backend: Admin Portal Config API
+### P4 — Backend: Context Middleware + Quota Resolver
 
-- [ ] `GET /admin/config` — list all SystemConfig entries
-- [ ] `PATCH /admin/config/:key` — update a config value
-- [ ] `GET /admin/teams` — list all teams with owner + member count
+- [ ] `resolveTeamContext` middleware — reads `X-Team-Id` header, runs `verifyTeamMember` inline, populates `req.teamContext = { teamId, role } | null`.
+- [ ] `verifyTeamRole('ADMIN' | 'OWNER')` factory — runs after `resolveTeamContext`, throws 403 if role insufficient.
+- [ ] `getQuotaOwner({ userId, teamId })` — returns userId of the principal whose pool gets debited (team.ownerId or self).
+- [ ] Wire `getQuotaOwner` into every metering call site (transcription start, OpenAI calls, GCS write, Recall webhook minute attribution).
+- [ ] `UserUsage` writes carry `teamId` for attribution.
 
-### P5 — Frontend: Workspace Switcher + Team Store
+### P5 — Backend: Team-scoped Content (split per service)
 
-- [ ] `teamStore` (Zustand) — `activeTeamId`, `teams[]`, `setActiveTeam()`
-- [ ] Top-left workspace switcher dropdown — Personal + team list + "Create team"
-- [ ] All API calls in team context include `X-Team-Id` header
-- [ ] `useTeams()` query hook, `teamService.ts`
+- [ ] **P5.1** Meetings service — list/get/create/update/delete + attachments + participants + recordings respect `req.teamContext`. Member visibility: filter by `participants.userId = req.user.id` when role=MEMBER.
+- [ ] **P5.2** Cards service — list/get/create/update/delete + contacts respect team context.
+- [ ] **P5.3** Tasks service — list/get/create/update/complete respect team context. Reassign blocked for MEMBER.
+- [ ] **P5.4** Scheduling — event types CRUD, availability, bookings (private endpoints) respect team context.
+- [ ] **P5.5** Tags service — universal tags (meeting/card/task/contact) scope to team context.
+- [ ] **P5.6** SMA + AI — Ask AI sessions, content generation cache (`MeetingAIContent`) scope by `meeting.teamId`.
+- [ ] **P5.7** Recall webhooks — match meeting → use `meeting.teamId` for quota attribution.
+- [ ] **P5.8** Usage endpoint `GET /teams/:teamId/usage?period=...` — per-member breakdown. Owner/Admin only.
 
-### P6 — Frontend: Team Creation + Settings
+### P6 — Backend: Public Team Endpoints
 
-- [ ] Team creation modal (name, slug, logo upload)
-- [ ] `/teams/:teamId/settings` — General (name/logo) + Members + Usage tabs
-- [ ] Invite modal — search existing users OR enter email
-- [ ] Pending invites list in settings
-- [ ] Per-member usage breakdown table
+- [ ] `GET /public/teams/:slug` — no auth. Team profile + active member roster (name, username, avatar, role) for the `/t/:slug` page.
+- [ ] `GET /public/scheduling/team/:slug/profile` — team scheduling profile.
+- [ ] `GET /public/scheduling/team/:slug/:username` — specific member's team-scoped event types.
+- [ ] Slot engine respects team-scoped EventTypes (`eventType.teamId = team.id`).
 
-### P7 — Frontend: Team-aware Content Pages
+### P7 — Backend: WebSocket Events
 
-- [ ] All pages (Meetings, Cards, Tasks, Calendar) scope to activeTeamId when in team context
-- [ ] Meeting visibility enforced — Members can't see other members' meetings
-- [ ] Team context indicator in header/sidebar
-- [ ] Internal booking: pick team member → see availability → book (from meetings/scheduling page)
+- [ ] Extend `WsServerMessage` with: `TEAM_INVITE_RECEIVED`, `TEAM_MEMBER_JOINED`, `TEAM_MEMBER_LEFT`, `TEAM_MEMBER_ROLE_CHANGED`, `TEAM_MEETING_BOOKED`.
+- [ ] Publish each on the relevant service mutation.
 
-### P8 — Public: Team Public Card Page
+### P8 — Backend: Admin API
 
-- [ ] `/t/:slug` — SSR team public page (name, logo, description, member roster)
-- [ ] OG meta + structured data
-- [ ] 404 when team not found or deleted
+- [ ] `GET /admin/config` — list all SystemConfig entries grouped by category.
+- [ ] `PATCH /admin/config/:key` — update value. Records `updatedBy`.
+- [ ] `GET /admin/teams?include_deleted=false&search=` — list all teams with owner email + member count + status. Pagination.
+- [ ] `GET /admin/teams/:teamId` — full team detail incl. members + activity log.
+- [ ] `DELETE /admin/teams/:teamId` — soft-delete (admin override).
+- [ ] `PATCH /admin/users/:userId/plan` — set `user.plan` to FREE/PRO/BUSINESS. Records audit row.
 
-### P9 — Public: Team Member Booking Page
+### P9 — Frontend: Workspace Switcher + Team Store
 
-- [ ] `/schedule/t/:slug/:username` — book specific team member (team-branded)
-- [ ] Same UX as personal booking; member's team EventTypes shown
+- [ ] `teamStore` (Zustand, sessionStorage-persisted) — `activeTeamId`, `setActiveTeam()`.
+- [ ] `apiClient` injects `X-Team-Id` header when `activeTeamId` set.
+- [ ] `teamService.ts` + `useTeamQueries.ts` + `queryKeys.teams.*` additions.
+- [ ] Workspace switcher component replaces `UserMenu` trigger. Dropdown panel: pending invites surface + workspaces list + Create team + account actions.
+- [ ] On switch: `queryClient.invalidateQueries()` + `<motion.div key={activeTeamId}>` cross-fade wrapper around route outlet.
+- [ ] Command palette: "Switch workspace" section. `Cmd+1..9` keybinds.
 
-### P10 — Admin Portal: SystemConfig + Teams Pages
+### P10 — Frontend: Team Creation + Plan Gate
 
-- [ ] System Config page — list all config keys, inline edit values
-- [ ] Teams page — list all teams, owner, member count, creation date, soft-delete
+- [ ] `<CreateTeamModal />` — name + slug (debounced availability check) + description (collapsed) + logo dropzone. Single-page, no wizard.
+- [ ] `<UpgradeToProModal />` — shown when Free user clicks Create team or Pro user hits team limit.
+
+### P11 — Frontend: Team Settings Page
+
+Route: `/teams/:teamId/settings`. Vertical tab nav (left) + content (right).
+
+- [ ] **General tab** — name/slug/description/logo. Save on dirty.
+- [ ] **Members tab** — table + Invite button + role dropdown (Owner only) + remove kebab.
+- [ ] **Invite member modal** — Search users / By email (chip input) tabs.
+- [ ] **Invites tab** — pending invites table + Resend + Cancel.
+- [ ] **Usage tab** — 4 summary cards + period selector + per-member breakdown + CSV export.
+- [ ] **Billing tab** — Owner-only message + link to personal billing.
+- [ ] **Danger zone** — Leave team (members) / Transfer ownership / Delete team (Owner).
+
+### P12 — Frontend: Team-aware Content + Internal Booking
+
+- [ ] All pages scope to `activeTeamId` via the injected header (no per-page code change needed beyond removing client-side `userId` filters).
+- [ ] Sidebar header swaps to team identity block when in team context.
+- [ ] `<BookTeamMemberModal />` — 4-step (pick member → pick slot → details with pre-filled subject → confirm). Trigger from Meetings page.
+- [ ] Card editor public URL preview: `crelyzor.app/t/[team-slug]/[card-slug]` when team context.
+
+### P13 — Frontend: In-app Invite Surfaces
+
+- [ ] Workspace switcher shows pending invites count + expandable section.
+- [ ] Notifications panel renders invite items with inline Accept/Decline.
+- [ ] WS handlers for `TEAM_INVITE_RECEIVED`, `TEAM_MEMBER_*` events → invalidate relevant queries.
+
+### P14 — Public (crelyzor-public)
+
+- [ ] `/invite/:token` — SSR; accept/decline flow; Google OAuth signup if needed; expired/invalid token states.
+- [ ] `/t/:slug` — SSR team public page (logo, name, description, members roster, OG meta).
+- [ ] `/schedule/t/:slug/:username` — team-branded booking page (team identity header + member booking flow).
+
+### P15 — Admin Portal
+
+- [ ] `/config` page — SystemConfig editor with grouped sections + autosave + audit trail.
+- [ ] `/teams` page — table + search + filter + drawer with full team detail.
+- [ ] User detail drawer — plan select (FREE/PRO/BUSINESS) → `PATCH /admin/users/:id/plan`.
 
 ---
 
@@ -896,17 +1064,202 @@ Account blocked. Do not start. Uncomment env vars and build when account is live
 
 ---
 
-## Phase 8 — Big Brain ⛔ BLOCKED
+## Phase 8 — Big Brain Agent ⛔ BLOCKED
 
-Explicitly blocked. Do not start. Requires separate vector DB infrastructure that is not yet in place.
-Requires Phase 4.1 + 4.2 complete first — Big Brain features are paid-only.
+**Blocked until:** Phase 5 (Encryption at Rest) ships + pgvector extension enabled on Postgres instance.
 
-- [ ] Vector embeddings pipeline — embed transcripts, notes, tasks on creation/update
-- [ ] Global Ask AI — RAG query over all user data ("What do I know about Acme Corp?")
-- [ ] Cross-meeting insights — surface patterns across meetings
-- [ ] Proactive nudges — missed follow-ups, upcoming meeting prep
-- [ ] **Full two-way GCal sync** — GCal push webhooks → GCal edits/cancels reflect in Crelyzor (deferred from 1.3 — requires webhook infra + conflict resolution)
-- [x] Model upgrades — Nova-3 Multilingual + gpt-5.4-mini ✅ done in Phase 4
+**The vision:** A fully autonomous AI agent that knows everything about the user across Crelyzor and connected external platforms. It doesn't just answer questions — it takes actions. It can schedule a meeting, create a task, reply to a booking request, fetch your unread Slack messages, draft a Gmail reply, and tell you what to focus on today — all from a single chat interface or triggered automatically.
+
+---
+
+### What this is NOT
+
+Not a chatbot that wraps GPT. Not another RAG Q&A. This is an **agentic loop** — the LLM reasons, picks a tool, executes it, sees the result, reasons again, and repeats until the job is done. The user gives intent; the agent figures out the steps.
+
+---
+
+### Architecture
+
+```
+User message / scheduled trigger
+        ↓
+   Agent Core (LLM with tool use)
+        ↓  reasons: "I need to check their calendar first"
+        ↓  calls tool: get_upcoming_meetings({ days: 7 })
+        ↓  gets result back
+        ↓  reasons: "3pm slot is free, create the booking"
+        ↓  calls tool: create_booking({ ... })
+        ↓  gets confirmation
+        ↓
+  Final response streamed to user
+```
+
+**Key model:** Gemini 2.5 Flash (already integrated) with function calling / tool use. Falls back to structured OpenAI function calling if needed.
+
+**Memory layers:**
+- Short-term: conversation history (already exists via AskAIConversation)
+- Semantic: vector embeddings of all user data in pgvector — transcripts, notes, tasks, contacts, bookings
+- Structured: live Crelyzor DB + external platform APIs via tool calls
+
+---
+
+### Crelyzor-native tools (agent can call these)
+
+| Tool | What it does |
+|---|---|
+| `get_meetings(filter)` | List meetings by date range, participant, tag |
+| `get_meeting_detail(id)` | Full transcript + summary + tasks for one meeting |
+| `create_task(title, due, priority)` | Create a task |
+| `update_task(id, fields)` | Update status, due date, assignee |
+| `get_tasks(filter)` | List tasks by status, due date, source |
+| `create_booking(eventTypeId, slot, guestEmail)` | Schedule a booking on behalf of user |
+| `cancel_booking(id, reason)` | Cancel an existing booking |
+| `get_availability(date_range)` | Check free slots across event types |
+| `get_contacts(query)` | Search card contacts by name / company / email |
+| `get_contact_history(contactId)` | All meetings + tasks linked to a contact |
+| `search_memory(query)` | Semantic RAG search over all user data |
+| `send_notification(message)` | Push an in-app notification to the user |
+
+---
+
+### External platform integrations (Phase 8 adds these)
+
+Each integration requires OAuth connection per user (stored as encrypted tokens). Agent can read AND write.
+
+| Platform | Read | Write |
+|---|---|---|
+| **Gmail** | Unread emails, thread content, search | Draft reply, send email, label/archive |
+| **Google Calendar** | Events, free/busy, attendees | Create event, update, cancel, add Meet link |
+| **Slack** | Channel messages, DMs, mentions, search | Send message, reply in thread, set status |
+| **Linear** | Issues, projects, assigned to user | Create issue, update status, add comment |
+| **Notion** | Pages, databases, linked content | Create page, append block, update property |
+
+OAuth tokens stored in new `UserIntegration` model — encrypted at rest (Phase 5 prerequisite).
+
+---
+
+### Proactive agent modes (runs on schedule, no user prompt needed)
+
+| Mode | Trigger | What it does |
+|---|---|---|
+| **Morning briefing** | 8am daily | Summarizes: today's meetings, overdue tasks, unread Slack mentions, priority emails |
+| **Meeting prep** | 30min before any scheduled meeting | Pulls: past meetings with these people, open action items, last decisions made, their company context from contacts |
+| **Follow-up nudge** | 24h after meeting ends | Checks if AI-extracted tasks are still open, drafts follow-up email if requested |
+| **Weekly digest** | Monday 8am | What you did last week, what's coming, what's overdue |
+| **Booking manager** | On new booking received | Optionally sends a pre-call prep email to guest, creates prep task for host |
+
+---
+
+### P0 — Vector store foundation (prerequisite for everything)
+
+- [ ] Enable `pgvector` extension on Postgres: `CREATE EXTENSION IF NOT EXISTS vector`
+- [ ] Add `embedding vector(1536)` column to: `MeetingTranscript`, `MeetingNote`, `MeetingAISummary`, `Task`, `CardContact` (Prisma `Unsupported("vector(1536)")`)
+- [ ] `embeddingService.ts` — `embedText(text): Promise<number[]>` via OpenAI `text-embedding-3-small`
+- [ ] Embedding pipeline: after AI processing completes on a meeting, embed transcript + summary + notes + tasks and store vectors
+- [ ] `searchMemory(userId, query, topK): Promise<Chunk[]>` — pgvector cosine similarity search across all tables, filtered by userId
+- [ ] Bull job: `EMBED_CONTENT` — triggered after transcription completes, embeds all new/updated content for a meeting
+- [ ] Backfill: embed all existing user content on Phase 8 launch
+
+### P1 — Agent core
+
+- [ ] `agentService.ts` — the agent loop:
+  - Accepts `{ userId, message, conversationId? }`
+  - Builds system prompt with: user profile, today's date, available tools list
+  - Calls Gemini with function calling enabled (tool definitions passed as `tools` array)
+  - On tool call response: execute the tool, append result to messages, loop
+  - Max 10 tool call iterations per turn (prevent runaway loops)
+  - Streams responses via the **existing WebSocket connection** (not SSE) — reuses the notification WS, no new connection needed
+- [ ] WS message types added to the existing WS server (Phase 4.9):
+
+  ```
+  Client → Server:
+    { type: 'AGENT_MESSAGE', conversationId, text }
+    { type: 'AGENT_CANCEL', conversationId }          ← cancels mid-run loop
+
+  Server → Client:
+    { type: 'AGENT_CHUNK', conversationId, text }          ← streaming text token
+    { type: 'AGENT_TOOL_CALL', conversationId, tool, input }    ← "Checking calendar..."
+    { type: 'AGENT_TOOL_RESULT', conversationId, tool, summary } ← "Found 3 events"
+    { type: 'AGENT_DONE', conversationId }
+    { type: 'AGENT_ERROR', conversationId, message }
+  ```
+
+  Why WS over SSE: bidirectional mid-stream (user can cancel, agent can ask clarifying questions), reuses authenticated connection already open, one connection carries notifications + agent events together.
+
+- [ ] Tool registry: `src/agent/tools/` — one file per tool, each exports `{ definition, execute }`. Definition is the JSON schema Gemini expects. Execute calls service layer directly (never HTTP).
+- [ ] `GET /agent/conversations` — list conversation history (REST, not WS)
+- [ ] `AskAIConversation` already exists — reuse it for agent conversations (new `isAgentConversation: Boolean` flag)
+
+### P2 — Crelyzor tool implementations
+
+- [ ] Implement all tools listed in the Crelyzor-native tools table above
+- [ ] Each tool: Zod input schema + TypeScript execute function that calls internal services (never goes to HTTP — calls service layer directly)
+- [ ] Tool results are truncated / summarised if too large (transcripts → summary only unless agent explicitly asks for full text)
+- [ ] Error handling: tool failures return `{ error: string }` — agent sees the error and can retry or tell the user
+
+### P3 — External platform integrations
+
+- [ ] `UserIntegration` Prisma model: `{ userId, platform, accessToken (Bytes — encrypted), refreshToken (Bytes), expiresAt, scopes, createdAt }`
+- [ ] OAuth connection flow per platform: `GET /integrations/:platform/connect` → OAuth → `GET /integrations/:platform/callback` → store tokens
+- [ ] Token refresh middleware: before each tool call, check expiry and refresh if needed
+- [ ] Gmail tools: `gmail_get_unread`, `gmail_search`, `gmail_send`, `gmail_reply` — via Google Gmail API v1
+- [ ] Google Calendar tools: already partially built (Phase 1.3) — extend with write tools (`gcal_create_event`, `gcal_update_event`, `gcal_cancel_event`)
+- [ ] Slack tools: `slack_get_mentions`, `slack_search`, `slack_send_message`, `slack_reply` — via Slack Web API (Bot Token OAuth)
+- [ ] Linear tools: `linear_get_issues`, `linear_create_issue`, `linear_update_issue` — via Linear GraphQL API
+- [ ] Notion tools: `notion_search`, `notion_create_page`, `notion_append_block` — via Notion API v1
+- [ ] Settings > Integrations section extended: show connected platforms, connect/disconnect per platform, scopes granted
+
+### P4 — Proactive agent (scheduled, no user prompt)
+
+- [ ] Bull jobs for each proactive mode (morning briefing, meeting prep, follow-up nudge, weekly digest, booking manager) — see table above
+- [ ] Each proactive job: runs the agent loop with a system-constructed prompt (no user message), sends result as in-app notification + optional email
+- [ ] User can toggle each proactive mode on/off in Settings > AI Agent section (new sub-section)
+- [ ] `UserAgentPreferences` — new model or extend `UserSettings`: `morningBriefingEnabled`, `meetingPrepEnabled`, `followUpNudgeEnabled`, `weeklyDigestEnabled`, `bookingManagerEnabled`
+
+### P5 — Frontend: Agent chat interface
+
+- [ ] `/agent` route — full-page chat interface, different from per-meeting Ask AI
+- [ ] Conversation sidebar: list past agent conversations, new conversation button
+- [ ] Message composer: text input + optional voice input (Web Speech API → transcript → send as text)
+- [ ] Streaming response rendering via existing `useNotificationSocket` hook — extend it to handle `AGENT_CHUNK`, `AGENT_TOOL_CALL`, `AGENT_TOOL_RESULT`, `AGENT_DONE`, `AGENT_ERROR` message types. No new WS connection — agent events ride the same authenticated connection as notifications.
+- [ ] Tool call visibility: show what the agent did between messages (collapsible "Agent used 4 tools" row)
+- [ ] Connected platforms panel in sidebar: green dot = connected, grey = not connected, click = connect/disconnect
+- [ ] Proactive notifications from agent appear as regular in-app notifications (Phase 4.9 already built)
+
+### P6 — Migrate Ask AI from SSE → WebSocket
+
+Ask AI currently streams via SSE (one HTTP request per question → one response stream). With the agent WS channel live, Ask AI moves to the same connection — consistent transport, cancellable mid-stream, and one less SSE infrastructure path to maintain.
+
+**Backend changes:**
+- [ ] Add WS message types to existing WS server:
+  ```
+  Client → Server:
+    { type: 'ASK_AI_MESSAGE', meetingId, conversationId, text }
+    { type: 'ASK_AI_CANCEL', conversationId }
+
+  Server → Client:
+    { type: 'ASK_AI_CHUNK', conversationId, text }
+    { type: 'ASK_AI_DONE', conversationId }
+    { type: 'ASK_AI_ERROR', conversationId, message }
+  ```
+- [ ] `aiService.askAI()` — replace `res.write(SSE chunk)` with `registry.broadcast(userId, { type: 'ASK_AI_CHUNK', ... })` using the existing WS client registry from Phase 4.9
+- [ ] Keep `POST /sma/meetings/:meetingId/ask` route but change it to: validate + authenticate, then kick off the stream via WS and return `202 { conversationId }` immediately (fire-and-forget HTTP trigger)
+- [ ] Remove SSE headers (`Content-Type: text/event-stream`, `Connection: keep-alive`) from the ask endpoint
+
+**Frontend changes:**
+- [ ] Extend `useNotificationSocket` hook to handle `ASK_AI_CHUNK`, `ASK_AI_DONE`, `ASK_AI_ERROR` — append chunks to a per-conversationId buffer in a ref or Zustand slice
+- [ ] `useAskAI(meetingId)` hook — sends `ASK_AI_MESSAGE` over WS instead of opening a `fetch` ReadableStream; listens to the WS buffer for chunks
+- [ ] Remove the `ReadableStream` / `getReader()` logic from the existing Ask AI hook
+- [ ] Cancel button in Ask AI chat panel now sends `ASK_AI_CANCEL` over WS instead of `controller.abort()`
+- [ ] All 3 meeting detail layouts (VoiceNoteDetail, RecordedDetail, ScheduledDetail) pick up the change automatically — they use the hook, not raw fetch
+
+**Why this is in Phase 8 and not sooner:** Ask AI SSE works fine today. The migration is low-risk but requires the WS registry infrastructure from Phase 4.9 to be solid in prod first, and it makes most sense to do alongside the agent launch so both use the same transport from day one.
+
+---
+
+**Effort estimate:** 4–6 weeks total. P0 + P1 are the foundation. P2 is mechanical find-replace. P3 is one week per new platform integration. P4 + P5 build on everything. P6 (Ask AI migration) is ~1 day once the WS message types are defined.
+
+**Model choice at build time:** Re-evaluate Gemini 2.5 Flash vs Claude 3.5 Sonnet vs GPT-4o for the agent loop. Tool use quality varies significantly across models and the field moves fast. Pick whichever has the best function-calling benchmark at the time Phase 8 starts.
 
 ---
 

@@ -106,13 +106,12 @@ AUTO_START_CRON=false
 
 ## Current Phase & Focus
 
-**Phase 4.9 — In-App Notifications** ← current
+**Phase 5 — Encryption at Rest** ← current
 
-Phases 1 → 3.4 complete ✅. Phase 4.1–4.8 complete ✅. Phase 7 (Razorpay) blocked ⛔. Phase 8 (Big Brain) blocked ⛔.
+Phases 1 → 3.4 complete ✅. Phase 4.1–4.9 complete ✅. Phase 7 (Razorpay) blocked ⛔. Phase 8 (Big Brain) blocked ⛔.
 
 **Upcoming phase order:**
-- **Phase 4.9** — In-App Notifications ← current
-- **Phase 5** — Encryption at Rest (server-side envelope encryption via Google Cloud KMS; design: `docs/internal/superpowers/specs/2026-05-16-encryption-at-rest-design.md`)
+- **Phase 5** — Encryption at Rest (server-side envelope encryption via Google Cloud KMS; design: `docs/internal/superpowers/specs/2026-05-16-encryption-at-rest-design.md`) ← current
 - **Phase 6** — Teams (design: `docs/internal/superpowers/specs/2026-05-09-teams-design.md`)
 - **Phase 7** — Razorpay ⛔ deferred
 - **Phase 8** — Big Brain ⛔ blocked (requires Phase 5 + vector DB infra)
@@ -271,6 +270,10 @@ All soft deletes — never hard delete unless `HARD_DELETE_ENABLED=true`.
 - Do NOT hardcode mock data in components — connect to real API
 - Do NOT edit `.env` files directly
 - Do NOT start Phase 8 (Big Brain) until Phase 5 (Encryption) ships and vector DB infra is in place
+- Do NOT encrypt `Task.title` or `CardContact.name/company` — they stay plaintext for ILIKE search and Big Brain indexing. `Task.description` IS encrypted (Bytes?). `CardContact.email` IS encrypted with a blind index (`email_bidx`).
+- Do NOT use dual-write or feature flags for the encryption rollout — single-step migration only (decided 2026-05-22, current user count too small to need rollout windows)
+- Do NOT log plaintext values of encrypted fields (`fullText`, `content`, `guestEmail`, `accessToken`, `refreshToken`, etc.) — strip them from Pino log objects before they reach the logger
+- Do NOT put plaintext DEK in Bull job payload or Redis — workers call `getDek(userId)` at job start, userId comes from the job payload
 - Do NOT reference `calendar-backend` / `calendar-frontend` / `cards-frontend` — actual dirs are `crelyzor-backend` / `crelyzor-frontend` / `crelyzor-public`
 - Do NOT define feature-specific union types (e.g. `TaskView`) as local types inside child components — export them from the service file (`smaService.ts`) so both parent and child import from the same source
 - Do NOT use `new Date()` for "start of today" comparisons — always set hours to `0,0,0,0` to avoid time-of-day drift within a render session
