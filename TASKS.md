@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-09 (Phase 7 Teams — spec written, tasks planned across all repos)
+Last updated: 2026-05-23 (Phase 6 Teams — spec revised with per-team DEK + full UX, tasks restructured across all repos)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -792,6 +792,28 @@ No changes — notifications are authenticated dashboard-only.
 
 **KMS provider:** toggled by `KMS_PROVIDER=local|gcp`. `LocalKmsProvider` uses `LOCAL_KMS_KEY` from `.env` — same code path as GCP, no bypass, no plaintext passthrough. Dev behaves exactly like prod.
 
+**Decisions made (2026-05-22):**
+
+| # | Decision | What | Why |
+|---|----------|------|-----|
+| 1 | KMS provider for dev | `KMS_PROVIDER=local` — `LocalKmsProvider` wraps/unwraps the DEK using `LOCAL_KMS_KEY` (32-byte hex in `.env`). Same AES-256-GCM code path as GCP, no plaintext bypass. | Avoids requiring GCP credentials just to start the dev server. Prod always uses `KMS_PROVIDER=gcp`. |
+| 2 | Crypto algorithm | AES-256-GCM via Node.js built-in `crypto` module. No third-party crypto libs. | Industry standard authenticated encryption — confidentiality + integrity in one pass. Built-in means zero supply-chain risk. |
+| 3 | Migration strategy | **Single-step — no dual-write.** In-scope columns change from `String` to `Bytes?` in one migration. Existing rows set to `NULL` (4-5 users — acceptable to nuke). Backfill generates DEKs and re-encrypts any surviving rows. | Dual-write only pays off at 1,000+ users who need zero-downtime rollout windows. At 4-5 users, nuke-and-restart is free and removes two extra phases of complexity. |
+| 4 | No feature flags | No `_encrypted` shadow columns. No `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN` env flag. All writes go directly to the `Bytes` column; all reads decrypt from the same column. | Feature flags add complexity, test surface, and maintenance burden. Current scale makes them pure overhead with no benefit. |
+| 5 | Task.title plaintext, Task.description encrypted | `Task.title` stays `String` — needed for full-text search and future Big Brain indexing. `Task.description` becomes `Bytes?`. | Title is always user-typed, always shown in lists, always searched. Description is AI-generated with richer PII (participant names, topics, details). |
+| 6 | Blind index implementation | `HMAC-SHA256(normalize(value), HMAC_BLIND_INDEX_KEY)` stored in `*_bidx Bytes` column. Separate `HMAC_BLIND_INDEX_KEY` (32-byte hex). Normalise = lowercase + trim before hashing. | Industry standard for exact-match search on encrypted fields. Normalisation ensures "Jane@Acme.com" and "jane@acme.com" produce the same blind index and match correctly. |
+| 7 | No backups infrastructure yet | No automated backup system. If DB restore needed: SSH into VM, restore from filesystem snapshot manually. | Pre-PMF at 4-5 users. Invest in backup infra when user count justifies it. Revisit at Phase 6 / first paying customer. |
+| 8 | OAuthAccount tokens in scope | `OAuthAccount.accessToken` and `refreshToken` are encrypted. Looked up only by `userId + provider` — no blind index needed. | Highest-value encryption target: compromising these gives full Google account access. Zero query-pattern impact from encrypting since they're never searched or matched by value. |
+
+**Known breakages naive encryption would cause (and how they're resolved):**
+
+| # | Breakage | File | What breaks | Resolution |
+|---|----------|------|-------------|------------|
+| 1 | Meeting↔card auto-linking | `meetingService.ts:216` — `email: { in: participantEmails }` on `CardContact.email` | Encrypted `Bytes` never equals a plaintext email string — auto-linking silently breaks | Compute blind index of each participant email, query `CardContact.email_bidx: { in: [...blindIndexes] }` instead |
+| 2 | Global search on contact email | `searchService.ts:95` — `ILIKE '%query%'` on `CardContact.email` | ILIKE on `Bytes` column = zero matches always | Drop `email` from the ILIKE OR clause; when query looks like an email (contains `@`), add exact blind-index match |
+| 3 | Card contact search by email | `cardService.ts:634, 729` — `ILIKE` on `CardContact.email` | Same as above | Same fix: blind-index exact match |
+| 4 | Public write with no req.user | `cardService.ts:524` — `submitContact()` — guest submits contact to a card owner | No `req.user` → no `userId` to call `getDek()` | Pass `card.userId` (the card owner's ID) explicitly: `getDek(card.userId)` |
+
 **In scope (encrypted columns):**
 
 | Model | Column(s) | Blind index? |
@@ -802,10 +824,11 @@ No changes — notifications are authenticated dashboard-only.
 | `MeetingAISummary` | `summary`, `keyPoints` (each element encrypted individually, stored as `Bytes[]`) | No |
 | `MeetingAIContent` | `content` | No |
 | `AskAIMessage` | `content` | No |
-| `Task` | `description` only — `title` stays plaintext for Big Brain search | No |
+| `Task` | `description` only — `title` stays `String` for search + Big Brain | No |
 | `CardContact` | `name`, `email`, `phone`, `company`, `note` | `email_bidx`, `phone_bidx` |
 | `Booking` | `guestName`, `guestEmail`, `guestNote` | `guestEmail_bidx` |
 | `MeetingParticipant` | `guestEmail` | `guestEmail_bidx` |
+| `OAuthAccount` | `accessToken`, `refreshToken` | No — looked up by `userId + provider` only |
 
 **In scope (storage):**
 - GCS recordings bucket → CMEK via the same KMS key. No app code changes.
@@ -813,7 +836,8 @@ No changes — notifications are authenticated dashboard-only.
 **Out of scope (stays plaintext):**
 - All IDs, FKs, timestamps, soft-delete flags
 - `Meeting.title`, `Task.title`, `Tag.name`, indexed fields (`speaker`, `startTime`)
-- `Card.*` (public profile rendered to open web)
+- `Card.*` (public profile rendered to open web — must be readable without a user session)
+- `CardContact.name`, `CardContact.company` — ILIKE search in global search + card search; lower PII sensitivity than email
 - `EventType.*`, `UserSettings`, `Task.status`, `Task.dueDate`
 - Blind index columns (`*_bidx`) — HMAC output, not reversible to plaintext
 
@@ -828,166 +852,209 @@ No changes — notifications are authenticated dashboard-only.
 
 ### P0 — cryptoService foundations
 
-- [ ] Install `@google-cloud/kms` and `vitest`
-- [ ] Build `src/utils/security/dekCache.ts` — LRU wrapper around `node-cache` (already installed), keyed by `userId:version`
-- [ ] Build `src/utils/security/kmsProviders.ts` — `GcpKmsProvider` (lazy-loads `@google-cloud/kms`) + `LocalKmsProvider` (AES-256-GCM using `LOCAL_KMS_KEY`)
-- [ ] Build `src/utils/security/crypto.ts` — public API:
-  - `encrypt(plaintext, userId): Promise<Buffer>` — format: `version(1) | iv(12 random) | ct | tag(16)`
-  - `decrypt(ciphertext, userId): Promise<string>` — reads version byte, fetches correct DEK version
-  - `blindIndex(value): Buffer` — `HMAC-SHA256(normalize(value), HMAC_BLIND_INDEX_KEY)`
-  - `initDekForNewUser(userId, tx?): Promise<void>` — called at registration
-- [ ] Add env vars: `KMS_PROVIDER`, `LOCAL_KMS_KEY`, `HMAC_BLIND_INDEX_KEY`, `GCP_KMS_*`, `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN`
-- [ ] Unit tests (vitest): round-trip encrypt/decrypt, version byte correct, random IV (two encrypts differ), tampered ciphertext throws, blind index normalises case/whitespace, LocalKmsProvider wrap/unwrap round-trip
+- [x] Install `@google-cloud/kms` and `vitest`
+- [x] Build `src/utils/security/dekCache.ts` — LRU wrapper around `node-cache`, keyed by `userId:version`
+- [x] Build `src/utils/security/kmsProviders.ts` — `GcpKmsProvider` + `LocalKmsProvider`, toggled by `KMS_PROVIDER`
+- [x] Build `src/utils/security/crypto.ts` — `encrypt`, `decrypt`, `blindIndex`, `initDekForNewUser`, `encryptWithKey`, `decryptWithKey`
+- [x] Add env vars: `KMS_PROVIDER`, `LOCAL_KMS_KEY`, `HMAC_BLIND_INDEX_KEY`, `GCP_KMS_KEY_NAME`
+- [x] Unit tests (vitest): round-trip, version byte, random IV, tampered ciphertext throws, blind index normalises, LocalKmsProvider wrap/unwrap, dekCache eviction
 
-### P1 — Schema migration 1 (additive only — no data loss)
+### P1 — Schema migration (single-step)
 
-- [ ] Add to `User`: `wrappedDek Bytes?`, `dekVersion Int @default(1)`
-- [ ] Add `UserDekHistory` model: `id`, `userId`, `version`, `wrappedDek`, `createdAt`, `@@unique([userId, version])`
-- [ ] Add shadow `_encrypted Bytes?` columns alongside all plaintext originals (listed in scope table above)
-- [ ] Add blind index columns: `email_bidx`, `phone_bidx` on `CardContact`; `guestEmail_bidx` on `Booking` and `MeetingParticipant`
-- [ ] Replace `@@index([email])` with `@@index([email_bidx])` on `CardContact`; same swap on `Booking.guestEmail`, `MeetingParticipant.guestEmail`
-- [ ] `pnpm db:migrate` (migration name: `add_encryption_columns`) + `pnpm db:generate`
+- [x] `User.wrappedDek Bytes?`, `User.dekVersion Int @default(1)`
+- [x] `UserDekHistory` model with `@@unique([userId, version])`
+- [x] All in-scope `String` columns → `Bytes?` (single-step, no shadow columns)
+- [x] `MeetingAISummary.keyPoints Bytes?` (encrypted JSON array)
+- [x] Blind index columns: `emailBidx`, `phoneBidx` on `CardContact`; `guestEmailBidx` on `Booking` + `MeetingParticipant`
+- [x] `pnpm db:migrate` + `pnpm db:generate`
 
 ### P2 — Registration hook
 
-- [ ] Call `initDekForNewUser(userId, tx)` inside the `isNewUser` block in `src/controllers/googleController.ts` — must run before the transaction commits
+- [x] `initDekForNewUser(userId, tx)` called inside the `isNewUser` block in `src/controllers/googleController.ts`
 
-### P3 — Service-layer dual-write (encrypt on write, decrypt on read behind flag)
+### P3 — Service-layer encryption (direct — no dual-write)
 
-All writes go to both the plaintext column and `_encrypted`. Reads come from `_encrypted` only when `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN=true`. This allows rollback by flipping the flag.
+- [x] `transcriptionService.ts` — encrypt `fullText` + `TranscriptSegment.text`
+- [x] `aiService.ts` — encrypt `MeetingAISummary.summary` + `keyPoints`
+- [x] `askAIConversationService.ts` — encrypt `AskAIMessage.content`
+- [x] `smaEditService.ts` — encrypt `MeetingNote.content`, `MeetingAIContent.content`, segment edits
+- [x] `tasksService` / `taskController` — encrypt `Task.description`
+- [x] `cardService.ts` — encrypt `CardContact` PII + blind-index search; `submitContact()` uses `getDek(card.userId)` (Breakage #4)
+- [x] `bookingService.ts` — encrypt `Booking` PII + `guestEmail_bidx`
+- [x] `meetingService.ts` — encrypt `MeetingParticipant.guestEmail`; auto-linking uses `blindIndex` (Breakage #1)
+- [x] `googleCalendarService.ts` / `googleService.ts` — encrypt `OAuthAccount.accessToken` + `refreshToken`
+- [x] `searchService.ts` — blind-index exact match for email queries (Breakages #2 + #3)
+- [x] `shareService.ts` + `exportService.ts` — decrypt transcript + summary for public/export reads
+- [x] Logger PII denylist: `redactPii()` in `logFormatter.ts` strips denylisted fields from structured log output
 
-- [ ] `src/services/transcription/transcriptionService.ts` — encrypt `fullText` + `TranscriptSegment.text` on write; decrypt on read
-- [ ] `src/services/ai/aiService.ts` — encrypt `MeetingAISummary.summary` + each `keyPoints` element on write; decrypt before passing to AI
-- [ ] `src/services/ai/askAIConversationService.ts` — encrypt `AskAIMessage.content` on write; decrypt on read (add `userId` param to `getMessages`)
-- [ ] `src/services/smaEditService.ts` — encrypt `MeetingNote.content` and `MeetingAIContent.content` on manual overrides
-- [ ] `src/controllers/taskController.ts` — encrypt `Task.description` on write; decrypt on read
-- [ ] `src/services/cardService.ts` — encrypt `CardContact` fields + write `email_bidx`, `phone_bidx`; decrypt on read; swap email/phone lookup queries to use `*_bidx`
-- [ ] `src/services/scheduling/bookingService.ts` — encrypt `Booking` PII + write `guestEmail_bidx`; decrypt on read; swap guestEmail lookup to use `guestEmail_bidx`
-- [ ] `src/services/meetings/meetingService.ts` — encrypt `MeetingParticipant.guestEmail` + write `guestEmail_bidx`; decrypt on read
-- [ ] Add Pino logger denylist: strip `fullText`, `content`, `guestEmail`, `guestName`, `guestNote`, `email`, `phone` from structured log objects before they reach the logger
+### P4 — Backfill
 
-### P4 — Backfill existing data
+- [x] `src/scripts/phase5Backfill.ts` — idempotent, batched, `--dry-run` flag, verification sample
+- [x] Dry-run passed clean
+- [x] Real run passed: spot-checks green on local DB
 
-- [ ] Build `src/scripts/backfill-encryption.ts` — idempotent, resumable, batched (500 rows/tx), dry-run mode (`--dry-run` flag)
-  - Phase 1: generate DEKs for users without `wrappedDek`
-  - Phase 2: encrypt all in-scope rows, write `_encrypted` + `*_bidx` columns
-- [ ] Dry-run on dev DB, then run for real
-- [ ] Verify: spot-check 5 random rows — decrypt `_encrypted` column manually, compare to plaintext column
+### P5 — GCS CMEK + crypto-shredding + observability
 
-### P5 — Cutover + GCS CMEK
-
-- [ ] Flip `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN=true` in staging; run smoke tests (booking lookup by email, Ask AI, transcript view)
-- [ ] After 7 days stable in staging → flip in production
-- [ ] GCS CMEK: grant Cloud Storage service agent `roles/cloudkms.cryptoKeyEncrypterDecrypter`; `gsutil kms encryption -k <key-resource>` on recordings bucket; `gsutil -m rewrite -k` on existing objects
-- [ ] Wire account-delete to destroy `User.wrappedDek` + all `UserDekHistory` rows (crypto-shredding)
-- [ ] Cloud Logging alert on anomalous KMS unwrap volume
-
-### P6 — Schema migration 2 (drop plaintext columns — run after 7 days stable prod)
-
-- [ ] For each encrypted column: rename `field_encrypted` → `field`, drop original plaintext column
-- [ ] Remove `ENCRYPTION_READS_FROM_ENCRYPTED_COLUMN` flag from all service code and env schema
-- [ ] `pnpm db:migrate` (migration name: `drop_plaintext_columns`)
-- [ ] Document KMS disaster-recovery: key destruction protection, IAM hygiene checklist
-
-**Effort estimate:** ~2 weeks. Most complexity in P3 (service-layer patches — ~10 files) and P4 (backfill correctness + verification).
+- [x] GCS CMEK: KMS keyrings + keys provisioned for dev/staging/prod; GCS service agent granted access; CMEK set on all three buckets; existing objects re-encrypted
+- [x] Crypto-shredding: `authService.deactivateAccount` destroys `UserDekHistory` + nulls `User.wrappedDek` in transaction, then `evictDek(userId)`
+- [x] Cloud Monitoring alert created (policy `8638838345955756167`): KMS API requests > 100/hour
+- [x] KMS DR runbook in `docs/dev-notes/encryption.md` (key destruction protection, IAM hygiene checklist, regional failover)
 
 ---
 
 ## Phase 6 — Teams
 
-> Full design spec: `docs/superpowers/specs/2026-05-09-teams-design.md`
+> Full design spec: `docs/internal/superpowers/specs/2026-05-09-teams-design.md`
 > Per-repo breakdowns: each repo's `TASKS.md`
 
-**The model:** Pro users can create up to 3 teams (configurable via SystemConfig). The team owner pays for all consumption — transcription, storage, AI credits — for all members across all their teams. Members and admins consume the owner's Pro quota. Members join free.
+**The model:** Pro+ users (PRO or BUSINESS plan) can create teams (≤3 for Pro, ≤10 for Business — both configurable via SystemConfig). The team owner pays for all consumption — transcription, storage, AI tokens — across all their teams. Members and admins consume the owner's quota. Members can join on any plan including Free.
 
-**Workspace switching:** Top-left dropdown (where user name is today) switches between Personal and each team. Full context switch — all surfaces (meetings, cards, tasks, scheduling) scope to selection. Zero overlap.
+**Encryption:** Per-team DEK (additive to Phase 5's per-user DEK). Team-scoped content encrypts under the team DEK; member removal and ownership transfer require zero re-encryption. Team deletion = crypto-shred via cascade.
+
+**Workspace switching:** Top-left replaces `UserMenu` with a workspace switcher. Soft switch (no hard reload) — Zustand store + broad query invalidation + 250ms cross-fade.
 
 **Roles:** Owner (full control, billing) / Admin (manage, no billing) / Member (own content only).
 
 **Cards:** Team gets a public card at `crelyzor.app/t/:slug`. Members get auto-created team cards on join.
 
-**Scheduling:** Each member sets their own availability within the team. External visitors book a specific member via `/schedule/t/:slug/:username`. Team members can book each other internally from the dashboard.
+**Scheduling:** Each member sets their own availability within the team. External visitors book a specific member via `/schedule/t/:slug/:username`. Team members book each other internally from the dashboard (4-step modal).
 
 **Config:** All limits live in a `SystemConfig` table — editable from admin portal. Nothing hardcoded.
 
+**Pro gate (interim):** Until Razorpay unblocks, admins flip `user.plan` manually via the admin portal.
+
 ### P0 — Backend: Schema (do first — everything depends on this)
 
-- [ ] `SystemConfig` model — key/value store for all limits and feature flags
-- [ ] `Team` model — id (UUID), name, slug (unique), ownerId, logoUrl, createdAt, deletedAt
-- [ ] `TeamMember` model — id, teamId, userId, role (OWNER | ADMIN | MEMBER), joinedAt, leftAt (nullable)
-- [ ] Add `teamId UUID?` to: Meeting, Card, Task, EventType, Booking (null = personal context)
-- [ ] Migration: `pnpm db:migrate && pnpm db:generate`
+- [ ] `SystemConfig` model — key/value store + `updatedAt`, `updatedBy`. Seed defaults: `max_teams_per_pro_user=3`, `max_teams_per_business_user=10`, `max_members_per_team=50`, `team_invite_expiry_days=7`.
+- [ ] `Team` model — id (UUID), name, slug (unique), description (String? max 500), ownerId, logoUrl, **wrappedDek (Bytes)**, **dekVersion (Int @default 1)**, isDeleted, deletedAt, createdAt, updatedAt.
+- [ ] `TeamMember` model — id, teamId, userId, role (OWNER | ADMIN | MEMBER), joinedAt, isDeleted, deletedAt. (No `leftAt` — soft-delete semantics handle "left" via `isDeleted`.)
+- [ ] `TeamInvite` model — id, teamId, email, userId?, role, token (unique), invitedById, expiresAt, acceptedAt?, declinedAt?, cancelledAt?, isDeleted, deletedAt.
+- [ ] `TeamDekHistory` model — mirrors `UserDekHistory`. Hard cascade on Team delete (crypto-shred). No isDeleted/deletedAt.
+- [ ] Add `teamId UUID?` + index `@@index([teamId, isDeleted])` to: `Meeting`, `Card`, `Task`, `EventType`, `Booking`, `UserUsage`.
+- [ ] Migration: `pnpm db:migrate && pnpm db:generate`.
 
 ### P1 — Backend: Team CRUD + Member Management
 
-- [ ] `POST /teams` — create team (Pro gate, SystemConfig max-teams check, auto-create team Card)
-- [ ] `GET /teams` — list teams the user belongs to
-- [ ] `PATCH /teams/:teamId` — update name/logo (Owner/Admin)
-- [ ] `DELETE /teams/:teamId` — soft delete (Owner only)
-- [ ] `GET /teams/:teamId/members` — list members with role + usage
-- [ ] `POST /teams/:teamId/members/invite` — invite by userId or email
-- [ ] `PATCH /teams/:teamId/members/:userId` — change role (Owner only)
-- [ ] `DELETE /teams/:teamId/members/:userId` — remove member (Owner/Admin)
-- [ ] `POST /teams/invites/:token/accept` — accept email invite
-- [ ] `DELETE /teams/:teamId/leave` — leave team (blocked if Owner)
+- [ ] `POST /teams` — create team. Plan gate (`user.plan IN ('PRO','BUSINESS')`). SystemConfig max-teams check by plan. Transaction: create Team + generate team DEK (Cloud KMS) + create OWNER TeamMember + auto-create team Card with `userId = ownerId`.
+- [ ] `GET /teams` — list teams the user is active in. Include role.
+- [ ] `PATCH /teams/:teamId` — update name (Admin), slug (Owner only), logo (Admin), description (Admin).
+- [ ] `DELETE /teams/:teamId` — soft delete (Owner only). Sets all member rows `isDeleted: true` in transaction. Schedules hard delete + crypto-shred after retention window.
+- [ ] `POST /teams/:teamId/transfer-ownership` — Owner only. Requires typing team name to confirm. Transaction: flip `Team.ownerId`, swap roles (old Owner → ADMIN, new Owner → OWNER), reassign team Cards' `userId`.
 
-### P2 — Backend: Team-scoped Content + Middleware
+### P2 — Backend: Team Member + Invite Management
 
-- [ ] `verifyTeamMember` middleware — verifies user is active member (`leftAt IS NULL`)
-- [ ] `verifyTeamRole('ADMIN' | 'OWNER')` middleware — role check on top of membership
-- [ ] All meeting/card/task/scheduling endpoints respect `teamId` context header
-- [ ] Meeting visibility: Members see own meetings only; Owner/Admin see all team meetings
-- [ ] `GET /teams/:teamId/usage` — per-member consumption breakdown (Owner/Admin only)
+- [ ] `GET /teams/:teamId/members` — active members + role + last-active (from WS presence) + per-member usage summary.
+- [ ] `POST /teams/:teamId/members/invite` — body: `{ mode: 'user'|'email', userId?, emails?[], role, message? }`. Admin/Owner only. Member count check. Returns invites created.
+- [ ] `GET /teams/:teamId/invites` — list pending invites. Admin/Owner.
+- [ ] `POST /teams/:teamId/invites/:inviteId/resend` — Admin/Owner.
+- [ ] `DELETE /teams/:teamId/invites/:inviteId` — Admin/Owner (cancels invite).
+- [ ] `GET /invites/:token` — public, validate token + return team info (no auth).
+- [ ] `POST /invites/:token/accept` — accept email invite (requires JWT; if no account, signup flow runs first then calls this).
+- [ ] `POST /invites/:token/decline` — decline.
+- [ ] `POST /teams/:teamId/invites/accept` — accept in-app invite (existing user).
+- [ ] `POST /teams/:teamId/invites/decline` — decline in-app.
+- [ ] `PATCH /teams/:teamId/members/:userId` — change role. Owner only. Cannot change own role.
+- [ ] `DELETE /teams/:teamId/members/:userId` — remove member. Admin/Owner. Cannot remove Owner. Soft-deletes their team Card.
+- [ ] `DELETE /teams/:teamId/leave` — leave team. Blocked if caller is Owner.
 
-### P3 — Backend: Team Scheduling (public endpoints)
+### P3 — Backend: Encryption — per-team DEK
 
-- [ ] `GET /public/scheduling/team/:slug/profile` — team profile + active member list
-- [ ] `GET /public/scheduling/team/:slug/:username` — specific member's scheduling profile (team context)
-- [ ] Slot engine respects team-scoped EventTypes
+- [ ] Extend `cryptoService.getDek()` to accept `Principal = { type: 'user'|'team', id }`. Backward-compatible overload.
+- [ ] DEK cache key becomes `${type}:${id}` — same LRU capacity, shared across user + team.
+- [ ] Encrypt/decrypt helpers pick principal from `row.teamId` (set → team, null → user).
+- [ ] Bull job payloads carry `{ userId, teamId? }`. Workers call correct `getDek()`.
+- [ ] Crypto unit tests cover team principal path + cache eviction across principals.
 
-### P4 — Backend: Admin Portal Config API
+### P4 — Backend: Context Middleware + Quota Resolver
 
-- [ ] `GET /admin/config` — list all SystemConfig entries
-- [ ] `PATCH /admin/config/:key` — update a config value
-- [ ] `GET /admin/teams` — list all teams with owner + member count
+- [ ] `resolveTeamContext` middleware — reads `X-Team-Id` header, runs `verifyTeamMember` inline, populates `req.teamContext = { teamId, role } | null`.
+- [ ] `verifyTeamRole('ADMIN' | 'OWNER')` factory — runs after `resolveTeamContext`, throws 403 if role insufficient.
+- [ ] `getQuotaOwner({ userId, teamId })` — returns userId of the principal whose pool gets debited (team.ownerId or self).
+- [ ] Wire `getQuotaOwner` into every metering call site (transcription start, OpenAI calls, GCS write, Recall webhook minute attribution).
+- [ ] `UserUsage` writes carry `teamId` for attribution.
 
-### P5 — Frontend: Workspace Switcher + Team Store
+### P5 — Backend: Team-scoped Content (split per service)
 
-- [ ] `teamStore` (Zustand) — `activeTeamId`, `teams[]`, `setActiveTeam()`
-- [ ] Top-left workspace switcher dropdown — Personal + team list + "Create team"
-- [ ] All API calls in team context include `X-Team-Id` header
-- [ ] `useTeams()` query hook, `teamService.ts`
+- [ ] **P5.1** Meetings service — list/get/create/update/delete + attachments + participants + recordings respect `req.teamContext`. Member visibility: filter by `participants.userId = req.user.id` when role=MEMBER.
+- [ ] **P5.2** Cards service — list/get/create/update/delete + contacts respect team context.
+- [ ] **P5.3** Tasks service — list/get/create/update/complete respect team context. Reassign blocked for MEMBER.
+- [ ] **P5.4** Scheduling — event types CRUD, availability, bookings (private endpoints) respect team context.
+- [ ] **P5.5** Tags service — universal tags (meeting/card/task/contact) scope to team context.
+- [ ] **P5.6** SMA + AI — Ask AI sessions, content generation cache (`MeetingAIContent`) scope by `meeting.teamId`.
+- [ ] **P5.7** Recall webhooks — match meeting → use `meeting.teamId` for quota attribution.
+- [ ] **P5.8** Usage endpoint `GET /teams/:teamId/usage?period=...` — per-member breakdown. Owner/Admin only.
 
-### P6 — Frontend: Team Creation + Settings
+### P6 — Backend: Public Team Endpoints
 
-- [ ] Team creation modal (name, slug, logo upload)
-- [ ] `/teams/:teamId/settings` — General (name/logo) + Members + Usage tabs
-- [ ] Invite modal — search existing users OR enter email
-- [ ] Pending invites list in settings
-- [ ] Per-member usage breakdown table
+- [ ] `GET /public/teams/:slug` — no auth. Team profile + active member roster (name, username, avatar, role) for the `/t/:slug` page.
+- [ ] `GET /public/scheduling/team/:slug/profile` — team scheduling profile.
+- [ ] `GET /public/scheduling/team/:slug/:username` — specific member's team-scoped event types.
+- [ ] Slot engine respects team-scoped EventTypes (`eventType.teamId = team.id`).
 
-### P7 — Frontend: Team-aware Content Pages
+### P7 — Backend: WebSocket Events
 
-- [ ] All pages (Meetings, Cards, Tasks, Calendar) scope to activeTeamId when in team context
-- [ ] Meeting visibility enforced — Members can't see other members' meetings
-- [ ] Team context indicator in header/sidebar
-- [ ] Internal booking: pick team member → see availability → book (from meetings/scheduling page)
+- [ ] Extend `WsServerMessage` with: `TEAM_INVITE_RECEIVED`, `TEAM_MEMBER_JOINED`, `TEAM_MEMBER_LEFT`, `TEAM_MEMBER_ROLE_CHANGED`, `TEAM_MEETING_BOOKED`.
+- [ ] Publish each on the relevant service mutation.
 
-### P8 — Public: Team Public Card Page
+### P8 — Backend: Admin API
 
-- [ ] `/t/:slug` — SSR team public page (name, logo, description, member roster)
-- [ ] OG meta + structured data
-- [ ] 404 when team not found or deleted
+- [ ] `GET /admin/config` — list all SystemConfig entries grouped by category.
+- [ ] `PATCH /admin/config/:key` — update value. Records `updatedBy`.
+- [ ] `GET /admin/teams?include_deleted=false&search=` — list all teams with owner email + member count + status. Pagination.
+- [ ] `GET /admin/teams/:teamId` — full team detail incl. members + activity log.
+- [ ] `DELETE /admin/teams/:teamId` — soft-delete (admin override).
+- [ ] `PATCH /admin/users/:userId/plan` — set `user.plan` to FREE/PRO/BUSINESS. Records audit row.
 
-### P9 — Public: Team Member Booking Page
+### P9 — Frontend: Workspace Switcher + Team Store
 
-- [ ] `/schedule/t/:slug/:username` — book specific team member (team-branded)
-- [ ] Same UX as personal booking; member's team EventTypes shown
+- [ ] `teamStore` (Zustand, sessionStorage-persisted) — `activeTeamId`, `setActiveTeam()`.
+- [ ] `apiClient` injects `X-Team-Id` header when `activeTeamId` set.
+- [ ] `teamService.ts` + `useTeamQueries.ts` + `queryKeys.teams.*` additions.
+- [ ] Workspace switcher component replaces `UserMenu` trigger. Dropdown panel: pending invites surface + workspaces list + Create team + account actions.
+- [ ] On switch: `queryClient.invalidateQueries()` + `<motion.div key={activeTeamId}>` cross-fade wrapper around route outlet.
+- [ ] Command palette: "Switch workspace" section. `Cmd+1..9` keybinds.
 
-### P10 — Admin Portal: SystemConfig + Teams Pages
+### P10 — Frontend: Team Creation + Plan Gate
 
-- [ ] System Config page — list all config keys, inline edit values
-- [ ] Teams page — list all teams, owner, member count, creation date, soft-delete
+- [ ] `<CreateTeamModal />` — name + slug (debounced availability check) + description (collapsed) + logo dropzone. Single-page, no wizard.
+- [ ] `<UpgradeToProModal />` — shown when Free user clicks Create team or Pro user hits team limit.
+
+### P11 — Frontend: Team Settings Page
+
+Route: `/teams/:teamId/settings`. Vertical tab nav (left) + content (right).
+
+- [ ] **General tab** — name/slug/description/logo. Save on dirty.
+- [ ] **Members tab** — table + Invite button + role dropdown (Owner only) + remove kebab.
+- [ ] **Invite member modal** — Search users / By email (chip input) tabs.
+- [ ] **Invites tab** — pending invites table + Resend + Cancel.
+- [ ] **Usage tab** — 4 summary cards + period selector + per-member breakdown + CSV export.
+- [ ] **Billing tab** — Owner-only message + link to personal billing.
+- [ ] **Danger zone** — Leave team (members) / Transfer ownership / Delete team (Owner).
+
+### P12 — Frontend: Team-aware Content + Internal Booking
+
+- [ ] All pages scope to `activeTeamId` via the injected header (no per-page code change needed beyond removing client-side `userId` filters).
+- [ ] Sidebar header swaps to team identity block when in team context.
+- [ ] `<BookTeamMemberModal />` — 4-step (pick member → pick slot → details with pre-filled subject → confirm). Trigger from Meetings page.
+- [ ] Card editor public URL preview: `crelyzor.app/t/[team-slug]/[card-slug]` when team context.
+
+### P13 — Frontend: In-app Invite Surfaces
+
+- [ ] Workspace switcher shows pending invites count + expandable section.
+- [ ] Notifications panel renders invite items with inline Accept/Decline.
+- [ ] WS handlers for `TEAM_INVITE_RECEIVED`, `TEAM_MEMBER_*` events → invalidate relevant queries.
+
+### P14 — Public (crelyzor-public)
+
+- [ ] `/invite/:token` — SSR; accept/decline flow; Google OAuth signup if needed; expired/invalid token states.
+- [ ] `/t/:slug` — SSR team public page (logo, name, description, members roster, OG meta).
+- [ ] `/schedule/t/:slug/:username` — team-branded booking page (team identity header + member booking flow).
+
+### P15 — Admin Portal
+
+- [ ] `/config` page — SystemConfig editor with grouped sections + autosave + audit trail.
+- [ ] `/teams` page — table + search + filter + drawer with full team detail.
+- [ ] User detail drawer — plan select (FREE/PRO/BUSINESS) → `PATCH /admin/users/:id/plan`.
 
 ---
 

@@ -15,3 +15,4 @@ Read these when working on related features to avoid re-learning the same lesson
 | `ai-content-generation.md` | Generate content (Report/Tweet/Blog/Email), DB caching pattern |
 | `cards-frontend-nextjs-migration.md` | Next.js migration, PWA, SSR, 3D flip gotchas |
 | `tailwind-v4-css-variables.md` | Tailwind v4 CSS variable utilities fix |
+| `phase5-secrets.md` | Phase 5 encryption — per-env secrets, GCP KMS setup, rotation rules |
