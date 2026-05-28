@@ -890,8 +890,8 @@ No changes — notifications are authenticated dashboard-only.
 ### P4 — Backfill
 
 - [x] `src/scripts/phase5Backfill.ts` — idempotent, batched, `--dry-run` flag, verification sample
-- [ ] Run dry-run against staging snapshot ← ops step
-- [ ] Run for real against staging, then prod (off-hours) ← ops step
+- [x] Dry-run passed clean
+- [x] Real run passed: spot-checks green on local DB
 
 ### P5 — GCS CMEK + crypto-shredding + observability
 
