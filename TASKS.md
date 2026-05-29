@@ -923,23 +923,25 @@ No changes — notifications are authenticated dashboard-only.
 
 **Pro gate (interim):** Until Razorpay unblocks, admins flip `user.plan` manually via the admin portal.
 
-### P0 — Backend: Schema (do first — everything depends on this)
+### P0 — Backend: Schema ✅ Complete (2026-05-29)
 
-- [ ] `SystemConfig` model — key/value store + `updatedAt`, `updatedBy`. Seed defaults: `max_teams_per_pro_user=3`, `max_teams_per_business_user=10`, `max_members_per_team=50`, `team_invite_expiry_days=7`.
-- [ ] `Team` model — id (UUID), name, slug (unique), description (String? max 500), ownerId, logoUrl, **wrappedDek (Bytes)**, **dekVersion (Int @default 1)**, isDeleted, deletedAt, createdAt, updatedAt.
-- [ ] `TeamMember` model — id, teamId, userId, role (OWNER | ADMIN | MEMBER), joinedAt, isDeleted, deletedAt. (No `leftAt` — soft-delete semantics handle "left" via `isDeleted`.)
-- [ ] `TeamInvite` model — id, teamId, email, userId?, role, token (unique), invitedById, expiresAt, acceptedAt?, declinedAt?, cancelledAt?, isDeleted, deletedAt.
-- [ ] `TeamDekHistory` model — mirrors `UserDekHistory`. Hard cascade on Team delete (crypto-shred). No isDeleted/deletedAt.
-- [ ] Add `teamId UUID?` + index `@@index([teamId, isDeleted])` to: `Meeting`, `Card`, `Task`, `EventType`, `Booking`, `UserUsage`.
-- [ ] Migration: `pnpm db:migrate && pnpm db:generate`.
+Migration `20260529033811_phase6_teams_schema` shipped. Dev notes: `docs/dev-notes/phase-6-p0-teams-schema.md`.
 
-### P1 — Backend: Team CRUD + Member Management
+- [x] `SystemConfig` model — key/value store + `updatedAt`, `updatedBy`. Seed defaults: `max_teams_per_pro_user=3`, `max_teams_per_business_user=10`, `max_members_per_team=50`, `team_invite_expiry_days=7`.
+- [x] `Team` model — id (UUID), name, slug (unique), description (String? max 500), ownerId, logoUrl, **wrappedDek (Bytes)**, **dekVersion (Int @default 1)**, isDeleted, deletedAt, createdAt, updatedAt.
+- [x] `TeamMember` model — id, teamId, userId, role (OWNER | ADMIN | MEMBER), joinedAt, isDeleted, deletedAt. (No `leftAt` — soft-delete semantics handle "left" via `isDeleted`.)
+- [x] `TeamInvite` model — id, teamId, email, userId?, role, token (unique), invitedById, expiresAt, acceptedAt?, declinedAt?, cancelledAt?, isDeleted, deletedAt.
+- [x] `TeamDekHistory` model — mirrors `UserDekHistory`. Hard cascade on Team delete (crypto-shred). No isDeleted/deletedAt.
+- [x] Add `teamId UUID?` + index `@@index([teamId, isDeleted])` to: `Meeting`, `Card`, `Task`, `EventType`, `Booking`, `UserUsage`.
+- [x] Migration: `pnpm db:migrate && pnpm db:generate`.
 
-- [ ] `POST /teams` — create team. Plan gate (`user.plan IN ('PRO','BUSINESS')`). SystemConfig max-teams check by plan. Transaction: create Team + generate team DEK (Cloud KMS) + create OWNER TeamMember + auto-create team Card with `userId = ownerId`.
-- [ ] `GET /teams` — list teams the user is active in. Include role.
-- [ ] `PATCH /teams/:teamId` — update name (Admin), slug (Owner only), logo (Admin), description (Admin).
-- [ ] `DELETE /teams/:teamId` — soft delete (Owner only). Sets all member rows `isDeleted: true` in transaction. Schedules hard delete + crypto-shred after retention window.
-- [ ] `POST /teams/:teamId/transfer-ownership` — Owner only. Requires typing team name to confirm. Transaction: flip `Team.ownerId`, swap roles (old Owner → ADMIN, new Owner → OWNER), reassign team Cards' `userId`.
+### P1 — Backend: Team CRUD + Member Management ✅ Complete (2026-05-29)
+
+- [x] `POST /teams` — create team. Plan gate + SystemConfig max-teams + Postgres advisory lock for TOCTOU safety. KMS-wrap-before-tx pattern. Transaction: Team + TeamDekHistory v1 + OWNER TeamMember. Post-commit fail-open team-card with `slug = team-<team-slug>`.
+- [x] `GET /teams` — list active memberships with role.
+- [x] `PATCH /teams/:teamId` — Admin+; slug change Owner-only at the service layer. 404 on non-member.
+- [x] `DELETE /teams/:teamId` — soft delete (Owner only). Cascades soft-delete to TeamMember + Cards. Hard delete + crypto-shred deferred to retention job.
+- [x] `POST /teams/:teamId/transfer-ownership` — Owner only. teamNameConfirm compared inside tx. Self-target rejected. Roles swapped, team Cards reassigned to new owner.
 
 ### P2 — Backend: Team Member + Invite Management
 
@@ -957,13 +959,13 @@ No changes — notifications are authenticated dashboard-only.
 - [ ] `DELETE /teams/:teamId/members/:userId` — remove member. Admin/Owner. Cannot remove Owner. Soft-deletes their team Card.
 - [ ] `DELETE /teams/:teamId/leave` — leave team. Blocked if caller is Owner.
 
-### P3 — Backend: Encryption — per-team DEK
+### P3 — Backend: Encryption — per-team DEK ✅ Complete (2026-05-29)
 
-- [ ] Extend `cryptoService.getDek()` to accept `Principal = { type: 'user'|'team', id }`. Backward-compatible overload.
-- [ ] DEK cache key becomes `${type}:${id}` — same LRU capacity, shared across user + team.
-- [ ] Encrypt/decrypt helpers pick principal from `row.teamId` (set → team, null → user).
-- [ ] Bull job payloads carry `{ userId, teamId? }`. Workers call correct `getDek()`.
-- [ ] Crypto unit tests cover team principal path + cache eviction across principals.
+- [x] `cryptoService.getDek()` accepts `Principal = { type: 'user'|'team', id }`. Backward-compatible string overload via `toPrincipal()`.
+- [x] DEK cache key is `${type}:${id}:${version}` — disjoint keyspaces by structural prefix; trailing-colon eviction guards against prefix-of bugs.
+- [x] Encrypt/decrypt helpers accept Principal-or-string; JSDoc pushes new code (P5+) to explicit Principal. Pick-from-`row.teamId` happens at the call site in P5.
+- [ ] Bull job payloads carry `{ userId, teamId? }` → **moved to P4** (bundled with `getQuotaOwner`).
+- [x] 10 new crypto unit tests covering principal isolation, prefix-boundary eviction, KMS-failure rawDek zeroing; all 35 security tests green.
 
 ### P4 — Backend: Context Middleware + Quota Resolver
 
