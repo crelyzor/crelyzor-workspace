@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-23 (Phase 6 Teams — spec revised with per-team DEK + full UX, tasks restructured across all repos)
+Last updated: 2026-05-29 (Phase 6 P0–P5.2.a backend shipped ✅ — schema, CRUD, members, invites, per-team DEK, context middleware + quota resolver, full Meetings team-scoping + Card CRUD team-scoping)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -967,24 +967,26 @@ Migration `20260529033811_phase6_teams_schema` shipped. Dev notes: `docs/dev-not
 - [ ] Bull job payloads carry `{ userId, teamId? }` → **moved to P4** (bundled with `getQuotaOwner`).
 - [x] 10 new crypto unit tests covering principal isolation, prefix-boundary eviction, KMS-failure rawDek zeroing; all 35 security tests green.
 
-### P4 — Backend: Context Middleware + Quota Resolver
+### P4 — Backend: Context Middleware + Quota Resolver ✅ Complete (2026-05-29)
 
-- [ ] `resolveTeamContext` middleware — reads `X-Team-Id` header, runs `verifyTeamMember` inline, populates `req.teamContext = { teamId, role } | null`.
-- [ ] `verifyTeamRole('ADMIN' | 'OWNER')` factory — runs after `resolveTeamContext`, throws 403 if role insufficient.
-- [ ] `getQuotaOwner({ userId, teamId })` — returns userId of the principal whose pool gets debited (team.ownerId or self).
-- [ ] Wire `getQuotaOwner` into every metering call site (transcription start, OpenAI calls, GCS write, Recall webhook minute attribution).
-- [ ] `UserUsage` writes carry `teamId` for attribution.
+- [x] `resolveTeamContext` middleware — reads `X-Team-Id` header, runs `getRole` inline, populates `req.teamContext = { teamId, role } | null`. Mounted on `/meetings` (P5.1.a) and `/sma` (P5.1.b).
+- [x] `verifyTeamRole('ADMIN' | 'OWNER')` factory — runs after `resolveTeamContext`, throws 403 if role insufficient. (`verifyTeamMember` route-param variant dropped — `/teams/:teamId/*` keeps the inline `getRole` pattern from P1/P2.)
+- [x] `getQuotaOwner({ userId, teamId?, req? })` — returns team owner when teamId is set; fail-loud `AppError 410` on missing/soft-deleted team (no silent fallback). Symbol-keyed per-request cache.
+- [x] Wire `getQuotaOwner` into every metering call site — done per service in P5.1.c.i + P5.1.c.ii: transcription (Deepgram start + deduct), Recall (deploy + deduct via jobProcessor), AI credits (Ask AI + content gen via aiService). GCS storage attribution deferred to P5.8 (Usage endpoint surface).
+- [x] `UserUsage` writes hit the **payer's** row (team owner under team context) via `getQuotaOwner` resolution inside each `usageService` function. Multi-row-per-user breakdown (`groupBy(['userId', 'teamId'])`) deferred to P5.8.
 
 ### P5 — Backend: Team-scoped Content (split per service)
 
-- [ ] **P5.1** Meetings service — list/get/create/update/delete + attachments + participants + recordings respect `req.teamContext`. Member visibility: filter by `participants.userId = req.user.id` when role=MEMBER.
-- [ ] **P5.2** Cards service — list/get/create/update/delete + contacts respect team context.
+- [x] **P5.1 Meetings ✅ Complete (2026-05-29)** — shipped as 5.1.a (core CRUD + creation), 5.1.b (nested: attachments/share/notes/meeting-tags), 5.1.c.i (metering + transcription/SMA-edit encryption), 5.1.c.ii (aiService + askAIConversationService encryption + AI credit billing). Member visibility under team context filters by `(createdById = self OR participants.userId = self)` for MEMBER role; ADMIN/OWNER see all team meetings. Every meeting-scoped encrypted column (`transcript fullText/segments`, `summary/keyPoints`, AI content, AskAI messages, AI-extracted task descriptions) encrypts under the team DEK on team meetings. Notes stay author-private (author DEK, even on team meetings) by design. Dev notes: `docs/dev-notes/phase-6-p5-1{a,b,c-i,c-ii}-*.md`.
+- [~] **P5.2** Cards service — split into 5.2.a + 5.2.b:
+  - [x] **5.2.a — Card CRUD + public submitContact encryption** (2026-05-29) — `cardScope` + `principalForCard` + `verifyCardAccess` + `assertCardAccess` helpers; createCard MEMBER-reject + teamId write; getUserCards closes personal-list leak (was returning team-default cards); single-fetch getCardById; assertCardAccess on update/delete/duplicate; submitContact encrypts under `principalForCard(card)`. Strict Zod (`.strict()`) on create/update schemas blocks teamId/userId-in-body attacks. Dev notes: `docs/dev-notes/phase-6-p5-2a-cards-core.md`.
+  - [ ] **5.2.b — Contacts list + analytics + multi-card paths** — getContacts / exportContacts / updateContactTags / deleteContact / importContactsFromCsv / getCardAnalytics / getCardMeetings / trackView.
 - [ ] **P5.3** Tasks service — list/get/create/update/complete respect team context. Reassign blocked for MEMBER.
 - [ ] **P5.4** Scheduling — event types CRUD, availability, bookings (private endpoints) respect team context.
-- [ ] **P5.5** Tags service — universal tags (meeting/card/task/contact) scope to team context.
-- [ ] **P5.6** SMA + AI — Ask AI sessions, content generation cache (`MeetingAIContent`) scope by `meeting.teamId`.
-- [ ] **P5.7** Recall webhooks — match meeting → use `meeting.teamId` for quota attribution.
-- [ ] **P5.8** Usage endpoint `GET /teams/:teamId/usage?period=...` — per-member breakdown. Owner/Admin only.
+- [ ] **P5.5** Tags service — universal tags (meeting/card/task/contact) scope to team context. **Meeting-tag bits already done in P5.1.b**; remaining work covers card/task/contact tag domains + the cross-domain `Tag` model itself.
+- [ ] **P5.6** SMA + AI — Ask AI sessions, content generation cache (`MeetingAIContent`) scope by `meeting.teamId`. **Encryption + access already done in P5.1.b/c**; this slot now covers any remaining cache-scoping or cross-team isolation review.
+- [ ] **P5.7** Recall webhooks — match meeting → use `meeting.teamId` for quota attribution. **Job payload already carries teamId from P5.1.c.i**; webhook handler still needs to re-resolve under team context.
+- [ ] **P5.8** Usage endpoint `GET /teams/:teamId/usage?period=...` — per-member breakdown. Owner/Admin only. Drives the `UserUsage` `groupBy(['userId', 'teamId'])` schema-restructure debate.
 
 ### P6 — Backend: Public Team Endpoints
 
