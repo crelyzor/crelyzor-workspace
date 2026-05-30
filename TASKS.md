@@ -943,21 +943,23 @@ Migration `20260529033811_phase6_teams_schema` shipped. Dev notes: `docs/dev-not
 - [x] `DELETE /teams/:teamId` — soft delete (Owner only). Cascades soft-delete to TeamMember + Cards. Hard delete + crypto-shred deferred to retention job.
 - [x] `POST /teams/:teamId/transfer-ownership` — Owner only. teamNameConfirm compared inside tx. Self-target rejected. Roles swapped, team Cards reassigned to new owner.
 
-### P2 — Backend: Team Member + Invite Management
+### P2 — Backend: Team Member + Invite Management (12/13 ✅ — 2026-05-29)
 
-- [ ] `GET /teams/:teamId/members` — active members + role + last-active (from WS presence) + per-member usage summary.
-- [ ] `POST /teams/:teamId/members/invite` — body: `{ mode: 'user'|'email', userId?, emails?[], role, message? }`. Admin/Owner only. Member count check. Returns invites created.
-- [ ] `GET /teams/:teamId/invites` — list pending invites. Admin/Owner.
-- [ ] `POST /teams/:teamId/invites/:inviteId/resend` — Admin/Owner.
-- [ ] `DELETE /teams/:teamId/invites/:inviteId` — Admin/Owner (cancels invite).
-- [ ] `GET /invites/:token` — public, validate token + return team info (no auth).
-- [ ] `POST /invites/:token/accept` — accept email invite (requires JWT; if no account, signup flow runs first then calls this).
-- [ ] `POST /invites/:token/decline` — decline.
-- [ ] `POST /teams/:teamId/invites/accept` — accept in-app invite (existing user).
-- [ ] `POST /teams/:teamId/invites/decline` — decline in-app.
-- [ ] `PATCH /teams/:teamId/members/:userId` — change role. Owner only. Cannot change own role.
-- [ ] `DELETE /teams/:teamId/members/:userId` — remove member. Admin/Owner. Cannot remove Owner. Soft-deletes their team Card.
-- [ ] `DELETE /teams/:teamId/leave` — leave team. Blocked if caller is Owner.
+Dev notes: `docs/dev-notes/phase-6-p2a-team-members.md`, `docs/dev-notes/phase-6-p2b-team-invites.md`.
+
+- [ ] `GET /teams/:teamId/members` — active members + role + last-active (from WS presence) + per-member usage summary. **Pending** — blocks Frontend P11 Members tab.
+- [x] `POST /teams/:teamId/members/invite` — body: `{ mode: 'user'|'email', userId?, emails?[], role, message? }`. Admin/Owner only. Member count check. Returns invites created.
+- [x] `GET /teams/:teamId/invites` — list pending invites. Admin/Owner.
+- [x] `POST /teams/:teamId/invites/:inviteId/resend` — Admin/Owner.
+- [x] `DELETE /teams/:teamId/invites/:inviteId` — Admin/Owner (cancels invite).
+- [x] `GET /invites/:token` — public, validate token + return team info (no auth).
+- [x] `POST /invites/:token/accept` — accept email invite (requires JWT; if no account, signup flow runs first then calls this).
+- [x] `POST /invites/:token/decline` — decline.
+- [x] `POST /teams/:teamId/invites/accept` — accept in-app invite (existing user).
+- [x] `POST /teams/:teamId/invites/decline` — decline in-app.
+- [x] `PATCH /teams/:teamId/members/:userId` — change role. Owner only. Cannot change own role.
+- [x] `DELETE /teams/:teamId/members/:userId` — remove member. Admin/Owner. Cannot remove Owner. Soft-deletes their team Card.
+- [x] `DELETE /teams/:teamId/leave` — leave team. Blocked if caller is Owner.
 
 ### P3 — Backend: Encryption — per-team DEK ✅ Complete (2026-05-29)
 
