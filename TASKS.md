@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-30 (Phase 6 P0–P5.3 backend shipped ✅ — schema, CRUD, members, invites, per-team DEK, context middleware + quota resolver, full Meetings/Cards/Tasks team-scoping + AI-extracted task encryption fix)
+Last updated: 2026-05-30 (Phase 6 P0–P6 backend shipped ✅ — full team-scoped content + per-team usage + 3 public team endpoints (team profile + scheduling profile + member team events))
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -943,11 +943,11 @@ Migration `20260529033811_phase6_teams_schema` shipped. Dev notes: `docs/dev-not
 - [x] `DELETE /teams/:teamId` — soft delete (Owner only). Cascades soft-delete to TeamMember + Cards. Hard delete + crypto-shred deferred to retention job.
 - [x] `POST /teams/:teamId/transfer-ownership` — Owner only. teamNameConfirm compared inside tx. Self-target rejected. Roles swapped, team Cards reassigned to new owner.
 
-### P2 — Backend: Team Member + Invite Management (12/13 ✅ — 2026-05-29)
+### P2 — Backend: Team Member + Invite Management ✅ Complete (2026-05-29)
 
 Dev notes: `docs/dev-notes/phase-6-p2a-team-members.md`, `docs/dev-notes/phase-6-p2b-team-invites.md`.
 
-- [ ] `GET /teams/:teamId/members` — active members + role + last-active (from WS presence) + per-member usage summary. **Pending** — blocks Frontend P11 Members tab.
+- [x] `GET /teams/:teamId/members` — base shipped 2026-05-29. Active members + role + joinedAt, role-rank sorted. Two enrichments from the original spec moved to natural homes: last-active from WS presence (unscoped follow-up via P4.9 WS); per-member usage summary (P5.8 Usage endpoint).
 - [x] `POST /teams/:teamId/members/invite` — body: `{ mode: 'user'|'email', userId?, emails?[], role, message? }`. Admin/Owner only. Member count check. Returns invites created.
 - [x] `GET /teams/:teamId/invites` — list pending invites. Admin/Owner.
 - [x] `POST /teams/:teamId/invites/:inviteId/resend` — Admin/Owner.
@@ -984,18 +984,25 @@ Dev notes: `docs/dev-notes/phase-6-p2a-team-members.md`, `docs/dev-notes/phase-6
   - [x] **5.2.a — Card CRUD + public submitContact encryption** (2026-05-29) — `cardScope` + `principalForCard` + `verifyCardAccess` + `assertCardAccess` helpers; createCard MEMBER-reject + teamId write; getUserCards closes personal-list leak (was returning team-default cards); single-fetch getCardById; assertCardAccess on update/delete/duplicate; submitContact encrypts under `principalForCard(card)`. Strict Zod (`.strict()`) on create/update schemas blocks teamId/userId-in-body attacks. Dev notes: `docs/dev-notes/phase-6-p5-2a-cards-core.md`.
   - [x] **5.2.b — Contacts list + analytics + multi-card paths** (2026-05-30) — `contactScope` helper + `MAX_IMPORT_ROWS = 5000`; getContacts/exportContacts via contactScope with per-row decrypt principal; updateContactTags returns decrypted payload (security review must-fix); deleteContact + importContactsFromCsv + getCardAnalytics gated via card-level access; getCardMeetings adds meeting-level scope to close cross-tenant leak. Dev notes: `docs/dev-notes/phase-6-p5-2b-cards-contacts.md`.
 - [x] **P5.3 Tasks ✅ Complete (2026-05-30)** — full taskController retrofit: 4 helpers (taskScope/principalForTask/verifyTaskAccess/assertTaskAccess) + 9 method retrofits (getAllTasks/getTasks/createTask/createStandaloneTask/updateTask/deleteTask/reorderTasks/getSubtasks/createSubtask); inherit-teamId-from-linked-entity on creates; per-row audit log on reorderTasks; recurring spawn carries explicit teamId; `decryptTaskDescriptions` per-row principal derivation. Critical aiService.extractTasks fix (sets Task.teamId from meeting) + idempotent backfill migration heals existing AI-extracted rows. Dev notes: `docs/dev-notes/phase-6-p5-3-tasks.md`.
-- [ ] **P5.4** Scheduling — event types CRUD, availability, bookings (private endpoints) respect team context.
-- [ ] **P5.5** Tags service — universal tags (meeting/card/task/contact) scope to team context. **Meeting-tag bits already done in P5.1.b**; remaining work covers card/task/contact tag domains + the cross-domain `Tag` model itself.
-- [ ] **P5.6** SMA + AI — Ask AI sessions, content generation cache (`MeetingAIContent`) scope by `meeting.teamId`. **Encryption + access already done in P5.1.b/c**; this slot now covers any remaining cache-scoping or cross-team isolation review.
-- [ ] **P5.7** Recall webhooks — match meeting → use `meeting.teamId` for quota attribution. **Job payload already carries teamId from P5.1.c.i**; webhook handler still needs to re-resolve under team context.
-- [ ] **P5.8** Usage endpoint `GET /teams/:teamId/usage?period=...` — per-member breakdown. Owner/Admin only. Drives the `UserUsage` `groupBy(['userId', 'teamId'])` schema-restructure debate.
+- [x] **P5.4 Scheduling ✅ Complete (2026-05-30)** — split into 5.4.a / 5.4.b / 5.4.c, all shipped:
+  - [x] **5.4.a — EventTypes team-scoping** (2026-05-30) — `resolveTeamContext` mounted on `/scheduling`; full helper set (eventTypeScope / verifyEventTypeAccess / assertEventTypeAccess); `assertAvailabilityScheduleOwned` cross-tenant guard; `assertMemberMeetingLinkAllowed` privilege-escalation guard (MEMBER cannot set/change meetingLink under team ctx); TOCTOU defence via teamId in update/delete where clauses; MEMBER may create own team event types (asymmetric vs createCard, per team-scheduling design). Dev notes: `docs/dev-notes/phase-6-p5-4a-event-types.md`.
+  - [x] **5.4.b — Booking management team-scoping** (2026-05-30) — pure helpers in new `bookingPrincipal.ts` (worker-safe); 4 method retrofits with gate-BEFORE-status (enumeration-oracle fix); actor/host split — host owns GCal/Recall/Prepare-Task/emails/notifications; Recall + reminder jobs carry teamId; canonical audit log naming; forward-compat decrypt switch in public + worker paths. Dev notes: `docs/dev-notes/phase-6-p5-4b-booking-management.md`.
+  - [x] **5.4.c — Public booking creation + scheduleService + slot engine** (2026-05-30) — createBooking derives `bookingPrincipal` from resolved EventType, writes Booking.teamId + Meeting.teamId + encrypts guest PII (Booking + MeetingParticipant) under it; ensureBookingMeetingParticipants signature takes explicit Principal arg; scheduleService no-op (user-owned by design); slot engine unchanged per spec. Dev notes: `docs/dev-notes/phase-6-p5-4c-public-booking-creation.md`.
+- [x] **P5.5 Tags ✅ Complete (2026-05-30)** — split into 5.5.a / 5.5.b, both shipped:
+  - [x] **5.5.a — Tag schema + CRUD + junction tag-side bridge** (2026-05-30) — `Tag.teamId` + partial unique indexes; helpers (tagScope / verifyTagAccess / assertTagAccess); 5 CRUD retrofits with `updateMany`-based TOCTOU defence; workspace-wide counts; MEMBER may create team tags; MAX_TAGS_PER_TEAM = 500; 12 junction handlers route tag-side check through `assertTagAccess(read)`. Dev notes: `docs/dev-notes/phase-6-p5-5a-tag-team-scoping.md`.
+  - [x] **5.5.b — Junction entity-side gate swap + cross-scope guard** (2026-05-30) — NEW `taskAccess.ts` pure module extracted from controller; entity-side swaps to `assertCardAccess` / `assertTaskAccess` / contact-via-card; `assertTagEntityScopeMatch` 400 cross-scope guard; canonical `tag.attach` / `tag.detach` audit logs. Dev notes: `docs/dev-notes/phase-6-p5-5b-tag-junctions.md`.
+- [x] **P5.6 SMA + AI ✅ Complete (2026-05-30)** — `aiService.loadMeetingMeta` central gate refactor + 9 method signatures with optional `teamContext`; aiController 5 legacy gates → `assertMeetingAccess` + 3 decrypt-principal bug fixes (getSummary/regenerateSummary/regenerateTitle now decrypt under `principalForMeeting` to match aiService writes); askAIConversationService unchanged (per-(userId, meetingId) row model already isolates). Worker path preserved via `undefined` teamContext default. Dev notes: `docs/dev-notes/phase-6-p5-6-sma-ai-team-access.md`.
+- [x] **P5.7 Recall webhooks ✅ Complete (2026-05-30)** — webhook handler now selects `meeting.teamId` and forwards it to FETCH_RECALL_RECORDING job payload. Closes the only remaining gap in the Recall → transcription → quota chain. Dev notes: `docs/dev-notes/phase-6-p5-7-recall-webhook-team-attribution.md`.
+- [x] **P5.8 Usage endpoint ✅ Complete (2026-05-30)** — `UserUsage` 1:1 dropped via partial unique indexes; multi-row-per-user (personal + one per team owned); aggregate-for-check / scoped-for-deduct service refactor; NEW `GET /teams/:teamId/usage` returns per-member breakdown + summary + owner limits; ADMIN/OWNER-only (MEMBER → 404 enumeration-collapse). Dev notes: `docs/dev-notes/phase-6-p5-8-user-usage-scope-split.md`.
 
-### P6 — Backend: Public Team Endpoints
+### P6 — Backend: Public Team Endpoints ✅ Complete (2026-05-30)
 
-- [ ] `GET /public/teams/:slug` — no auth. Team profile + active member roster (name, username, avatar, role) for the `/t/:slug` page.
-- [ ] `GET /public/scheduling/team/:slug/profile` — team scheduling profile.
-- [ ] `GET /public/scheduling/team/:slug/:username` — specific member's team-scoped event types.
-- [ ] Slot engine respects team-scoped EventTypes (`eventType.teamId = team.id`).
+Dev notes: `docs/dev-notes/phase-6-p6-public-team-endpoints.md`.
+
+- [x] `GET /public/teams/:slug` — team profile + active member roster (id/name/username/avatar/role/teamCard) + memberCount. No emails surfaced.
+- [x] `GET /public/scheduling/team/:slug/profile` — bookable member list (active members with ≥ 1 team event type + scheduling enabled).
+- [x] `GET /public/scheduling/team/:slug/:username` — specific member's team-scoped EventTypes only. Uniform 404 across all failure modes.
+- [x] Slot engine unchanged — existing `/public/scheduling/slots/:username/:event-type-slug` resolves team event types automatically.
 
 ### P7 — Backend: WebSocket Events
 
