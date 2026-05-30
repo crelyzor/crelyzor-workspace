@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-30 (Phase 6 backend ✅ + P9.a + P10 + P11.a + P11.b frontend shipped. /teams/:teamId/settings now has General + Members + Invites + Danger live; Usage + Billing remain for P11.c. Email-mode batch invites + role changes + remove + resend/cancel all wired.)
+Last updated: 2026-05-30 (Phase 6 backend ✅ + P9.a + P10 + P11 (all sub-chunks) + P12 frontend shipped. Internal team-member booking via Meetings page header + Team Settings fully complete. P13 (WS-driven invite surfaces) is next.)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -1047,16 +1047,18 @@ Route: `/teams/:teamId/settings`. Vertical tab nav (left) + content (right). P11
 - [x] **Members tab** (P11.b — 2026-05-30) — roster + Invite (Admin+) + Owner-only inline role `<select>` + kebab (Admin+) → Remove confirm Dialog. Sorted by role rank then joinedAt. Dev notes: `docs/dev-notes/phase-6-p11b-team-members-invites.md`.
 - [x] **Invite member modal** (P11.b) — email-mode (chip input, 10-cap, Role select, optional message). User-mode typeahead deferred until user-search endpoint exists.
 - [x] **Invites tab** (P11.b) — pending list + Resend + Cancel + expiry highlight. Gated to "no permission" copy for members.
-- [ ] **Usage tab** (P11.c) — 4 summary cards + period selector + per-member breakdown + CSV export.
-- [ ] **Billing tab** (P11.c) — Owner-only message + link to personal billing.
+- [x] **Usage tab** (P11.c — 2026-05-30) — 4 summary cards vs owner plan limits + per-member breakdown table + client-side CSV export. Period selector deferred until backend supports a `?period=` query. Dev notes: `docs/dev-notes/phase-6-p11c-usage-billing.md`.
+- [x] **Billing tab** (P11.c) — Owner-only "Manage billing" CTA + role-aware attribution copy + FREE-plan edge case warning.
 - [x] **Danger zone** (P11.a) — Leave team (members) / Transfer ownership / Delete team (Owner). Post-success scope reset + navigate home.
 
-### P12 — Frontend: Team-aware Content + Internal Booking
+### P12 — Frontend: Team-aware Content + Internal Booking ✅ Complete (2026-05-30)
 
-- [ ] All pages scope to `activeTeamId` via the injected header (no per-page code change needed beyond removing client-side `userId` filters).
-- [ ] Sidebar header swaps to team identity block when in team context.
-- [ ] `<BookTeamMemberModal />` — 4-step (pick member → pick slot → details with pre-filled subject → confirm). Trigger from Meetings page.
-- [ ] Card editor public URL preview: `crelyzor.app/t/[team-slug]/[card-slug]` when team context.
+Dev notes: `docs/dev-notes/phase-6-p12-team-aware-content-internal-booking.md`.
+
+- [x] All pages scope via injected X-Team-Id; audit confirmed no client-side `userId` filters to remove.
+- [x] Team identity already surfaced via WorkspaceSwitcher trigger (no separate sidebar header needed per spec).
+- [x] `<BookTeamMemberModal />` — 4-step Dialog (pick member → pick event type → pick date+slot → confirm) wired through public scheduling endpoints with pre-filled booker identity. Trigger lives in Meetings page header when in team scope.
+- [ ] Card editor public URL preview swap to `crelyzor.app/t/[team-slug]/[card-slug]` when in team context — small follow-up.
 
 ### P13 — Frontend: In-app Invite Surfaces
 
