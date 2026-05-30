@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-29 (Phase 6 P0–P5.2.a backend shipped ✅ — schema, CRUD, members, invites, per-team DEK, context middleware + quota resolver, full Meetings team-scoping + Card CRUD team-scoping)
+Last updated: 2026-05-30 (Phase 6 P0–P5.3 backend shipped ✅ — schema, CRUD, members, invites, per-team DEK, context middleware + quota resolver, full Meetings/Cards/Tasks team-scoping + AI-extracted task encryption fix)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -978,10 +978,10 @@ Migration `20260529033811_phase6_teams_schema` shipped. Dev notes: `docs/dev-not
 ### P5 — Backend: Team-scoped Content (split per service)
 
 - [x] **P5.1 Meetings ✅ Complete (2026-05-29)** — shipped as 5.1.a (core CRUD + creation), 5.1.b (nested: attachments/share/notes/meeting-tags), 5.1.c.i (metering + transcription/SMA-edit encryption), 5.1.c.ii (aiService + askAIConversationService encryption + AI credit billing). Member visibility under team context filters by `(createdById = self OR participants.userId = self)` for MEMBER role; ADMIN/OWNER see all team meetings. Every meeting-scoped encrypted column (`transcript fullText/segments`, `summary/keyPoints`, AI content, AskAI messages, AI-extracted task descriptions) encrypts under the team DEK on team meetings. Notes stay author-private (author DEK, even on team meetings) by design. Dev notes: `docs/dev-notes/phase-6-p5-1{a,b,c-i,c-ii}-*.md`.
-- [~] **P5.2** Cards service — split into 5.2.a + 5.2.b:
+- [x] **P5.2 Cards ✅ Complete (2026-05-30)** — split into 5.2.a + 5.2.b, both shipped:
   - [x] **5.2.a — Card CRUD + public submitContact encryption** (2026-05-29) — `cardScope` + `principalForCard` + `verifyCardAccess` + `assertCardAccess` helpers; createCard MEMBER-reject + teamId write; getUserCards closes personal-list leak (was returning team-default cards); single-fetch getCardById; assertCardAccess on update/delete/duplicate; submitContact encrypts under `principalForCard(card)`. Strict Zod (`.strict()`) on create/update schemas blocks teamId/userId-in-body attacks. Dev notes: `docs/dev-notes/phase-6-p5-2a-cards-core.md`.
-  - [ ] **5.2.b — Contacts list + analytics + multi-card paths** — getContacts / exportContacts / updateContactTags / deleteContact / importContactsFromCsv / getCardAnalytics / getCardMeetings / trackView.
-- [ ] **P5.3** Tasks service — list/get/create/update/complete respect team context. Reassign blocked for MEMBER.
+  - [x] **5.2.b — Contacts list + analytics + multi-card paths** (2026-05-30) — `contactScope` helper + `MAX_IMPORT_ROWS = 5000`; getContacts/exportContacts via contactScope with per-row decrypt principal; updateContactTags returns decrypted payload (security review must-fix); deleteContact + importContactsFromCsv + getCardAnalytics gated via card-level access; getCardMeetings adds meeting-level scope to close cross-tenant leak. Dev notes: `docs/dev-notes/phase-6-p5-2b-cards-contacts.md`.
+- [x] **P5.3 Tasks ✅ Complete (2026-05-30)** — full taskController retrofit: 4 helpers (taskScope/principalForTask/verifyTaskAccess/assertTaskAccess) + 9 method retrofits (getAllTasks/getTasks/createTask/createStandaloneTask/updateTask/deleteTask/reorderTasks/getSubtasks/createSubtask); inherit-teamId-from-linked-entity on creates; per-row audit log on reorderTasks; recurring spawn carries explicit teamId; `decryptTaskDescriptions` per-row principal derivation. Critical aiService.extractTasks fix (sets Task.teamId from meeting) + idempotent backfill migration heals existing AI-extracted rows. Dev notes: `docs/dev-notes/phase-6-p5-3-tasks.md`.
 - [ ] **P5.4** Scheduling — event types CRUD, availability, bookings (private endpoints) respect team context.
 - [ ] **P5.5** Tags service — universal tags (meeting/card/task/contact) scope to team context. **Meeting-tag bits already done in P5.1.b**; remaining work covers card/task/contact tag domains + the cross-domain `Tag` model itself.
 - [ ] **P5.6** SMA + AI — Ask AI sessions, content generation cache (`MeetingAIContent`) scope by `meeting.teamId`. **Encryption + access already done in P5.1.b/c**; this slot now covers any remaining cache-scoping or cross-team isolation review.
