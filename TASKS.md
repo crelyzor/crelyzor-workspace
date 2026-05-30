@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-30 (Phase 6 P0–P6 backend shipped ✅ — full team-scoped content + per-team usage + 3 public team endpoints (team profile + scheduling profile + member team events))
+Last updated: 2026-05-30 (Phase 6 backend fully shipped 🎉 P0–P8 — schema → CRUD → encryption → context → per-domain scoping → public surface → WS events → admin overrides. Phase 6 frontend is next.)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -1004,19 +1004,19 @@ Dev notes: `docs/dev-notes/phase-6-p6-public-team-endpoints.md`.
 - [x] `GET /public/scheduling/team/:slug/:username` — specific member's team-scoped EventTypes only. Uniform 404 across all failure modes.
 - [x] Slot engine unchanged — existing `/public/scheduling/slots/:username/:event-type-slug` resolves team event types automatically.
 
-### P7 — Backend: WebSocket Events
+### P7 — Backend: WebSocket Events ✅ Complete (2026-05-30)
 
-- [ ] Extend `WsServerMessage` with: `TEAM_INVITE_RECEIVED`, `TEAM_MEMBER_JOINED`, `TEAM_MEMBER_LEFT`, `TEAM_MEMBER_ROLE_CHANGED`, `TEAM_MEETING_BOOKED`.
-- [ ] Publish each on the relevant service mutation.
+- [x] Extend `WsServerMessage` with `TEAM_INVITE_RECEIVED`, `TEAM_MEMBER_JOINED`, `TEAM_MEMBER_LEFT`, `TEAM_MEMBER_ROLE_CHANGED`, `TEAM_MEETING_BOOKED`. Single `notify:${userId}` channel carries the full envelope (notifications + team events).
+- [x] Publish each from the relevant service post-commit via `publishToUser`/`broadcastToTeam` in NEW `teamEventService.ts`. Fail-open. Dev notes: `docs/dev-notes/phase-6-p7-team-websocket-events.md`.
 
-### P8 — Backend: Admin API
+### P8 — Backend: Admin API ✅ Complete (2026-05-30)
 
-- [ ] `GET /admin/config` — list all SystemConfig entries grouped by category.
-- [ ] `PATCH /admin/config/:key` — update value. Records `updatedBy`.
-- [ ] `GET /admin/teams?include_deleted=false&search=` — list all teams with owner email + member count + status. Pagination.
-- [ ] `GET /admin/teams/:teamId` — full team detail incl. members + activity log.
-- [ ] `DELETE /admin/teams/:teamId` — soft-delete (admin override).
-- [ ] `PATCH /admin/users/:userId/plan` — set `user.plan` to FREE/PRO/BUSINESS. Records audit row.
+- [x] `GET /admin/config` — list SystemConfig entries grouped by category (key prefix before `_`).
+- [x] `PATCH /admin/config/:key` — upsert with `{value}`. `updatedBy = req.adminId`. Audit log: `admin.config.update`.
+- [x] `GET /admin/teams?include_deleted&search&page&pageSize` — paginated team list with owner + memberCount.
+- [x] `GET /admin/teams/:teamId` — full detail with active + departed members + pending invites.
+- [x] `DELETE /admin/teams/:teamId` — admin override soft-delete + cascade. Audit log: `admin.team.delete`.
+- [x] `PATCH /admin/users/:userId/plan` — existing endpoint improved to capture `previousPlan` + adminId for audit. Audit log: `admin.user.plan.update`. Dev notes: `docs/dev-notes/phase-6-p8-admin-api.md`.
 
 ### P9 — Frontend: Workspace Switcher + Team Store
 
