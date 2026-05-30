@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-30 (Phase 6 backend ✅ + P9.a + P10 + P11 (all sub-chunks) + P12 frontend shipped. Internal team-member booking via Meetings page header + Team Settings fully complete. P13 (WS-driven invite surfaces) is next.)
+Last updated: 2026-05-30 (Phase 6 frontend P13 + crelyzor-public P14.a shipped. WS-driven Accept/Decline live in switcher + notifications panel, GET /teams/me/invites surfaces invites that arrived offline, and the public SSR /invite/[token] preview page is live. P14.b (dashboard accept handler) is next.)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
