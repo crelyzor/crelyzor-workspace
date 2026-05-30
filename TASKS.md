@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-05-30 (Phase 6 backend fully shipped 🎉 P0–P8 — schema → CRUD → encryption → context → per-domain scoping → public surface → WS events → admin overrides. Phase 6 frontend is next.)
+Last updated: 2026-05-30 (Phase 6 backend ✅ + P9.a + P10 + P11.a + P11.b frontend shipped. /teams/:teamId/settings now has General + Members + Invites + Danger live; Usage + Billing remain for P11.c. Email-mode batch invites + role changes + remove + resend/cancel all wired.)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -1020,29 +1020,36 @@ Dev notes: `docs/dev-notes/phase-6-p6-public-team-endpoints.md`.
 
 ### P9 — Frontend: Workspace Switcher + Team Store
 
-- [ ] `teamStore` (Zustand, sessionStorage-persisted) — `activeTeamId`, `setActiveTeam()`.
-- [ ] `apiClient` injects `X-Team-Id` header when `activeTeamId` set.
-- [ ] `teamService.ts` + `useTeamQueries.ts` + `queryKeys.teams.*` additions.
-- [ ] Workspace switcher component replaces `UserMenu` trigger. Dropdown panel: pending invites surface + workspaces list + Create team + account actions.
-- [ ] On switch: `queryClient.invalidateQueries()` + `<motion.div key={activeTeamId}>` cross-fade wrapper around route outlet.
-- [ ] Command palette: "Switch workspace" section. `Cmd+1..9` keybinds.
+P9.a foundation shipped 2026-05-30 (dev notes: `docs/dev-notes/phase-6-p9a-workspace-switcher.md`). P9.b follow-ups (pending invites surface, command palette, Cmd+1..9 keybinds, stale-team auto-reset) deferred.
 
-### P10 — Frontend: Team Creation + Plan Gate
+- [x] `teamStore` (Zustand, sessionStorage-persisted) — `activeTeamId`, `setActiveTeam()`.
+- [x] `apiClient` injects `X-Team-Id` header when `activeTeamId` set (request + requestForm + requestText).
+- [x] `teamService.ts` + `useTeamQueries.ts` + `queryKeys.teams.*` additions.
+- [x] Workspace switcher component replaces `UserMenu` trigger. Dropdown panel: user header → workspaces list (Personal + teams with role) → Create team CTA → divider → Profile / Settings / Getting started / Sign out.
+- [x] On switch: `queryClient.invalidateQueries()` + `<motion.div key={activeTeamId ?? 'personal'}>` cross-fade wrapper around route outlet (220ms ease).
+- [ ] **P9.b — pending invites surface in switcher** (waits for P13).
+- [ ] **P9.b — command palette "Switch workspace" section + `Cmd+1..9` keybinds**.
 
-- [ ] `<CreateTeamModal />` — name + slug (debounced availability check) + description (collapsed) + logo dropzone. Single-page, no wizard.
-- [ ] `<UpgradeToProModal />` — shown when Free user clicks Create team or Pro user hits team limit.
+### P10 — Frontend: Team Creation + Plan Gate ✅ Complete (2026-05-30)
+
+Dev notes: `docs/dev-notes/phase-6-p10-create-team-modal.md`.
+
+- [x] `<CreateTeamModal />` + `<CreateTeam />` page at `/teams/new` — name + auto-derived slug (regex-validated) + optional description + optional logo URL. Single-page, no wizard. 201 → setActiveTeam + navigate / ; 402 → close + UpgradeModal ; 409 → inline slug error.
+- [x] Plan gate handled via existing `<UpgradeModal />` — apiClient interceptor catches 402 and surfaces the upgrade flow with `FEATURE_GATE` code. No new component needed.
+- [~] Logo dropzone (URL input shipped; full upload UX deferred to P11 settings — needs backend logo-upload endpoint).
+- [~] Slug-availability pre-check (deferred — backend lacks `GET /teams/check-slug`; submit-time 409 is the source of truth for now).
 
 ### P11 — Frontend: Team Settings Page
 
-Route: `/teams/:teamId/settings`. Vertical tab nav (left) + content (right).
+Route: `/teams/:teamId/settings`. Vertical tab nav (left) + content (right). P11.a foundation shipped 2026-05-30; Members/Invites/Usage/Billing tabs render as "Coming in P11.b" stubs. Dev notes: `docs/dev-notes/phase-6-p11a-team-settings-foundation.md`.
 
-- [ ] **General tab** — name/slug/description/logo. Save on dirty.
-- [ ] **Members tab** — table + Invite button + role dropdown (Owner only) + remove kebab.
-- [ ] **Invite member modal** — Search users / By email (chip input) tabs.
-- [ ] **Invites tab** — pending invites table + Resend + Cancel.
-- [ ] **Usage tab** — 4 summary cards + period selector + per-member breakdown + CSV export.
-- [ ] **Billing tab** — Owner-only message + link to personal billing.
-- [ ] **Danger zone** — Leave team (members) / Transfer ownership / Delete team (Owner).
+- [x] **General tab** (P11.a) — name + slug (Owner-only) + description + logo URL. Save on dirty with 403/409 inline.
+- [x] **Members tab** (P11.b — 2026-05-30) — roster + Invite (Admin+) + Owner-only inline role `<select>` + kebab (Admin+) → Remove confirm Dialog. Sorted by role rank then joinedAt. Dev notes: `docs/dev-notes/phase-6-p11b-team-members-invites.md`.
+- [x] **Invite member modal** (P11.b) — email-mode (chip input, 10-cap, Role select, optional message). User-mode typeahead deferred until user-search endpoint exists.
+- [x] **Invites tab** (P11.b) — pending list + Resend + Cancel + expiry highlight. Gated to "no permission" copy for members.
+- [ ] **Usage tab** (P11.c) — 4 summary cards + period selector + per-member breakdown + CSV export.
+- [ ] **Billing tab** (P11.c) — Owner-only message + link to personal billing.
+- [x] **Danger zone** (P11.a) — Leave team (members) / Transfer ownership / Delete team (Owner). Post-success scope reset + navigate home.
 
 ### P12 — Frontend: Team-aware Content + Internal Booking
 
