@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-06-01 (Phase 6 P14.b + P14.c shipped. Email-invite loop closes end-to-end: public preview → dashboard /invite/:token handler (with safe ?next= OAuth round-trip) → POST accept → /teams/:teamId/settings. Public team profile SSR at /t/:slug with members + bookable "Book a call" links. P14.d team-member booking page is next.)
+Last updated: 2026-06-01 (Phase 6 P14 family wrapped — public team-member booking pages at /schedule/t/:slug/:username (picker) and /schedule/t/:slug/:username/:eventTypeSlug (booking flow). Reuses the personal BookingFlow as-is since the backend is team-agnostic at the API surface. Only remaining Phase 6 work: P9.b workspace keybinds + P15 admin portal.)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
