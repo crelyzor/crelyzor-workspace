@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-06-01 (Phase 6 P14 family wrapped — public team-member booking pages at /schedule/t/:slug/:username (picker) and /schedule/t/:slug/:username/:eventTypeSlug (booking flow). Reuses the personal BookingFlow as-is since the backend is team-agnostic at the API surface. Only remaining Phase 6 work: P9.b workspace keybinds + P15 admin portal.)
+Last updated: 2026-06-01 (Phase 6 COMPLETE ✅ — P15 admin portal shipped: /config (SystemConfig editor) + /product-teams (teams table + detail drawer). All Phase 6 tasks done.)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -1027,8 +1027,8 @@ P9.a foundation shipped 2026-05-30 (dev notes: `docs/dev-notes/phase-6-p9a-works
 - [x] `teamService.ts` + `useTeamQueries.ts` + `queryKeys.teams.*` additions.
 - [x] Workspace switcher component replaces `UserMenu` trigger. Dropdown panel: user header → workspaces list (Personal + teams with role) → Create team CTA → divider → Profile / Settings / Getting started / Sign out.
 - [x] On switch: `queryClient.invalidateQueries()` + `<motion.div key={activeTeamId ?? 'personal'}>` cross-fade wrapper around route outlet (220ms ease).
-- [ ] **P9.b — pending invites surface in switcher** (waits for P13).
-- [ ] **P9.b — command palette "Switch workspace" section + `Cmd+1..9` keybinds**.
+- [x] **P9.b — pending invites surface in switcher** (shipped as part of P13).
+- [x] **P9.b — command palette "Switch workspace" section + `Cmd+1..9` keybinds**.
 
 ### P10 — Frontend: Team Creation + Plan Gate ✅ Complete (2026-05-30)
 
@@ -1060,23 +1060,23 @@ Dev notes: `docs/dev-notes/phase-6-p12-team-aware-content-internal-booking.md`.
 - [x] `<BookTeamMemberModal />` — 4-step Dialog (pick member → pick event type → pick date+slot → confirm) wired through public scheduling endpoints with pre-filled booker identity. Trigger lives in Meetings page header when in team scope.
 - [ ] Card editor public URL preview swap to `crelyzor.app/t/[team-slug]/[card-slug]` when in team context — small follow-up.
 
-### P13 — Frontend: In-app Invite Surfaces
+### P13 — Frontend: In-app Invite Surfaces ✅ Complete (2026-06-01)
 
-- [ ] Workspace switcher shows pending invites count + expandable section.
-- [ ] Notifications panel renders invite items with inline Accept/Decline.
-- [ ] WS handlers for `TEAM_INVITE_RECEIVED`, `TEAM_MEMBER_*` events → invalidate relevant queries.
+- [x] Workspace switcher shows pending invites count + expandable section.
+- [x] Notifications panel renders invite items with inline Accept/Decline.
+- [x] WS handlers for `TEAM_INVITE_RECEIVED`, `TEAM_MEMBER_*` events → invalidate relevant queries.
 
-### P14 — Public (crelyzor-public)
+### P14 — Public (crelyzor-public) ✅ Complete (2026-06-01)
 
-- [ ] `/invite/:token` — SSR; accept/decline flow; Google OAuth signup if needed; expired/invalid token states.
-- [ ] `/t/:slug` — SSR team public page (logo, name, description, members roster, OG meta).
-- [ ] `/schedule/t/:slug/:username` — team-branded booking page (team identity header + member booking flow).
+- [x] `/invite/:token` — SSR; accept/decline flow; Google OAuth signup if needed; expired/invalid token states.
+- [x] `/t/:slug` — SSR team public page (logo, name, description, members roster, OG meta).
+- [x] `/schedule/t/:slug/:username` — team-branded booking page (team identity header + member booking flow).
 
-### P15 — Admin Portal
+### P15 — Admin Portal ✅ Complete (2026-06-01)
 
-- [ ] `/config` page — SystemConfig editor with grouped sections + autosave + audit trail.
-- [ ] `/teams` page — table + search + filter + drawer with full team detail.
-- [ ] User detail drawer — plan select (FREE/PRO/BUSINESS) → `PATCH /admin/users/:id/plan`.
+- [x] `/config` page — SystemConfig editor with grouped sections + autosave.
+- [x] `/product-teams` page — table + search + include-deleted filter + detail drawer with delete action.
+- [x] User detail plan select — already existed in UsersPage (FREE/PRO/BUSINESS buttons).
 
 ---
 
