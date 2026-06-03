@@ -38,7 +38,7 @@ services:
     build:
       context: ./crelyzor-backend
       target: deps
-    command: pnpm dev
+    command: sh -c "pnpm prisma generate && pnpm dev"
     restart: unless-stopped
     env_file: ./crelyzor-backend/.env.local
     environment:
@@ -62,7 +62,7 @@ services:
     build:
       context: ./crelyzor-backend
       target: deps
-    command: pnpm dev:worker
+    command: sh -c "pnpm prisma generate && pnpm dev:worker"
     restart: unless-stopped
     env_file: ./crelyzor-backend/.env.local
     environment:
