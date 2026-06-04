@@ -1,6 +1,6 @@
 # Crelyzor — Master Task List
 
-Last updated: 2026-06-01 (Phase 6 COMPLETE ✅ — P15 admin portal shipped: /config (SystemConfig editor) + /product-teams (teams table + detail drawer). All Phase 6 tasks done.)
+Last updated: 2026-06-04 (Phase 6 post-ship fixes: team slot 404 fix, guestEmail decrypt crash fix, BookingFlow slot picker UX overhaul.)
 
 > **Rule:** When you complete a task, change `- [ ]` to `- [x]` and move it to the Done section.
 > **Legend:** `[ ]` Not started · `[~]` Has code but broken/incomplete · `[x]` Done and working
@@ -1071,6 +1071,12 @@ Dev notes: `docs/dev-notes/phase-6-p12-team-aware-content-internal-booking.md`.
 - [x] `/invite/:token` — SSR; accept/decline flow; Google OAuth signup if needed; expired/invalid token states.
 - [x] `/t/:slug` — SSR team public page (logo, name, description, members roster, OG meta).
 - [x] `/schedule/t/:slug/:username` — team-branded booking page (team identity header + member booking flow).
+
+### P14 Post-ship fixes (2026-06-04)
+
+- [x] **Team slot 404 fix** — `getSlots` (backend + public frontend) now accepts optional `teamSlug` query param; backend resolves slug → teamId and passes it to the event type lookup. Previously hardcoded `teamId: null` blocked all team event types. `crelyzor-backend` commit `6dba7c8`, `crelyzor-public` commit `1b9ec5c`.
+- [x] **`getMeetingById` guestEmail decrypt crash** — `meetingController.ts` was returning raw encrypted `Bytes` for `MeetingParticipant.guestEmail`; frontend `ScheduledDetail.tsx` tried to render the buffer as a React child → "Objects are not valid as a React child". Fix: decrypt each participant's `guestEmail` via `principalForMeeting` + `decrypt` before sending. `crelyzor-backend` commit `520ab14`.
+- [x] **BookingFlow slot picker UX** — replaced 200-line SVG analog clock picker with a Cal.com-style single-column scrollable list; selected slot uses gold fill; auto-scrolls to booking form on selection; timezone display uses `suppressHydrationWarning` to fix SSR/client mismatch. `crelyzor-public` commit `1b9ec5c`.
 
 ### P15 — Admin Portal ✅ Complete (2026-06-01)
 
