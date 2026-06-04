@@ -1058,7 +1058,7 @@ Dev notes: `docs/dev-notes/phase-6-p12-team-aware-content-internal-booking.md`.
 - [x] All pages scope via injected X-Team-Id; audit confirmed no client-side `userId` filters to remove.
 - [x] Team identity already surfaced via WorkspaceSwitcher trigger (no separate sidebar header needed per spec).
 - [x] `<BookTeamMemberModal />` — 4-step Dialog (pick member → pick event type → pick date+slot → confirm) wired through public scheduling endpoints with pre-filled booker identity. Trigger lives in Meetings page header when in team scope.
-- [ ] Card editor public URL preview swap to `crelyzor.app/t/[team-slug]/[card-slug]` when in team context — small follow-up.
+- [x] Card editor public URL preview swap to `crelyzor.app/t/[team-slug]/[card-slug]` when in team context — small follow-up.
 
 ### P13 — Frontend: In-app Invite Surfaces ✅ Complete (2026-06-01)
 
