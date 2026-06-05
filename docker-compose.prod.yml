@@ -99,8 +99,8 @@ services:
     build:
       context: ./crelyzor-frontend
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
-        VITE_CARDS_PUBLIC_URL: ${VITE_CARDS_PUBLIC_URL}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.crelyzor.app/api/v1}
+        VITE_CARDS_PUBLIC_URL: ${VITE_CARDS_PUBLIC_URL:-https://crelyzor.app}
     restart: always
     networks:
       - internal
