@@ -1306,9 +1306,9 @@ Run with: `make admin-up` | Stop with: `make admin-down`
 - [x] Docker Compose profile (make admin-up / admin-down / admin-logs)
 - [x] crelyzor-start skill updated to include crelyzor-admin as 4th repo
 
-**Phase 2 (future):**
-- [ ] Audit log — record every plan change
-- [ ] User suspend / soft-delete from admin
-- [ ] System health dashboard
-- [ ] Team member access (AdminUser table)
-- [ ] Production deploy
+**Phase 2 (complete):**
+- [x] Audit log — record every plan change
+- [x] User suspend / soft-delete from admin
+- [x] System health dashboard
+- [x] Team member access (AdminUser table)
+- [x] Production deploy
