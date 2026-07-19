@@ -51,6 +51,9 @@ services:
       context: ./crelyzor-backend
     restart: always
     env_file: ./crelyzor-backend/.env.prod
+    volumes:
+      # GCS service-account key — used for signing v4 URLs (GCS_KEY_FILE=/app/gcs-key.json)
+      - ./crelyzor-backend/gcs-key.json:/app/gcs-key.json:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,6 +83,9 @@ services:
     command: node dist/worker.js     # different entry point
     restart: always
     env_file: ./crelyzor-backend/.env.prod
+    volumes:
+      # GCS service-account key — worker downloads recordings from GCS
+      - ./crelyzor-backend/gcs-key.json:/app/gcs-key.json:ro
     depends_on:
       postgres:
         condition: service_healthy
