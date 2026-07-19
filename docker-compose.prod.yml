@@ -99,8 +99,8 @@ services:
     build:
       context: ./crelyzor-frontend
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.crelyzor.app/api/v1}
-        VITE_CARDS_PUBLIC_URL: ${VITE_CARDS_PUBLIC_URL:-https://crelyzor.app}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.crelyzor.hrshkshri.com/api/v1}
+        VITE_CARDS_PUBLIC_URL: ${VITE_CARDS_PUBLIC_URL:-https://crelyzor.hrshkshri.com}
     restart: always
     networks:
       - internal
@@ -124,9 +124,9 @@ services:
     build:
       context: ./crelyzor-public
       args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.crelyzor.app/api/v1}
-        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://app.crelyzor.app}
-        NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-https://crelyzor.app}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.crelyzor.hrshkshri.com/api/v1}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://platform.crelyzor.hrshkshri.com}
+        NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-https://crelyzor.hrshkshri.com}
     restart: always
     networks:
       - internal

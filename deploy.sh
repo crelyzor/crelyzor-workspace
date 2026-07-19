@@ -1,9 +1,8 @@
 #!/bin/bash
-# deploy.sh — pull latest code and redeploy a specific environment
+# deploy.sh — pull latest code and redeploy production
 #
 # Usage:
-#   ./deploy.sh prod       → production
-#   ./deploy.sh staging    → staging
+#   ./deploy.sh       → production
 #
 # Run this on the VM from the workspace root.
 
@@ -16,21 +15,10 @@ exec 200>"$LOCKFILE"
 flock 200
 echo "Lock acquired (PID $$)"
 
-ENV=${1:-prod}
-if [[ "$ENV" != "prod" && "$ENV" != "staging" ]]; then
-  echo "Usage: ./deploy.sh [prod|staging]"
-  exit 1
-fi
-
-if [[ "$ENV" == "prod" ]]; then
-  BRANCH="main"
-  COMPOSE_FILE="docker-compose.prod.yml"
-  ENV_FILE="crelyzor-backend/.env.prod"
-else
-  BRANCH="staging"
-  COMPOSE_FILE="docker-compose.staging.yml"
-  ENV_FILE="crelyzor-backend/.env.staging"
-fi
+ENV="prod"
+BRANCH="main"
+COMPOSE_FILE="docker-compose.prod.yml"
+ENV_FILE="crelyzor-backend/.env.prod"
 
 echo "──────────────────────────────────────────"
 echo "  Deploying: $ENV"
@@ -120,9 +108,9 @@ echo "[5/5] Starting services..."
 # Guard: if admin is in this compose file but its SSL cert is missing, nginx
 # will fail to start and take down the entire site — abort early with a clear message.
 if echo "$COMPOSE_SERVICES" | grep -qx "admin"; then
-  if ! sudo test -f "/etc/letsencrypt/live/admin.crelyzor.app/fullchain.pem"; then
-    echo "ERROR: SSL cert for admin.crelyzor.app not found."
-    echo "       Run: certbot certonly --nginx -d admin.crelyzor.app"
+  if ! sudo test -f "/etc/letsencrypt/live/crelyzor.hrshkshri.com/fullchain.pem"; then
+    echo "ERROR: SSL cert for admin.crelyzor.hrshkshri.com not found."
+    echo "       Run: certbot certonly --nginx -d admin.crelyzor.hrshkshri.com"
     echo "       Then re-run this deploy."
     exit 1
   fi

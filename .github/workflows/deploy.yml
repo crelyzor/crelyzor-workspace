@@ -6,7 +6,6 @@
 #
 # Triggers:
 #   push to main      → deploy to production
-#   push to staging   → deploy to staging
 #
 # Required GitHub Secrets (Settings → Secrets and variables → Actions):
 #   VM_HOST              VM public IP or hostname
@@ -20,37 +19,18 @@ on:
   push:
     branches:
       - main      # → production
-      - staging   # → staging
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy'
-        required: true
-        default: 'prod'
-        type: choice
-        options: [prod, staging]
 
 jobs:
   deploy:
-    name: Deploy — ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    name: Deploy — production
     runs-on: ubuntu-latest
 
     environment:
-      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
-      url: ${{ github.ref_name == 'main' && 'https://crelyzor.app' || 'https://staging.crelyzor.app' }}
+      name: production
+      url: https://crelyzor.hrshkshri.com
 
     steps:
-      - name: Determine environment
-        id: env
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "name=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.ref_name }}" == "main" ]]; then
-            echo "name=prod" >> $GITHUB_OUTPUT
-          else
-            echo "name=staging" >> $GITHUB_OUTPUT
-          fi
-
       - name: SSH and deploy
         uses: appleboy/ssh-action@v1.2.5
         with:
@@ -60,4 +40,4 @@ jobs:
           command_timeout: 45m
           script: |
             cd ${{ secrets.VM_WORKSPACE_PATH }}
-            ./deploy.sh ${{ steps.env.outputs.name }}
+            ./deploy.sh
