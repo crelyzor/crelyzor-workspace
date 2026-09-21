@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Crelyzor — brag</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="assets/music/audio-data.js"></script>
+    <style>
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 400;
+        font-display: block;
+        src: url('assets/fonts/inter-400.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 500;
+        font-display: block;
+        src: url('assets/fonts/inter-500.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 600;
+        font-display: block;
+        src: url('assets/fonts/inter-600.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 700;
+        font-display: block;
+        src: url('assets/fonts/inter-700.woff2') format('woff2');
+      }
+
+      /* ---- Crelyzor brand tokens (from crelyzor-public/src/app/globals.css) ---- */
+      :root {
+        --bg: #0a0a0a;
+        --fg: #fafafa;
+        --muted: #a3a3a3;
+        --dim: #8a8a8a;
+        --gold: #d4af61;
+        --panel: #121212;
+        --panel-2: #171717;
+        --line: #2b2b2b;
+        --line-soft: #232323;
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+        color: var(--fg);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ---------- persistent backdrop ---------- */
+      #backdrop { position: absolute; inset: 0; }
+
+      /* the business card's 135deg hairline texture, scaled up for video */
+      #texture {
+        position: absolute;
+        inset: 0;
+        background-image: repeating-linear-gradient(
+          135deg,
+          transparent 0 26px,
+          rgba(240, 236, 229, 0.055) 26px 28px
+        );
+      }
+
+      #glow-pos { position: absolute; left: 0; top: 0; width: 1700px; height: 1000px; }
+      #glow-breathe {
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(212, 175, 97, 0.20) 0%,
+          rgba(212, 175, 97, 0.075) 36%,
+          rgba(212, 175, 97, 0) 68%
+        );
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%);
+      }
+
+      /* ---------- scene shell ---------- */
+      .clip { position: absolute; inset: 0; }
+      .inner { position: absolute; inset: 0; }
+
+      /* ---------- shared type ---------- */
+      .eyebrow {
+        font-size: 19px;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .gold { color: var(--gold); }
+      .dot {
+        width: 12px; height: 12px; border-radius: 50%;
+        background: var(--gold); display: inline-block;
+      }
+
+      /* ---------- SCENE 1 — hook ---------- */
+      #hook-inner { opacity: 0; }
+      #hook-wrap {
+        position: absolute;
+        left: 168px; top: 0;
+        width: 1560px; height: 100%;
+        display: flex; flex-direction: column; justify-content: center;
+      }
+      #hook-rule {
+        position: absolute;
+        left: -40px; top: 50%;
+        width: 4px; height: 260px;
+        margin-top: -130px;
+        background: linear-gradient(180deg, rgba(212,175,97,0), var(--gold), rgba(212,175,97,0));
+        transform-origin: 50% 50%;
+        opacity: 0;
+      }
+      #hook-eyebrow {
+        display: flex; align-items: center; gap: 14px;
+        font-size: 24px; font-weight: 500; color: var(--muted);
+        margin-bottom: 44px; letter-spacing: 0.01em;
+      }
+      #hook-eyebrow .sep { color: #4a4a4a; }
+      .hook-line {
+        display: block;
+        font-size: 126px;
+        font-weight: 600;
+        letter-spacing: -0.032em;
+        line-height: 1.04;
+        color: var(--fg);
+      }
+
+      /* ---------- SCENES 2-4 — app frame + editorial rail ---------- */
+      #frame-glow {
+        position: absolute;
+        left: 60px; top: 90px; width: 1300px; height: 920px;
+        background: radial-gradient(ellipse at center, rgba(212,175,97,0.13) 0%, rgba(212,175,97,0) 65%);
+      }
+      #frame {
+        position: absolute;
+        left: 120px; top: 140px;
+        width: 1180px; height: 800px;
+        border: 2px solid var(--line);
+        border-radius: 22px;
+        background: var(--bg);
+        overflow: hidden;
+        box-shadow: 0 34px 80px rgba(0,0,0,0.78), 0 10px 30px rgba(0,0,0,0.5);
+      }
+      #urlbar {
+        height: 58px;
+        background: var(--panel);
+        border-bottom: 2px solid var(--line-soft);
+        display: flex; align-items: center; padding: 0 20px;
+      }
+      #urlchip {
+        display: flex; align-items: center; gap: 12px;
+        background: #1e1e1e; border-radius: 8px;
+        padding: 8px 18px; font-size: 19px; color: var(--muted);
+      }
+      #urlchip .ring {
+        width: 12px; height: 12px; border-radius: 50%;
+        border: 2px solid #5a5a5a;
+      }
+      #urltext { position: relative; display: inline-block; }
+      #urltext-b { position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; }
+      .screen {
+        position: absolute;
+        left: 0; top: 58px; right: 0; bottom: 0;
+        padding: 30px 34px;
+      }
+
+      /* meeting view */
+      #meeting-card {
+        background: var(--panel);
+        border: 2px solid var(--line);
+        border-radius: 18px;
+        padding: 26px 28px;
+      }
+      #meeting-title { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; color: var(--fg); }
+      #meeting-meta { display: flex; align-items: center; gap: 12px; margin-top: 10px; font-size: 20px; color: var(--muted); }
+      #meeting-meta .sep { color: #4a4a4a; }
+      #speakers { display: flex; align-items: center; gap: 12px; margin-top: 22px; }
+      #speakers .lbl { font-size: 17px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
+      .chip {
+        border: 2px solid #3a3a3a; border-radius: 999px;
+        padding: 5px 18px; font-size: 19px; color: var(--muted);
+      }
+
+      #tabs {
+        position: relative;
+        display: flex;
+        margin-top: 26px;
+        border-bottom: 2px solid var(--line-soft);
+      }
+      .tab {
+        text-align: center;
+        font-size: 20px; font-weight: 500;
+        color: var(--dim);
+        padding-bottom: 14px;
+      }
+      #tab-underline {
+        position: absolute;
+        left: 0; bottom: -2px;
+        width: 100px; height: 3px;
+        background: var(--fg);
+        transform-origin: 0 50%;
+      }
+
+      #summary-block { margin-top: 26px; }
+      .block-lbl { font-size: 17px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+      #summary-text {
+        margin-top: 12px;
+        font-size: 22px; line-height: 1.55; color: var(--dim);
+        max-width: 1020px;
+      }
+      #kp-block { margin-top: 24px; }
+      .kp-row { display: flex; align-items: flex-start; gap: 16px; margin-top: 14px; }
+      .kp-row .bullet { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); margin-top: 11px; flex: none; }
+      .kp-row .txt { font-size: 25px; line-height: 1.3; color: var(--fg); font-weight: 400; }
+      #ai-block { margin-top: 26px; }
+      .ai-row {
+        display: flex; align-items: center; gap: 16px;
+        border: 2px solid var(--line); border-radius: 12px;
+        background: var(--panel);
+        padding: 12px 18px; margin-top: 12px;
+      }
+      .ai-row .box { width: 20px; height: 20px; border: 2px solid #4a4a4a; border-radius: 5px; flex: none; }
+      .ai-row .txt { font-size: 22px; color: var(--muted); }
+
+      /* tasks view */
+      #tasks-view { display: flex; gap: 40px; }
+      .column { width: 534px; }
+      .col-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+      .col-head .name { font-size: 21px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+      .col-head .count {
+        font-size: 17px; color: var(--dim);
+        border: 2px solid var(--line); border-radius: 999px; padding: 2px 12px;
+      }
+      .task {
+        border: 2px solid var(--line); border-radius: 14px;
+        background: var(--panel); padding: 22px 22px; margin-bottom: 16px;
+      }
+      .task .txt { font-size: 24px; color: var(--fg); font-weight: 400; line-height: 1.25; }
+      .task .meta { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+      .task .tag.muted {
+        color: var(--muted); border-color: var(--line); background: transparent;
+      }
+      .task .tag {
+        font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--gold); border: 2px solid rgba(212,175,97,0.42);
+        background: rgba(212,175,97,0.09);
+        border-radius: 6px; padding: 3px 10px;
+      }
+      .task .tick { width: 10px; height: 10px; border-radius: 50%; background: #4ade80; }
+      .task .meta .lo { font-size: 16px; color: var(--dim); }
+      .task.new { border-color: rgba(212,175,97,0.34); }
+
+      /* editorial rail */
+      .rail {
+        position: absolute;
+        left: 1408px; top: 0;
+        width: 400px; height: 100%;
+        display: flex; flex-direction: column; justify-content: center;
+      }
+      .rail-rule {
+        width: 3px; height: 120px;
+        background: linear-gradient(180deg, var(--gold), rgba(212,175,97,0));
+        transform-origin: 50% 0%;
+        margin: 22px 0 30px 4px;
+      }
+      .rail-lbl { font-size: 18px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; }
+      .rail-cap {
+        font-size: 44px; font-weight: 500; line-height: 1.2;
+        letter-spacing: -0.015em; color: var(--fg);
+      }
+      #rail-cap-b { position: absolute; }
+
+      /* ---------- SCENE 4 — business card ---------- */
+      #card-stage {
+        position: absolute;
+        left: 200px; top: 50%;
+        width: 880px; height: 555px;
+        margin-top: -277px;
+        perspective: 1600px;
+      }
+      #card-glow {
+        position: absolute;
+        left: -110px; top: -110px; width: 1100px; height: 775px;
+        background: radial-gradient(ellipse at center, rgba(212,175,97,0.15) 0%, rgba(212,175,97,0) 64%);
+      }
+      #card-inner {
+        position: relative;
+        width: 100%; height: 100%;
+        transform-style: preserve-3d;
+      }
+      .face {
+        position: absolute; inset: 0;
+        border-radius: 26px;
+        overflow: hidden;
+        background: #0a0a0a;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        box-shadow: 0 40px 90px rgba(0,0,0,0.82), 0 10px 30px rgba(0,0,0,0.55);
+      }
+      #card-back { transform: rotateY(180deg); }
+      .face .tex-135 {
+        position: absolute; inset: 0;
+        background-image: repeating-linear-gradient(135deg, transparent 0 16px, rgba(255,255,255,0.10) 16px, rgba(255,255,255,0.10) 17px);
+        opacity: 0.32;
+      }
+      .face .tex-45 {
+        position: absolute; inset: 0;
+        background-image: repeating-linear-gradient(45deg, transparent 0 16px, rgba(255,255,255,0.10) 16px, rgba(255,255,255,0.10) 17px);
+        opacity: 0.32;
+      }
+      .face .body {
+        position: relative; height: 100%;
+        display: flex; flex-direction: column; justify-content: space-between;
+        padding: 46px 48px;
+      }
+      #mono {
+        width: 96px; height: 96px; border-radius: 20px;
+        background: #1a1a1a;
+        box-shadow: 0 0 0 2px var(--gold);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 42px; font-weight: 600; color: var(--gold);
+        flex: none;
+      }
+      .card-name { font-size: 36px; font-weight: 600; color: var(--fg); letter-spacing: -0.01em; }
+      .card-role { font-size: 19px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); margin-top: 12px; }
+      .card-contact { font-size: 22px; color: var(--muted); line-height: 1.7; }
+      .card-flip-lbl { font-size: 15px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim); }
+      .card-bio { font-size: 26px; line-height: 1.6; color: var(--muted); max-width: 640px; }
+      .social {
+        border-radius: 10px; background: rgba(255,255,255,0.06);
+        padding: 11px 16px; font-size: 18px; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold);
+      }
+      .strip-b { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, var(--gold), rgba(212,175,97,0.33)); }
+      .strip-t { position: absolute; left: 0; right: 0; top: 0; height: 4px; background: linear-gradient(90deg, rgba(212,175,97,0.33), var(--gold)); }
+      #tap-ring {
+        position: absolute;
+        left: 640px; top: 300px;
+        width: 116px; height: 116px;
+        margin: -58px 0 0 -58px;
+        border-radius: 50%;
+        border: 3px solid rgba(212,175,97,0.85);
+        opacity: 0;
+      }
+
+      /* ---------- SCENE 5 — outro ---------- */
+      #outro-wrap {
+        position: absolute;
+        left: 168px; top: 0;
+        width: 1560px; height: 100%;
+        display: flex; flex-direction: column; justify-content: center;
+      }
+      .outro-line {
+        display: block;
+        font-size: 120px; font-weight: 600;
+        letter-spacing: -0.032em; line-height: 1.05;
+      }
+      #outro-sig { display: flex; align-items: center; gap: 26px; margin-top: 72px; }
+      #outro-sig .rulebit { width: 76px; height: 3px; background: var(--gold); transform-origin: 0 50%; }
+      #outro-url { font-size: 26px; color: var(--muted); letter-spacing: 0.02em; }
+      #wordmark-glow {
+        position: absolute;
+        left: 60px; top: 50%; width: 900px; height: 420px;
+        margin-top: 60px;
+        background: radial-gradient(ellipse at center, rgba(212,175,97,0.14) 0%, rgba(212,175,97,0) 66%);
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1920"
+      data-height="1080"
+      data-duration="22"
+      data-fps="30"
+    >
+      <!-- ============ persistent backdrop (untimed) ============ -->
+      <div id="backdrop" data-layout-ignore>
+        <div id="texture"></div>
+        <div id="glow-pos"><div id="glow-breathe"></div></div>
+        <div id="vignette"></div>
+      </div>
+
+      <!-- ============ SCENE 1 — the claim (0.00 → 4.32) ============ -->
+      <section id="s-hook" class="clip" data-start="0" data-duration="4.32" data-track-index="0">
+        <div class="inner" id="hook-inner">
+          <div id="hook-wrap">
+            <div id="hook-rule"></div>
+            <div id="hook-eyebrow">
+              <span class="dot"></span>
+              <span class="gold" style="font-weight: 600">Crelyzor</span>
+              <span class="sep">·</span>
+              <span>Early access</span>
+            </div>
+            <span class="hook-line" id="hook-l1">Your meetings</span>
+            <span class="hook-line" id="hook-l2">remember <span class="gold">everything.</span></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SCENES 2+3 — the working app (3.82 → 13.61) ============ -->
+      <section id="s-app" class="clip" data-start="3.82" data-duration="9.79" data-track-index="1">
+        <div class="inner" id="app-inner">
+          <div id="frame-glow" data-layout-ignore></div>
+
+          <div id="frame">
+            <div id="urlbar">
+              <div id="urlchip">
+                <span class="ring"></span>
+                <span id="urltext">
+                  <span id="urltext-a">app.crelyzor.app/meetings/ethics-ai</span>
+                  <span id="urltext-b">app.crelyzor.app/tasks</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- ---- meeting view ---- -->
+            <div class="screen" id="meeting-view">
+              <div id="meeting-card">
+                <div id="meeting-title">Ethics and Safety in AI Development</div>
+                <div id="meeting-meta">
+                  <span>Mar 4, 2026</span><span class="sep">·</span><span>3 min</span>
+                </div>
+                <div id="speakers">
+                  <span class="lbl">Speakers (2)</span>
+                  <span class="chip">Dadrio</span>
+                  <span class="chip">Nikhil</span>
+                </div>
+              </div>
+
+              <div id="tabs">
+                <div class="tab" style="width: 146px" id="tab-rec">Recording</div>
+                <div class="tab" style="width: 150px">Transcript</div>
+                <div class="tab" style="width: 162px" id="tab-ai">AI Summary</div>
+                <div class="tab" style="width: 104px">Tasks</div>
+                <div class="tab" style="width: 106px">Notes</div>
+                <div class="tab" style="width: 112px">Ask AI</div>
+                <div class="tab" style="width: 136px">Generate</div>
+                <div id="tab-underline"></div>
+              </div>
+
+              <div id="summary-block">
+                <div class="block-lbl">Summary</div>
+                <div id="summary-text">
+                  Discussion covered ethical frameworks for AI development: bias mitigation,
+                  transparency requirements, and responsible deployment strategies.
+                </div>
+              </div>
+
+              <div id="kp-block">
+                <div class="block-lbl" id="kp-lbl">Key Points</div>
+                <div class="kp-row" id="kp-1">
+                  <span class="bullet"></span>
+                  <span class="txt">Establish bias testing protocols before deployment</span>
+                </div>
+                <div class="kp-row" id="kp-2">
+                  <span class="bullet"></span>
+                  <span class="txt">Transparency reports required for enterprise AI</span>
+                </div>
+              </div>
+
+              <div id="ai-block">
+                <div class="block-lbl">Action Items</div>
+                <div class="ai-row" id="ai-1">
+                  <span class="box"></span><span class="txt">Draft bias testing framework doc</span>
+                </div>
+                <div class="ai-row" id="ai-2">
+                  <span class="box"></span><span class="txt">Schedule regulatory review call</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ---- tasks view ---- -->
+            <div class="screen" id="tasks-view">
+              <div class="column">
+                <div class="col-head">
+                  <span class="name">To Do</span><span class="count">4</span>
+                </div>
+                <div class="task">
+                  <div class="txt">Update onboarding docs</div>
+                  <div class="meta"><span class="tag muted">Today</span></div>
+                </div>
+                <div class="task">
+                  <div class="txt">Build card analytics page</div>
+                  <div class="meta"><span class="tag muted">Today</span></div>
+                </div>
+                <div class="task new" id="task-new-1">
+                  <div class="txt">Draft bias testing framework doc</div>
+                  <div class="meta"><span class="tag">From meeting</span></div>
+                </div>
+                <div class="task new" id="task-new-2">
+                  <div class="txt">Schedule regulatory review call</div>
+                  <div class="meta"><span class="tag">From meeting</span></div>
+                </div>
+              </div>
+              <div class="column">
+                <div class="col-head">
+                  <span class="name">In Progress</span><span class="count">3</span>
+                </div>
+                <div class="task">
+                  <div class="txt">Deepgram integration test</div>
+                  <div class="meta"><span class="tick"></span><span class="lo">Today</span></div>
+                </div>
+                <div class="task">
+                  <div class="txt">AI summary pipeline</div>
+                  <div class="meta"><span class="tick"></span><span class="lo">Today</span></div>
+                </div>
+                <div class="task">
+                  <div class="txt">Email signature generator</div>
+                  <div class="meta"><span class="tick"></span><span class="lo">Today</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rail">
+            <span class="dot" id="rail-dot-a"></span>
+            <div class="rail-rule" id="rail-rule-a"></div>
+            <div id="rail-block-a">
+              <div class="rail-lbl" id="rail-lbl-a">AI Summary</div>
+              <div class="rail-cap" id="rail-cap-a">Meetings that remember.</div>
+            </div>
+            <div id="rail-block-b" style="position: absolute; top: 50%; margin-top: 62px">
+              <div class="rail-lbl">Tasks</div>
+              <div class="rail-cap">Action items become tasks.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 4 — the card (13.11 → 17.97) ============ -->
+      <section id="s-card" class="clip" data-start="13.11" data-duration="4.86" data-track-index="2">
+        <div class="inner" id="card-scene-inner">
+          <div id="card-glow" data-layout-ignore></div>
+          <div id="card-stage">
+            <div id="card-inner">
+              <div class="face" id="card-front">
+                <div class="tex-135"></div>
+                <div class="body">
+                  <div style="display: flex; align-items: flex-start; gap: 26px">
+                    <div id="mono">H</div>
+                    <div style="padding-top: 6px">
+                      <div class="card-name">Harsh</div>
+                      <div class="card-role">Founder, Crelyzor</div>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: flex-end; justify-content: space-between">
+                    <div class="card-contact">harsh@crelyzor.app<br />crelyzor.app</div>
+                    <div class="card-flip-lbl">Tap to flip</div>
+                  </div>
+                </div>
+                <div class="strip-b"></div>
+              </div>
+
+              <div class="face" id="card-back">
+                <div class="tex-45"></div>
+                <div class="body">
+                  <div class="card-bio" data-layout-allow-overlap>
+                    Building the all-in-one productivity OS for solo professionals — identity,
+                    schedule, meetings, and work in one place.
+                  </div>
+                  <div style="display: flex; align-items: flex-end; justify-content: space-between">
+                    <div style="display: flex; gap: 14px">
+                      <span class="social" data-layout-allow-overlap>in</span><span class="social" data-layout-allow-overlap>tw</span><span class="social" data-layout-allow-overlap>gh</span>
+                    </div>
+                    <div class="card-flip-lbl" data-layout-allow-overlap>Tap to flip</div>
+                  </div>
+                </div>
+                <div class="strip-t"></div>
+              </div>
+            </div>
+            <div id="tap-ring" data-layout-ignore></div>
+          </div>
+
+          <div class="rail">
+            <span class="dot" id="rail-dot-c"></span>
+            <div class="rail-rule" id="rail-rule-c"></div>
+            <div id="rail-block-c">
+              <div class="rail-lbl">Digital Card</div>
+              <div class="rail-cap">Your identity, everywhere.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 5 — one tool (17.47 → 22.00) ============ -->
+      <section id="s-outro" class="clip" data-start="17.47" data-duration="4.53" data-track-index="3">
+        <div class="inner" id="outro-inner">
+          <div id="wordmark-glow" data-layout-ignore></div>
+          <div id="outro-wrap">
+            <span class="outro-line" id="outro-l1">One tool.</span>
+            <span class="outro-line gold" id="outro-l2">Everything connected.</span>
+            <div id="outro-sig">
+              <svg id="wordmark" width="340" height="66" viewBox="0 0 412 80" fill="none" aria-label="Crelyzor">
+                <line x1="40" y1="5.63" x2="40" y2="13.05" stroke="#F0ECE5" stroke-width="2.81" stroke-linecap="round" opacity="0.8"/>
+                <line x1="57.18" y1="10.24" x2="55.06" y2="13.91" stroke="#D4A030" stroke-width="1.75" stroke-linecap="round"/>
+                <line x1="69.76" y1="22.82" x2="66.09" y2="24.94" stroke="#F0ECE5" stroke-width="1.75" stroke-linecap="round" opacity="0.35"/>
+                <line x1="74.37" y1="40" x2="66.95" y2="40" stroke="#F0ECE5" stroke-width="2.81" stroke-linecap="round" opacity="0.8"/>
+                <line x1="69.76" y1="57.18" x2="66.09" y2="55.06" stroke="#F0ECE5" stroke-width="1.75" stroke-linecap="round" opacity="0.35"/>
+                <line x1="57.18" y1="69.76" x2="55.06" y2="66.09" stroke="#F0ECE5" stroke-width="1.75" stroke-linecap="round" opacity="0.35"/>
+                <line x1="40" y1="74.37" x2="40" y2="66.95" stroke="#F0ECE5" stroke-width="2.81" stroke-linecap="round" opacity="0.8"/>
+                <line x1="22.82" y1="69.76" x2="24.94" y2="66.09" stroke="#F0ECE5" stroke-width="1.75" stroke-linecap="round" opacity="0.35"/>
+                <line x1="10.24" y1="57.18" x2="13.91" y2="55.06" stroke="#F0ECE5" stroke-width="1.75" stroke-linecap="round" opacity="0.35"/>
+                <line x1="5.63" y1="40" x2="13.05" y2="40" stroke="#F0ECE5" stroke-width="2.81" stroke-linecap="round" opacity="0.8"/>
+                <line x1="10.24" y1="22.82" x2="13.91" y2="24.94" stroke="#F0ECE5" stroke-width="1.75" stroke-linecap="round" opacity="0.35"/>
+                <line x1="22.82" y1="10.24" x2="24.94" y2="13.91" stroke="#F0ECE5" stroke-width="1.75" stroke-linecap="round" opacity="0.35"/>
+                <circle cx="40" cy="40" r="26.48" stroke="#F0ECE5" stroke-width="6.24" fill="none"/>
+                <line x1="40" y1="40" x2="34.97" y2="48.71" stroke="#F0ECE5" stroke-width="3.12" stroke-linecap="round" opacity="0.65"/>
+                <line x1="40" y1="40" x2="52.61" y2="32.72" stroke="#D4A030" stroke-width="2.62" stroke-linecap="round"/>
+                <circle cx="40" cy="40" r="3.74" fill="#D4A030"/>
+                <text x="102" y="60" font-family="Inter, sans-serif" font-weight="600" font-size="52" letter-spacing="-1.6" fill="#F0ECE5">crelyzor</text>
+              </svg>
+              <div id="outro-sig-rule" class="rulebit"></div>
+              <div id="outro-url">crelyzor.app</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ audio ============ -->
+      <audio
+        id="bg-music"
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"
+        data-start="0"
+        data-duration="22"
+        data-track-index="10"
+        data-automation='{"version":1,"lanes":[{"target":"volume","points":[{"t":0,"v":0},{"t":0.5,"v":0.3},{"t":20.6,"v":0.3},{"t":22,"v":0}]}]}'
+      ></audio>
+
+      <!-- app frame settles -->
+      <audio id="sfx-frame" src="assets/sfx/impact/impactSoft_medium_000.ogg"
+             data-start="3.87" data-duration="0.12" data-track-index="11" data-volume="0.55"></audio>
+      <!-- task card 1 lands  // beat-grid 9.83 -->
+      <audio id="sfx-task-1" src="assets/sfx/impact/impactSoft_medium_002.ogg"
+             data-start="9.83" data-duration="0.14" data-track-index="12" data-volume="0.5"></audio>
+      <!-- task card 2 lands  // beat-grid 10.93 -->
+      <audio id="sfx-task-2" src="assets/sfx/impact/impactSoft_medium_004.ogg"
+             data-start="10.93" data-duration="0.15" data-track-index="13" data-volume="0.5"></audio>
+      <!-- simulated tap on the card -->
+      <audio id="sfx-tap" src="assets/sfx/interface/click_003.ogg"
+             data-start="14.2" data-duration="0.05" data-track-index="14" data-volume="0.45"></audio>
+      <!-- "Everything connected." lands  // beat-locked 18.56 -->
+      <audio id="sfx-bell" src="assets/sfx/impact/impactBell_heavy_000.ogg"
+             data-start="18.56" data-duration="1.48" data-track-index="15" data-volume="0.55"></audio>
+    </div>
+
+    <script>
+      /* ------------------------------------------------------------------
+         Crelyzor brag — 22.0s, 1920x1080, polished tone.
+         Beat source: assets/music/cues/…vol-12….music-cues.json (109.96 BPM).
+         Strong cues used: 8.74 / 13.11 / 17.47 / 18.56.
+         ------------------------------------------------------------------ */
+      var tl = gsap.timeline({ paused: true });
+
+      /* ---- glow positions per scene (ellipse center = x+850, y+500) ---- */
+      var GLOW = {
+        hook:  { x: 10,  y: -460 },
+        app:   { x: 670, y: -20 },
+        card:  { x: 330, y: -80 },
+        outro: { x: -330, y: 540 }
+      };
+
+      /* =================== SCENE 1 — the claim =================== */
+      tl.set("#glow-pos", GLOW.hook, 0)
+        .to("#hook-inner", { opacity: 1, duration: 0.4, ease: "power1.out" }, 0.05)
+        .fromTo("#hook-rule", { scaleY: 0, opacity: 0 },
+                { scaleY: 1, opacity: 1, duration: 0.9, ease: "power3.out" }, 0.1)
+        .fromTo("#hook-eyebrow", { opacity: 0, y: 14 },
+                { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.18)
+        // beat-grid: 0.56 / 1.09
+        .fromTo("#hook-l1", { opacity: 0, y: 30 },
+                { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 0.56)
+        .fromTo("#hook-l2", { opacity: 0, y: 30 },
+                { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 1.09)
+        // headline settled 1.64 → 3.82 = 2.18s
+        .to("#hook-wrap", { y: -16, duration: 2.2, ease: "none" }, 1.64)
+        .to("#hook-inner", { opacity: 0, duration: 0.5, ease: "power1.inOut" }, 3.82);
+
+      /* =================== SCENES 2+3 — the working app =================== */
+      tl.set("#app-inner", { opacity: 0 }, 0)
+        .set("#frame-glow", { opacity: 0 }, 0)
+        .set("#tasks-view", { opacity: 0 }, 0)
+        .set("#tab-underline", { x: 0, scaleX: 1.46 }, 0)
+        .set("#tab-rec", { color: "#fafafa" }, 0)
+        .set(["#meeting-card", "#tabs", "#summary-block", "#kp-block", "#ai-block"], { opacity: 0 }, 0)
+        .set(["#kp-1", "#kp-2", "#ai-1", "#ai-2"], { opacity: 0 }, 0)
+        .set(["#rail-dot-a", "#rail-rule-a", "#rail-block-a", "#rail-block-b"], { opacity: 0 }, 0)
+        .set("#rail-rule-a", { scaleY: 0 }, 0)
+        .set(["#task-new-1", "#task-new-2"], { opacity: 0 }, 0);
+
+      tl.to("#glow-pos", { x: GLOW.app.x, y: GLOW.app.y, duration: 0.95, ease: "power2.inOut" }, 3.82)
+        .to("#app-inner", { opacity: 1, duration: 0.5, ease: "power1.out" }, 3.82)
+        // the frame settles — SFX sfx-frame at 3.87
+        .fromTo("#frame", { scale: 0.955, y: 26 },
+                { scale: 1, y: 0, duration: 0.7, ease: "power3.out" }, 3.87)
+        .to("#frame-glow", { opacity: 1, duration: 0.8, ease: "power1.out" }, 3.9)
+        .to("#meeting-card", { opacity: 1, duration: 0.45, ease: "power2.out" }, 4.15)
+        .fromTo("#meeting-title", { opacity: 0, y: 14 },
+                { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 4.2)
+        .fromTo("#meeting-meta", { opacity: 0, y: 10 },
+                { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 4.32)
+        .fromTo("#speakers", { opacity: 0, y: 10 },
+                { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 4.44)
+        // beat-grid: rail arrives on 4.39
+        .to("#rail-dot-a", { opacity: 1, duration: 0.35, ease: "power2.out" }, 4.39)
+        .to("#rail-rule-a", { opacity: 1, scaleY: 1, duration: 0.6, ease: "power3.out" }, 4.45)
+        .fromTo("#rail-block-a", { opacity: 0, y: 18 },
+                { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 4.55)
+        .to("#tabs", { opacity: 1, duration: 0.4, ease: "power2.out" }, 4.66)
+        // beat 4.91 — the underline glides Recording → AI Summary
+        .to("#tab-underline", { x: 296, scaleX: 1.62, duration: 0.55, ease: "power2.inOut" }, 4.91)
+        .to("#tab-rec", { color: "#8a8a8a", duration: 0.45, ease: "none" }, 4.91)
+        .to("#tab-ai", { color: "#fafafa", duration: 0.45, ease: "none" }, 5.05)
+        .fromTo("#summary-block", { opacity: 0, y: 14 },
+                { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 5.1)
+        // beat-grid: key points at 5.34 and 6.56 (every other beat), each held ≥1.7s
+        .to("#kp-block", { opacity: 1, duration: 0.3, ease: "none" }, 5.3)
+        .fromTo("#kp-1", { opacity: 0, x: -18 },
+                { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }, 5.34)
+        .fromTo("#kp-2", { opacity: 0, x: -18 },
+                { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }, 6.56)
+        // action items glimpse — they become readable as task cards in the board
+        .to("#ai-block", { opacity: 1, duration: 0.3, ease: "none" }, 6.0)
+        .fromTo("#ai-1", { opacity: 0, y: 12 },
+                { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 7.09)
+        .fromTo("#ai-2", { opacity: 0, y: 12 },
+                { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 7.64);
+
+      // beat-locked: 8.74 strong cue — the meeting dissolves into the board
+      tl.to("#meeting-view", { opacity: 0, duration: 0.45, ease: "power1.inOut" }, 8.74)
+        .to("#tasks-view", { opacity: 1, duration: 0.45, ease: "power1.inOut" }, 8.78)
+        .to("#urltext-a", { opacity: 0, duration: 0.3, ease: "power1.inOut" }, 8.78)
+        .to("#urltext-b", { opacity: 1, duration: 0.3, ease: "power1.inOut" }, 8.94)
+        .to("#rail-block-a", { opacity: 0, y: -14, duration: 0.3, ease: "power2.in" }, 8.74)
+        .fromTo("#rail-block-b", { opacity: 0, y: 18 },
+                { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 8.94)
+        // beat-grid: the two action items land as task cards at 9.83 and 10.93
+        .fromTo("#task-new-1", { opacity: 0, y: 300, scale: 0.96 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out" }, 9.83)
+        .fromTo("#task-new-2", { opacity: 0, y: 258, scale: 0.96 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out" }, 10.93)
+        .to("#app-inner", { opacity: 0, duration: 0.5, ease: "power1.inOut" }, 13.11);
+
+      /* =================== SCENE 4 — the card =================== */
+      tl.set("#card-scene-inner", { opacity: 0 }, 0)
+        .set("#card-inner", { rotationY: 180 }, 0)
+        .set(["#rail-dot-c", "#rail-rule-c", "#rail-block-c"], { opacity: 0 }, 0)
+        .set("#rail-rule-c", { scaleY: 0 }, 0)
+        .set("#tap-ring", { opacity: 0, scale: 0.55 }, 0);
+
+      // beat-locked: 13.11 strong cue
+      tl.to("#glow-pos", { x: GLOW.card.x, y: GLOW.card.y, duration: 0.95, ease: "power2.inOut" }, 13.11)
+        .to("#card-scene-inner", { opacity: 1, duration: 0.5, ease: "power1.out" }, 13.11)
+        .fromTo("#card-stage", { scale: 0.94, y: 22 },
+                { scale: 1, y: 0, duration: 0.7, ease: "power3.out" }, 13.16)
+        .to("#rail-dot-c", { opacity: 1, duration: 0.35, ease: "power2.out" }, 13.64)
+        .to("#rail-rule-c", { opacity: 1, scaleY: 1, duration: 0.6, ease: "power3.out" }, 13.7)
+        .fromTo("#rail-block-c", { opacity: 0, y: 18 },
+                { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 13.8)
+        // simulated tap — SFX sfx-tap at 14.20
+        .to("#tap-ring", { opacity: 0.9, scale: 1, duration: 0.26, ease: "power2.out" }, 13.98)
+        .to("#tap-ring", { opacity: 0, scale: 1.5, duration: 0.42, ease: "power2.out" }, 14.26)
+        .to("#card-inner", { rotationY: 0, duration: 0.72, ease: "power2.inOut" }, 14.28)
+        // back face settled 15.00 → 17.47 = 2.47s
+        .to("#card-scene-inner", { opacity: 0, duration: 0.5, ease: "power1.inOut" }, 17.47);
+
+      /* =================== SCENE 5 — one tool =================== */
+      tl.set("#outro-inner", { opacity: 0 }, 0)
+        .set(["#outro-l1", "#outro-l2"], { opacity: 0 }, 0)
+        .set("#wordmark", { opacity: 0 }, 0)
+        .set("#outro-url", { opacity: 0 }, 0)
+        .set("#outro-sig-rule", { scaleX: 0 }, 0);
+
+      // beat-locked: 17.47 strong cue
+      tl.to("#glow-pos", { x: GLOW.outro.x, y: GLOW.outro.y, duration: 0.95, ease: "power2.inOut" }, 17.47)
+        .to("#outro-inner", { opacity: 1, duration: 0.45, ease: "power1.out" }, 17.47)
+        .fromTo("#outro-l1", { opacity: 0, y: 28 },
+                { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 17.52)
+        // beat-locked: 18.56 strong cue — SFX sfx-bell at 18.56
+        .fromTo("#outro-l2", { opacity: 0, y: 28 },
+                { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 18.56)
+        .to("#wordmark", { opacity: 1, duration: 0.7, ease: "power2.out" }, 19.66)
+        .to("#outro-sig-rule", { scaleX: 1, duration: 0.5, ease: "power3.out" }, 19.86)
+        .to("#outro-url", { opacity: 1, duration: 0.55, ease: "power2.out" }, 19.96);
+
+      /* =================== audio-reactive layer ===================
+         Subtle only: the gold glow breathes with RMS/bass, the app frame's
+         backlight gains presence on bass, and the outro wordmark glow lifts
+         with treble. No waveforms, no bars, no text scaling. */
+      (function () {
+        var A = window.AUDIO_DATA;
+        if (!A) return;
+        var glow = document.getElementById("glow-breathe");
+        var frameGlow = document.getElementById("frame-glow");
+        var wmGlow = document.getElementById("wordmark-glow");
+        for (var f = 0; f < A.totalFrames; f++) {
+          tl.call(
+            (function (rms, bass, treble, t) {
+              return function () {
+                gsap.set(glow, {
+                  opacity: 0.62 + rms * 0.38,
+                  scale: 1 + bass * 0.075
+                });
+                gsap.set(frameGlow, { scale: 1 + bass * 0.045 });
+                if (t >= 19.4) {
+                  gsap.set(wmGlow, { opacity: 0.35 + treble * 0.55 });
+                }
+              };
+            })(A.rms[f], A.bass[f], A.treble[f], f / A.fps),
+            [],
+            f / A.fps
+          );
+        }
+      })();
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
